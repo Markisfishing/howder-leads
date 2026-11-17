@@ -110,4 +110,4 @@
 
 ## 開發中發現、還沒排進階段的事
 
-- [ ] 新增 `.gitattributes` 統一 LF 換行（部署到 Linux 前）
+- [x] 新增 `.gitattributes` 統一 LF 換行（部署到 Linux 前） — 2026-11-17
