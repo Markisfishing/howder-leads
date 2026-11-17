@@ -1,0 +1,82 @@
+/* =====================================================================
+   厚達電子 業務系統 — 設計規範 (design tokens)
+   只有這個檔案可以寫具體數值；其他 CSS 一律用 var(--...)
+   這份是起點：之後要換主色，只要改 --color-accent 那一行（hover 也一起調）
+   ===================================================================== */
+
+:root {
+  /* ---------- 顏色 ----------
+     來源：厚達官網 logo 紅 #D61A20、HOWDER 字樣橘、炭灰 #333。
+     原色彩度太高，業務整天看表格會刺眼，所以：
+     - 大面積用「帶一點暖的灰白」，和品牌紅橘同一個色溫，不會冷冰冰
+     - 品牌紅降彩度、壓暗成磚紅，只用在按鈕、連結、選取狀態這些小面積
+     - 命名講用途不講長相：叫 accent 不叫 red，之後換色名字才不會變謊話 */
+  --color-bg: #FAF8F6;            /* 頁面底色：暖白，比純白不刺眼 */
+  --color-surface: #FFFFFF;       /* 卡片、表格底：比底色亮一階，讓內容浮起來 */
+  --color-surface-muted: #F3F0EC; /* 表頭、篩選列、hover 列：比卡片暗一階 */
+  --color-border: #E4DED8;        /* 分隔線：看得到但不搶眼 */
+  --color-text: #2E2A27;          /* 內文：炭灰（品牌 #333 的暖版），對白底 14:1 */
+  --color-text-muted: #6B635D;    /* 次要文字：日期、說明，對白底仍 > 5:1 */
+  --color-accent: #B4433A;        /* 主色：降彩度的品牌紅（磚紅），白字在上面 > 5:1 */
+  --color-accent-hover: #963630;  /* 主色按下 / 滑過：同色相再暗一階 */
+  --color-accent-soft: #F7EAE7;   /* 主色淡底：選取列、目前頁籤的底 */
+  --color-on-accent: #FFFFFF;     /* 放在主色上的文字 */
+
+  /* 星級用品牌橘（降彩度）：星星本身就有形狀，不需要靠對比辨識；旁邊一律附數字 */
+  --color-star: #D9822B;
+  --color-star-empty: #E4DED8;
+
+  /* 狀態色：一律「淡底 + 深字」，不用整塊飽和色，避免一整頁花花綠綠
+     danger 比主色更暗、偏棕，而且出現時一律附文字，不會和主色按鈕搞混 */
+  --color-success: #2F6B4F;
+  --color-success-bg: #E7F1EA;
+  --color-warning: #85570F;
+  --color-warning-bg: #FBF0DD;
+  --color-danger: #8E2F2A;
+  --color-danger-bg: #F8E6E4;
+  --color-info: #3D5A73;
+  --color-info-bg: #E8EEF3;
+
+  /* 陰影：只給浮起來的卡片用一層很淡的，不用來做裝飾 */
+  --shadow-card: 0 1px 2px rgba(46, 42, 39, 0.06), 0 1px 3px rgba(46, 42, 39, 0.04);
+
+  /* ---------- 字級 ----------
+     先四級，不夠再加。base 不小於 16px：業務常要讀判斷理由，太小眼睛累 */
+  --text-sm: 0.875rem;   /* 14px：表格次要欄、標籤、說明 */
+  --text-base: 1rem;     /* 16px：內文、表格主欄 */
+  --text-lg: 1.25rem;    /* 20px：區塊標題、側欄公司名 */
+  --text-xl: 1.75rem;    /* 28px：KPI 數字、頁面標題 */
+
+  --line-height: 1.6;        /* 中文內文需要比英文更寬的行高 */
+  --line-height-tight: 1.25; /* 標題、數字 */
+  --font-weight-bold: 600;
+
+  /* ---------- 間距 ----------
+     全部是 4px 的倍數：眼睛看得出 16 跟 24 的差別，看不出 17 跟 18 的 */
+  --space-1: 0.25rem;  /* 4px：圖示和文字之間 */
+  --space-2: 0.5rem;   /* 8px：標籤內距、同組元素 */
+  --space-3: 0.75rem;  /* 12px：表格儲存格內距 */
+  --space-4: 1rem;     /* 16px：卡片內距、手機左右留白 */
+  --space-5: 1.5rem;   /* 24px：區塊之間 */
+  --space-6: 2rem;     /* 32px：大區塊之間、寬螢幕左右留白 */
+
+  /* ---------- 其他 ---------- */
+  --radius: 8px;            /* 卡片、按鈕；小一點比較像工作工具，不像行銷頁 */
+  --radius-pill: 999px;     /* 狀態標籤 */
+  --max-width: 1280px;      /* 表格欄位多，給到 1280；再寬一行字會太長 */
+  --sidebar-width: 232px;   /* 左側導覽列 */
+  --border-width: 1px;      /* 所有分隔線、外框 */
+  --focus-width: 2px;       /* 鍵盤焦點外框：只用鍵盤操作也看得到目前在哪 */
+
+  /* 字體：只用系統內建，不載入外部字體檔（載入慢，離線會變樣）
+     Windows 用微軟正黑體、Mac 用蘋方，數字用系統 UI 字體比較整齊 */
+  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "Microsoft JhengHei",
+               "PingFang TC", "Noto Sans TC", "Heiti TC", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace; /* 統編 */
+}
+
+/* ---------- 斷點備忘 ----------
+   CSS 變數不能用在 @media 裡，所以斷點只能寫成註解，用的時候自己打數字：
+   768px  ：平板直放 → 表格從卡片式改成橫列式
+   1024px ：平板橫放、小筆電 → 出現左側導覽列
+   寫法：先寫手機版，再用 @media (min-width: 768px) 往上加 */
