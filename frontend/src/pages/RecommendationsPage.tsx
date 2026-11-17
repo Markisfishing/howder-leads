@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+import { downloadCompanies } from "../api/endpoints";
 import { useCompanies, useReview } from "../api/hooks";
 import { useAuth } from "../auth/AuthProvider";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Empty, ErrorState, InlineError, Loading } from "../components/StateView";
+import { type ColumnKey, loadColumns, saveColumns } from "../lib/columns";
+import { saveBlob } from "../lib/download";
 import { type ListFilters, parseFilters, toSearchParams, updateFilters } from "../lib/filters";
 import { AddCompanyDialog } from "./recommendations/AddCompanyDialog";
+import { ColumnPicker } from "./recommendations/ColumnPicker";
 import { CompanyDetailPanel } from "./recommendations/CompanyDetailPanel";
 import { CompanyList } from "./recommendations/CompanyList";
 import { FilterBar } from "./recommendations/FilterBar";
@@ -34,6 +38,26 @@ export function RecommendationsPage() {
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  // 欄位自選（M3-13b、F-REC-8）：記在這台瀏覽器
+  const [columns, setColumnsState] = useState<ColumnKey[]>(loadColumns);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const setColumns = (cols: ColumnKey[]) => {
+    setColumnsState(cols);
+    saveColumns(cols);
+  };
+  const [exportError, setExportError] = useState<unknown>(null);
+  const [exporting, setExporting] = useState(false);
+  const doExport = async () => {
+    setExportError(null);
+    setExporting(true);
+    try {
+      saveBlob(await downloadCompanies(filters, columns), "companies");
+    } catch (err) {
+      setExportError(err);
+    } finally {
+      setExporting(false);
+    }
+  };
   const [notice, setNoticeState] = useState({ text: "", seq: 0 });
   const setNotice = (text: string) => setNoticeState((n) => ({ text, seq: n.seq + 1 }));
   // 批次操作完成後批次列會消失，把焦點移到結果訊息，鍵盤使用者才不會掉回頁首
@@ -90,6 +114,10 @@ export function RecommendationsPage() {
           <p className={styles.meta}>依推薦度排序，勾選後可以批次通過或排除</p>
         </div>
         <div className={styles.headActions}>
+          <Button onClick={() => setPickerOpen(true)}>顯示欄位</Button>
+          <Button busy={exporting} onClick={() => void doExport()}>
+            匯出 CSV
+          </Button>
           <Button onClick={() => setAddOpen(true)}>手動加入</Button>
           {isAdmin && (
             <Button variant="primary" onClick={() => navigate("/admin/imports")}>
@@ -99,6 +127,7 @@ export function RecommendationsPage() {
         </div>
       </header>
 
+      <InlineError error={exportError} />
       <KpiCards />
       <FilterBar filters={filters} onChange={onFilterChange} />
 
@@ -127,6 +156,7 @@ export function RecommendationsPage() {
             onToggle={toggle}
             onToggleAll={toggleAll}
             onOpen={(id) => openCompany(id)}
+            columns={columns}
           />
           <nav className={styles.pager} aria-label="分頁">
             <span className={styles.pagerInfo}>
@@ -173,6 +203,12 @@ export function RecommendationsPage() {
           setNotice(`已排除 ${n} 家公司`);
           setSelected(new Set());
         }}
+      />
+      <ColumnPicker
+        open={pickerOpen}
+        columns={columns}
+        onChange={setColumns}
+        onClose={() => setPickerOpen(false)}
       />
       <AddCompanyDialog
         open={addOpen}
