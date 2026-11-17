@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-18 |
 | 目前階段 | **M3 案件追蹤（進行中）**；M2 完成（sandbox），只剩 M2-15 真實 Outlook 驗收；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | M3-07a `sales_case` migration |
+| 下一個任務 | M3-08a 案件 domain 規則 |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -189,8 +189,8 @@
   - [ ] M3-06a migration：`company` 加 `country`、`url_status`、`source`；`classification` 加 `fit_stars`、`product_type`、`tags`；匯入批次存漏斗前段數字（單獨 commit）
   - [ ] M3-06b 匯入器支援新欄位、`invalid` 網址列為「略過」、未知欄位提示；附一份範例 CSV（假資料）給 MLE
   - [ ] M3-06c 推薦清單顯示小數星等，新增篩選條件：國別、來源、網址狀態、產品類型、標籤、星等下限（F-REC-1、F-REC-7）
-- [ ] M3-07 migration：`opportunity` 改名擴充為 `sales_case`，新增 `case_update`（拆成下列 a）
-  - [ ] M3-07a migration 0006（單獨 commit）：
+- [x] M3-07 migration：`opportunity` 改名擴充為 `sales_case`，新增 `case_update`（拆成下列 a）
+  - [x] M3-07a migration 0006（單獨 commit）： — 2026-11-18
     - `opportunity` 沒有資料也沒有程式在用，直接改建成 `sales_case`：編號 `case_no`（C-0001）、公司、聯絡人、負責業務、來源（`email`／`tracking`）、狀態、寄出日、最後回填時間、下次追蹤日、成交金額、結案時間
     - 同一家公司同時只能有一件未結案的案件（部分唯一索引）
     - `case_update`：管道（email／line／wechat／phone／visit／other／system）、聯絡人、結果（replied／negotiating／won／lost／no_response／sent）、備註、下次追蹤日、金額

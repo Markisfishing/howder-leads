@@ -323,7 +323,7 @@ PostgreSQL 16，完整的 DDL 在 [`backend/db/schema.sql`](../backend/db/schema
 | 回饋 | `review`、`gold_label` | 業務審核（排除一定要有原因）；盲標的標準答案 |
 | 聯絡 | `contact` | 聯絡人、來源（website／business_card／referral／exhibition／manual）和退訂狀態；同一家公司 email 不重複 |
 | 郵件 | `email_template`、`campaign`、`email_draft`、`email_message`、`email_event` | 模板（`family_id` 串起各版本，修改就新增版本）→ 批次 → 草稿（業務編輯純文字 `body_text`，系統轉成 `body_html`；含原稿、排程時間、寄送嘗試次數、最後錯誤）→ 實際寄出 → 事件 |
-| 成果 | `opportunity`、`activity_log` | 商機階段和金額；所有變更的稽核紀錄。**M3 規劃：** `opportunity` 改名擴充成 `sales_case`（案件），回填紀錄放在 `case_update` |
+| 成果 | `sales_case`、`case_update`、`activity_log` | 案件（編號 `case_no` C-0001；來源 `email`／`tracking`；狀態 sent／tracking／replied／negotiating／no_response／won／lost；下次追蹤日、成交金額；同一家公司同時只有一件未結案）→ 回填紀錄（管道、結果、備註、下次追蹤日、金額；系統事件管道為 `system`）；所有變更的稽核紀錄。原 `opportunity` 在 0006 移除 |
 | 背景工作 | `job` | PostgreSQL 佇列（ADR 0003）：`kind`、`status`、`run_after`（排程與重試）、`attempts`；新增時 `NOTIFY job_queued` |
 | 寄信權杖 | `user_mail_credential` | 每位業務一筆 Fernet 加密的 MSAL 權杖快取與連結狀態（ADR 0005） |
 | 指標 | `v_recommendation`、`v_kpi_summary`、`v_funnel`、`v_win_rate_by_priority`、`v_reject_reasons` | **KPI 只在這些 view 定義一次** |
@@ -334,7 +334,8 @@ app_user 1─* company(owner) 1─* classification *─1 model_run
 company 1─* review          company 1─1 gold_label
 company 1─* contact 1─* email_draft *─1 campaign *─1 email_template
 email_draft 1─1 email_message 1─* email_event
-company 1─* opportunity     company 1─* activity_log
+company 1─* sales_case 1─* case_update     sales_case *─1 email_message
+company 1─* activity_log
 ```
 
 ### 8.3 從現有 Excel 轉換時的清理規則

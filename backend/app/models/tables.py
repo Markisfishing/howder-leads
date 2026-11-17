@@ -4,7 +4,7 @@
 欄位要和 migrations/sql/*.sql 一致，由 tests/test_models.py 檢查。
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -12,6 +12,8 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     Column,
+    Computed,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -283,6 +285,47 @@ class EmailMessage(Base):
     graph_message_id: Mapped[str | None] = mapped_column(Text)
     conversation_id: Mapped[str | None] = mapped_column(Text)
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+# ---------- 案件（M3、ADR 0004）----------
+CASE_STATUSES = ("sent", "tracking", "replied", "negotiating", "no_response", "won", "lost")
+CASE_CHANNELS = ("email", "line", "wechat", "phone", "visit", "other", "system")
+CASE_RESULTS = ("sent", "replied", "negotiating", "won", "lost", "no_response")
+
+
+class SalesCase(Base):
+    """案件：每封開發信（或「加入追蹤」）一件。同一家公司同時只有一件未結案（migration 0006）。"""
+
+    __tablename__ = "sales_case"
+    case_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    case_no: Mapped[str] = mapped_column(Text, Computed("'C-' || lpad(case_id::text, 4, '0')", persisted=True))
+    company_id: Mapped[int] = mapped_column(ForeignKey("company.company_id"))
+    contact_id: Mapped[int | None] = mapped_column(ForeignKey("contact.contact_id"))
+    owner_id: Mapped[int] = mapped_column(ForeignKey("app_user.user_id"))
+    origin: Mapped[str] = mapped_column(Text)
+    message_id: Mapped[int | None] = mapped_column(ForeignKey("email_message.message_id"))
+    status: Mapped[str] = mapped_column(Text)
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_update_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    next_follow_up: Mapped[date | None] = mapped_column(Date)
+    amount_twd: Mapped[Decimal | None] = mapped_column(Numeric(14, 0))
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CaseUpdate(Base):
+    """回填紀錄（時間軸的一筆）。業務人工輸入；系統自動事件 channel = 'system'。"""
+
+    __tablename__ = "case_update"
+    update_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("sales_case.case_id"))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.user_id"))
+    channel: Mapped[str] = mapped_column(Text)
+    contact_id: Mapped[int | None] = mapped_column(ForeignKey("contact.contact_id"))
+    result: Mapped[str] = mapped_column(Text)
+    note: Mapped[str | None] = mapped_column(Text)
+    next_follow_up: Mapped[date | None] = mapped_column(Date)
+    amount_twd: Mapped[Decimal | None] = mapped_column(Numeric(14, 0))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 # ---------- 指標層 view（唯讀）----------
