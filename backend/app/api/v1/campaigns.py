@@ -4,9 +4,9 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import current_user
@@ -97,6 +97,14 @@ class DraftOut(BaseModel):
     send_attempts: int
     last_error: str | None
     approved_at: datetime | None
+
+
+class DraftPageOut(BaseModel):
+    items: list[DraftOut]
+    total: int
+    page: int
+    page_size: int
+    status_counts: dict[str, int]
 
 
 class SendOut(BaseModel):
@@ -264,15 +272,40 @@ def get_campaign(campaign_id: int, user: AppUser = Depends(current_user), db: Se
     return _one(db, campaign_service.get_campaign(db, user, campaign_id))
 
 
-@router.get("/campaigns/{campaign_id}/drafts", response_model=list[DraftOut])
+@router.get("/campaigns/{campaign_id}/drafts", response_model=DraftPageOut)
 def list_drafts(
-    campaign_id: int, user: AppUser = Depends(current_user), db: Session = Depends(get_db)
-) -> list[DraftOut]:
+    campaign_id: int,
+    q: str | None = Query(default=None, max_length=100),
+    status: str | None = Query(default=None, max_length=30),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=50),
+    user: AppUser = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> DraftPageOut:
     campaign_service.get_campaign(db, user, campaign_id)
-    drafts = list(
-        db.scalars(select(EmailDraft).where(EmailDraft.campaign_id == campaign_id).order_by(EmailDraft.draft_id))
+    base = (
+        select(EmailDraft)
+        .join(Company, Company.company_id == EmailDraft.company_id)
+        .join(Contact, Contact.contact_id == EmailDraft.contact_id)
+        .where(EmailDraft.campaign_id == campaign_id)
     )
-    return _draft_out(db, drafts)
+    if q and q.strip():
+        term = f"%{q.strip()}%"
+        base = base.where(or_(Company.name.ilike(term), Contact.name.ilike(term), Contact.email.ilike(term)))
+    if status and status in {"generating", "pending_review", "approved", "discarded", "sent", "failed"}:
+        base = base.where(EmailDraft.status == status)
+
+    total = int(db.scalar(select(func.count()).select_from(base.subquery())) or 0)
+    drafts = list(db.scalars(base.order_by(EmailDraft.draft_id).offset((page - 1) * page_size).limit(page_size)))
+    counts = {
+        row.status: int(row.count)
+        for row in db.execute(
+            select(EmailDraft.status, func.count())
+            .where(EmailDraft.campaign_id == campaign_id)
+            .group_by(EmailDraft.status)
+        )
+    }
+    return DraftPageOut(items=_draft_out(db, drafts), total=total, page=page, page_size=page_size, status_counts=counts)
 
 
 @router.post("/campaigns/{campaign_id}/approve-all", response_model=CampaignOut)

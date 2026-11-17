@@ -144,6 +144,13 @@ export interface Overview {
     won: number;
     won_amount_twd: string;
   };
+  comparison?: {
+    sent_delta: number;
+    reply_rate_delta: string | null;
+    won_delta: number;
+    won_amount_delta_twd: string;
+    reply_rate_target: string;
+  } | null;
   funnel: { key: string; label: string; count: number; rate: string | null }[];
   mle_funnel: Record<string, number> | null;
   by_source: { source: string; sent: number; replied: number; reply_rate: string | null; insufficient: boolean }[];
@@ -218,6 +225,7 @@ export interface EmailTemplate {
   subject: string;
   body_text: string;
   created_at: string;
+  usage_count?: number;
 }
 
 export interface TemplateVariable {
@@ -310,6 +318,14 @@ export interface Draft {
   send_attempts: number;
   last_error: string | null;
   approved_at: string | null;
+}
+
+export interface DraftPage {
+  items: Draft[];
+  total: number;
+  page: number;
+  page_size: number;
+  status_counts: Partial<Record<DraftStatus, number>>;
 }
 
 export interface SendResult {

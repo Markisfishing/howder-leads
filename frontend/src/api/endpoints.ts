@@ -15,6 +15,7 @@ import type {
   ContactSource,
   Dimensions,
   Draft,
+  DraftPage,
   GenMode,
   EmailTemplate,
   ImportBatch,
@@ -169,7 +170,14 @@ export interface CampaignCreate {
 }
 export const createCampaign = (body: CampaignCreate) =>
   api<CampaignCreated>("/campaigns", { method: "POST", json: body });
-export const listDrafts = (campaignId: number) => api<Draft[]>(`/campaigns/${campaignId}/drafts`);
+export const listDrafts = (campaignId: number, params: { q?: string; status?: string; page?: number; page_size?: number } = {}) => {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.status) search.set("status", params.status);
+  search.set("page", String(params.page ?? 1));
+  search.set("page_size", String(params.page_size ?? 25));
+  return api<DraftPage>(`/campaigns/${campaignId}/drafts?${search.toString()}`);
+};
 /** 全部核准一定要帶 confirm: true（F-MAIL-4） */
 export const approveAll = (campaignId: number) =>
   api<Campaign>(`/campaigns/${campaignId}/approve-all`, { method: "POST", json: { confirm: true } });

@@ -75,7 +75,7 @@ class World:
         return dict(res.json())
 
     def drafts(self, campaign_id: int) -> list[dict]:  # type: ignore[type-arg]
-        return list(self.client.get(f"/api/v1/campaigns/{campaign_id}/drafts", headers=self.sales1).json())
+        return list(self.client.get(f"/api/v1/campaigns/{campaign_id}/drafts", headers=self.sales1).json()["items"])
 
     def status(self, company_id: int) -> str:
         self.db.expire_all()

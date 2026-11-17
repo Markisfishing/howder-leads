@@ -131,8 +131,8 @@ export const useCampaign = (id: number) =>
     queryFn: () => ep.getCampaign(id),
     refetchInterval: (q) => (isBusy(q.state.data) ? 2000 : false),
   });
-export const useDrafts = (id: number, poll: boolean) =>
-  useQuery({ queryKey: keys.drafts(id), queryFn: () => ep.listDrafts(id), refetchInterval: poll ? 2000 : false });
+export const useDrafts = (id: number, poll: boolean, params: { q?: string; status?: string; page?: number; page_size?: number } = {}) =>
+  useQuery({ queryKey: [...keys.drafts(id), params], queryFn: () => ep.listDrafts(id, params), refetchInterval: poll ? 2000 : false });
 export const useCandidates = () => useQuery({ queryKey: keys.candidates, queryFn: ep.listCandidates });
 export const useExclusionReasons = () =>
   useQuery({ queryKey: keys.exclusionReasons, queryFn: ep.getExclusionReasons, staleTime: Infinity });

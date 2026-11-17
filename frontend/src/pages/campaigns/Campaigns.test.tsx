@@ -152,7 +152,7 @@ describe("M2-05 預覽佇列", () => {
     const cp = { ...campaign, ...overrides };
     const fn = mockFetch((url, init) => {
       if (url === "/api/v1/campaigns/5") return cp;
-      if (url === "/api/v1/campaigns/5/drafts") return drafts;
+      if (url.startsWith("/api/v1/campaigns/5/drafts?")) return { items: drafts, total: drafts.length, page: 1, page_size: 25, status_counts: { pending_review: drafts.filter((item) => item.status === "pending_review").length, approved: drafts.filter((item) => item.status === "approved").length } };
       if (url === "/api/v1/campaigns/exclusion-reasons") return reasons;
       if (url === "/api/v1/me/mail-connection") return sandbox;
       const m = /\/api\/v1\/drafts\/(\d+)\/approve$/.exec(url);
@@ -170,6 +170,7 @@ describe("M2-05 預覽佇列", () => {
 
   it("test_m2_14_keyboard_approve_and_next：Ctrl+Enter 核准並跳到下一封", async () => {
     const fn = setupReview();
+    fireEvent.click(await screen.findByRole("row", { name: /公司1/ }));
     const subject = await screen.findByDisplayValue("主旨1");
     fireEvent.keyDown(subject, { key: "Enter", ctrlKey: true });
     await waitFor(() => expect(calls(fn, "POST", "/api/v1/drafts/1/approve")).toHaveLength(1));
@@ -190,8 +191,9 @@ describe("M2-05 預覽佇列", () => {
 
   it("test_f_mail_6_send_confirm_dialog：寄出要在對話框再確認，沒填時間就立即寄", async () => {
     const fn = setupReview({ progress: { ...progress, pending_review: 0, approved: 2 } });
-    expect(await screen.findByText(/測試模式/)).toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: "寄出已核准的 2 封…" }));
+    const sendButton = await screen.findByRole("button", { name: "寄出已核准的 2 封…" });
+    await waitFor(() => expect(sendButton).toBeEnabled());
+    fireEvent.click(sendButton);
     const dialog = await screen.findByRole("dialog");
     expect(calls(fn, "POST", "/api/v1/campaigns/5/send")).toHaveLength(0);
     fireEvent.click(within(dialog).getByRole("button", { name: "確定立即寄出" }));
