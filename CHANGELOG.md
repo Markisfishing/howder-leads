@@ -5,6 +5,58 @@
 
 ---
 
+## 2026-11-17｜M2 拆細、佇列改 PostgreSQL、依會議調整規格
+
+**改了哪些檔案**
+- `PROGRESS.md`
+  - M2 拆成 a/b/c 子任務，新增 M2-09～15
+  - M3 改成「案件追蹤與總覽（閉環）」，新增 M3-06～15
+  - M3-01、02、03、05 改成取消或移到 M4，並寫明原因
+  - 新增 M5 延伸
+- `docs/adr/0003-postgres-job-queue.md`：背景工作改用 PostgreSQL 佇列
+- `docs/adr/0004-manual-reply-backfill.md`：回覆改人工回填，每封開發信開一個案件
+- `docs/SPEC.md`（v0.2）
+  - 新增 4.4 案件追蹤與催辦（F-CASE-1～5）、4.6 總覽（F-DASH-1～4）、4.7 來源與標籤（延伸）
+  - 新增 F-REC-7～9
+  - 新增 8.4 CSV 欄位規格 v1
+  - 路由與 API 補上案件、總覽
+  - Graph 只申請 `Mail.Send`
+  - 第 10 節階段重排，第 11 節新增 6～9
+- `CLAUDE.md`
+  - 技術棧拿掉 Redis
+  - 專有名詞補上 `fit_stars`、`source`、`sales_case`、`case_update`、`reminder`
+- `docker-compose.yml`：拿掉 redis
+
+**解決了什麼問題**
+- 這台電腦跑不了 Redis，背景工作改放 PostgreSQL，不必多裝服務。
+- 對照 2026-11-17 會議記錄，規格補上這些漏掉的部分：
+  - 人工回填與逾期催辦
+  - 案件
+  - 資料來源、國別、網址狀態、產品類型、命中標籤
+  - 小數星等
+  - 總覽頁
+  - 欄位自選與匯出
+
+**做了哪些決定**
+- 佇列用 `SELECT … FOR UPDATE SKIP LOCKED`（ADR 0003）。
+- 不讀業務信箱，Graph 只申請 `Mail.Send`；第一版回覆一律人工回填；之後自動化改用專用信箱轉寄（ADR 0004）。
+- 星等由 MLE 算好放進 CSV，系統只顯示。
+- 階段順序改成：M2 寄信 → M3 案件追蹤與總覽 → M4 AI 寫信與績效 → M5 延伸。
+
+**還沒處理的問題**
+- 待確認（SPEC 第 11 節）：
+  - 國外公司的唯一鍵（11-6）
+  - 星等算法（11-7）
+  - 催辦要不要另外寄每日摘要信（11-8）
+  - 推薦名單的最小單位（11-9）
+- `opportunity`、`sales_case`、CSV v1 新欄位都還只是規劃，migration 還沒寫。
+
+**下一步**
+- M2-10：Outlook 委派權杖（只用 `Mail.Send`）的 ADR。
+- M2-11：migration 0003，建立 `job`、`user_mail_credential` 和寄送欄位。
+
+---
+
 ## 2026-11-17｜M1 MVP：匯入、推薦清單、審核
 
 **改了哪些檔案**
