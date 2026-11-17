@@ -80,11 +80,16 @@ export interface ReviewRecord {
   created_at: string;
 }
 
+/** 聯絡人來源，和後端 migration 0004 的 CHECK 一致 */
+export type ContactSource = "website" | "business_card" | "referral" | "exhibition" | "manual";
+
 export interface Contact {
   contact_id: number;
   name: string | null;
   title: string | null;
   email: string;
+  source: ContactSource;
+  is_verified: boolean;
   unsubscribed: boolean;
 }
 

@@ -14,12 +14,14 @@ import {
   REJECT_REASON_LABELS,
   STATUS_LABELS,
   STATUS_TONE,
+  activityNote,
   formatDate,
   formatDateTime,
   hostname,
 } from "../../lib/labels";
 import { isLockedByOther } from "../../lib/ownership";
 import styles from "./CompanyDetail.module.css";
+import { ContactsSection } from "./ContactsSection";
 import { RejectDialog } from "./RejectDialog";
 
 /** 區塊：公司詳情 · 完整理由、官網、登記產品、往來紀錄；可修正官網與產業（F-REC-4） */
@@ -223,22 +225,8 @@ function Detail({ company: c, showPageLink }: { company: CompanyDetail; showPage
         )}
       </section>
 
-      {/* 區塊：聯絡人（M2 才能新增） */}
-      <section className={styles.block}>
-        <h3 className={styles.blockTitle}>聯絡人</h3>
-        {c.contacts.length === 0 ? (
-          <p className={styles.hint}>尚無聯絡人（M2 開放新增）</p>
-        ) : (
-          <ul className={styles.timeline}>
-            {c.contacts.map((p) => (
-              <li key={p.contact_id}>
-                {p.name ?? "—"} {p.title && `· ${p.title}`} · {p.email}
-                {p.unsubscribed && " · 已退訂"}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {/* 區塊：聯絡人（M2-01b） */}
+      <ContactsSection company={c} canAct={canAct} isManager={isManager} />
 
       {/* 區塊：審核紀錄 */}
       {c.reviews.length > 0 && (
@@ -271,7 +259,7 @@ function Detail({ company: c, showPageLink }: { company: CompanyDetail; showPage
                   {STATUS_LABELS[a.to_value as keyof typeof STATUS_LABELS] ?? a.to_value}
                 </>
               )}
-              {a.note && ` — ${a.note}`}
+              {activityNote(a.action, a.note) && ` — ${activityNote(a.action, a.note)}`}
             </li>
           ))}
         </ul>

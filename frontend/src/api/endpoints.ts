@@ -3,6 +3,8 @@ import { api, apiBlob } from "./client";
 import type {
   CompanyDetail,
   CompanyPage,
+  Contact,
+  ContactSource,
   Dimensions,
   ImportBatch,
   ImportBatchDetail,
@@ -50,6 +52,33 @@ export interface CompanyCreate {
 }
 export const createCompany = (body: CompanyCreate) =>
   api<CompanyDetail>("/companies", { method: "POST", json: body });
+
+// ---------- 聯絡人（M2-01）----------
+export interface ContactCreate {
+  company_id: number;
+  email: string;
+  source: ContactSource;
+  name?: string;
+  title?: string;
+  is_verified?: boolean;
+}
+export const createContact = (body: ContactCreate) => api<Contact>("/contacts", { method: "POST", json: body });
+
+/** 只送有改的欄位；name、title 送 null 代表清空 */
+export interface ContactPatch {
+  email?: string;
+  source?: ContactSource;
+  name?: string | null;
+  title?: string | null;
+  is_verified?: boolean;
+}
+export const patchContact = (id: number, body: ContactPatch) =>
+  api<Contact>(`/contacts/${id}`, { method: "PATCH", json: body });
+export const unsubscribeContact = (id: number, note?: string) =>
+  api<Contact>(`/contacts/${id}/unsubscribe`, { method: "POST", json: { note } });
+/** 個資刪除：主管／管理員，一定要填原因 */
+export const deleteContact = (id: number, reason: string) =>
+  api<void>(`/contacts/${id}`, { method: "DELETE", json: { reason } });
 
 export const claimCompany = (id: number) => api<CompanyDetail>(`/companies/${id}/claim`, { method: "POST" });
 export const releaseCompany = (id: number) => api<CompanyDetail>(`/companies/${id}/release`, { method: "POST" });
