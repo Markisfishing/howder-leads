@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-11-18｜M3 案件追蹤與總覽（閉環）、CSV 欄位規格 v1
+
+**改了哪些檔案**
+- `backend/migrations/versions/0006`～`0010`：案件 `sales_case`／回填 `case_update`、待辦 view `v_case_reminder`、`job.kind` 加 `case_daily`、CSV v1 欄位（`country`、`url_status`、`source`、`fit_stars`、`product_type`、`tags`、批次 `funnel`）、總覽 view `v_case_fact`／`v_company_fact`（`v_kpi_summary` 回覆率改用案件）
+- `backend/app/domain/case_rules.py`：案件狀態機、回填驗證、帶動公司狀態（跳級依序走過）
+- `backend/app/services/case_service.py`、`reminder_service.py`、`metrics_service.py`：寄出自動開案、加入追蹤、回填、退訂結案、每日催辦、總覽加總
+- `backend/app/services/importer.py`、`api/v1/imports.py`：CSV v1 新欄位、`invalid` 網址略過、未知欄位提示、API 匯入帶 `funnel`
+- `backend/app/api/v1/cases.py`、`reminders.py`、`overview.py`、`companies.py`（新篩選、`/companies/export`）、`meta.py`（`/dimensions` 回傳國別、來源、標籤）
+- `frontend/src/pages/cases/`：`/cases` 列表、各狀態件數、時間軸、回填表單、客戶要求退訂
+- `frontend/src/pages/overview/`：`/overview` KPI、名單漏斗、各來源回覆率、待辦提醒
+- `frontend/src/pages/recommendations/`：小數星等、CSV v1 篩選、欄位自選（`lib/columns.ts`）、匯出、批次加入追蹤；`AdminImportsPage.tsx` 顯示略過列、提示、漏斗數字
+- `docs/samples/import_v1_sample.csv`：給 MLE 的範例（假資料）；`.gitignore` 只放行 `docs/samples/*.csv`
+- `docs/SPEC.md` 3.1、8.1、8.4、API 表同步；測試新增 `test_case_rules`、`test_cases`、`test_schema_0006`～`0010`、`test_import_v1`、`test_companies_v1`、`test_overview`，前端 `Cases`、`Overview`、`Recommendations`、`columns` 測試
+
+**解決了什麼問題**
+- 閉環完成：寄出 → 自動開案 → 業務人工回填（不讀信箱，ADR 0004）→ 公司狀態跟著走 → 逾期／該追蹤／無回應提醒 → 總覽數字。
+- M3-14 示範（sandbox）：API 匯入 100 家假公司 → 審核 → 100 封寄出 → 一件回覆並成交 NT$180,000、一件洽談中設今天追蹤；總覽顯示寄出 100、回覆率 2.0%、成交 1、該追蹤了 1。
+- 修 bug（示範時發現，先補測試）：寄信不會認領公司，業務的漏斗「已寄信」用 `company.owner_id` 篩選變成 0；改依案件負責業務計算。
+- MLE 漏斗數字存在 JSONB 不保留順序，畫面改成依數字由大到小排。
+
+**做了哪些決定**
+- 「寄出」「回覆」「成交」只在 `v_case_fact` 定義：時間軸有 `sent` 才算寄出；回填過 replied／negotiating／won 算回覆。回覆率不再讀 `email_event`。
+- 總覽範圍：名單數是共用名單池；寄出／回覆／成交依案件負責業務，業務只看自己的，主管可選業務或全團隊；日期區間套寄出日（台灣時間）。
+- migration 編號：0008 給 `job.kind`，0009 給 CSV v1，0010 給總覽 view；已套用的 migration 沒有修改（ruff 對 migrations 關掉 E501）。
+- 舊版 Excel 沒有「資料來源」欄照樣匯入並提示；重新匯入不會洗掉已知來源。檔案有來源欄時每列必填。
+- 欄位自選和匯出共用同一組欄位 key；畫面的「推薦度」匯出成星等＋優先級兩欄；匯出不含聯絡人 email。
+
+**還沒處理的問題**
+- 寄信要不要自動認領公司（目前只有「認領」與「加入追蹤」會），待業務主管決定。
+- 先前提出、仍待決定：一位聯絡人退訂就讓整家公司 `do_not_contact` 是否太嚴、取消退訂入口、地端 LLM 的 GPU 主機、`CLAUDE.md` 第 3 節仍寫 Graph「讀回覆」（和 ADR 0004 衝突）、寄送下班時間上限、批次全部核准後的狀態文字、建立批次頁沒有搜尋。
+- M2-15 真實 Outlook 驗收（等 SPEC 11-4）、M1-03 Docker 驗證。
+- 其他小問題列在 `PROGRESS.md`「開發中發現」：對話框關閉後焦點、篩選列太長、比例門檻寫在兩處。
+
+**下一步**
+- 依 CLAUDE.md 第 13 節把 M4 拆成 commit 大小的任務，從 M4-06（地端 LLM 產生郵件，ADR 0006）開始。
+
+---
+
 ## 2026-11-18｜M2 寄信：模板、批次、預覽佇列、寄出（sandbox）
 
 **改了哪些檔案**
