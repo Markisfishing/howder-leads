@@ -21,6 +21,16 @@ class Settings(BaseSettings):
 
     # 寄信：sandbox 不會真的寄出（CLAUDE.md 第 6 節）
     mail_mode: Literal["sandbox", "live"] = "sandbox"
+    # live 寄信用（ADR 0005）：機密用戶端密碼、權杖快取加密金鑰（Fernet，逗號分隔可放多把以便換金鑰）
+    entra_client_secret: str = ""
+    mail_token_key: str = ""
+    # 寄送限制（F-MAIL-6、F-MAIL-7）；「一天」以台灣時間計算
+    daily_send_limit: int = 50
+    send_per_minute: int = 10
+    send_day_start_hour: int = 9
+    recent_send_days: int = 14
+    # 背景工作：沒收到 NOTIFY 時多久輪詢一次
+    worker_poll_seconds: float = 5.0
 
     # MLE function 直接呼叫匯入 API 用的金鑰
     import_api_key: str = ""
@@ -34,6 +44,12 @@ class Settings(BaseSettings):
             raise ValueError("正式環境不可以使用 AUTH_MODE=dev")
         if self.env != "production" and self.mail_mode == "live":
             raise ValueError("只有正式環境可以設定 MAIL_MODE=live")
+        if self.mail_mode == "live" and not (self.entra_client_secret and self.mail_token_key):
+            raise ValueError("MAIL_MODE=live 需要 ENTRA_CLIENT_SECRET 與 MAIL_TOKEN_KEY（ADR 0005）")
+        if self.mail_mode == "live" and self.auth_mode != "entra":
+            raise ValueError("MAIL_MODE=live 需要 AUTH_MODE=entra")
+        if self.daily_send_limit < 1 or self.send_per_minute < 1:
+            raise ValueError("DAILY_SEND_LIMIT 與 SEND_PER_MINUTE 必須大於 0")
         if self.auth_mode == "entra" and not (self.entra_tenant_id and self.entra_client_id):
             raise ValueError("AUTH_MODE=entra 需要 ENTRA_TENANT_ID 與 ENTRA_CLIENT_ID")
         return self
