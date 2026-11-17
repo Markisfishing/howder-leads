@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-18 |
 | 目前階段 | **M3 案件追蹤（進行中）**；M2 完成（sandbox），只剩 M2-15 真實 Outlook 驗收；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | M3-12a 總覽 view migration |
+| 下一個任務 | M3-06b 匯入器支援 CSV v1 新欄位 |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -186,7 +186,7 @@
   - [x] M3-04a 案件頁「客戶要求退訂」：標記聯絡人退訂、公司改 `do_not_contact`、案件結案（結果 `lost`，備註「退訂」），時間軸留紀錄＋測試 — 2026-11-18（聯絡人退訂也會一併結案）
 - [~] M3-05 商機階段與金額（F-TRK-4）（取消：併入 M3-09 案件回填）
 - [ ] M3-06 CSV 欄位規格 v1（SPEC 8.4）
-  - [ ] M3-06a migration：`company` 加 `country`、`url_status`、`source`；`classification` 加 `fit_stars`、`product_type`、`tags`；匯入批次存漏斗前段數字（單獨 commit）
+  - [x] M3-06a migration 0009：`company` 加 `country`、`url_status`、`source`；`classification` 加 `fit_stars`、`product_type`、`tags`；匯入批次存漏斗前段數字（單獨 commit） — 2026-11-18
   - [ ] M3-06b 匯入器支援新欄位、`invalid` 網址列為「略過」、未知欄位提示；附一份範例 CSV（假資料）給 MLE
   - [ ] M3-06c 推薦清單顯示小數星等，新增篩選條件：國別、來源、網址狀態、產品類型、標籤、星等下限（F-REC-1、F-REC-7）
 - [x] M3-07 migration：`opportunity` 改名擴充為 `sales_case`，新增 `case_update`（拆成下列 a）
@@ -211,7 +211,7 @@
   - [x] M3-11a `/cases` 列表：各狀態件數、篩選（反映在網址）、逾期標記、匯出 CSV；導覽列加「案件」 — 2026-11-18
   - [x] M3-11b `/cases/:id` 詳情：時間軸、回填表單（管道、結果、備註、下次追蹤日、成交金額）、Vitest — 2026-11-18（`/cases/:id` 是同一頁右側詳情，可直接連結）
 - [ ] M3-12 總覽頁 `/overview`：KPI、名單漏斗、各來源回覆率、待辦提醒（F-DASH-1～4，數字只從 view 來；拆成下列 a、b）
-  - [ ] M3-12a migration 0009（單獨 commit；0008 已用在 job.kind）：`v_case_fact`（每件案件一列，含是否回覆、成交、金額、產業、來源、業務、寄出日）；`v_kpi_summary` 的回覆率改用案件（不再讀 `email_event`）
+  - [ ] M3-12a migration 0010（單獨 commit；0008 已用在 job.kind、0009 用在 CSV 欄位）：`v_case_fact`（每件案件一列，含是否回覆、成交、金額、產業、來源、業務、寄出日）；`v_kpi_summary` 的回覆率改用案件（不再讀 `email_event`）
   - [ ] M3-12b `GET /metrics/overview`（日期區間、產業、業務篩選）＋前端 `/overview`：KPI、漏斗、各來源回覆率（少於 10 封標「樣本不足」）、待辦件數可點進清單；導覽列加「總覽」
 - [ ] M3-13 候選名單欄位自選、匯出 CSV、批次「加入追蹤」（F-REC-8、F-REC-9；拆成下列 a～c）
   - [ ] M3-13a `GET /companies/export`：依目前篩選匯出 CSV（UTF-8 BOM，Excel 開得了）＋測試

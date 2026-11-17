@@ -47,7 +47,8 @@ CREATE TABLE import_batch (
     error_report  JSONB,
     imported_by   BIGINT REFERENCES app_user(user_id),
     status        TEXT NOT NULL DEFAULT 'previewed', -- previewed | committed | cancelled
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    funnel        JSONB                              -- 0009：MLE 附上的漏斗前段數字（只顯示）
 );
 
 CREATE TYPE company_status AS ENUM (
@@ -70,10 +71,16 @@ CREATE TABLE company (
     added_manually       BOOLEAN NOT NULL DEFAULT FALSE,       -- 業務自行加入 = 模型漏掉的
     first_batch_id       BIGINT REFERENCES import_batch(batch_id),
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- 0009：CSV 欄位規格 v1
+    country              CHAR(2) NOT NULL DEFAULT 'TW' CONSTRAINT ck_company_country CHECK (country ~ '^[A-Z]{2}$'),
+    url_status           TEXT NOT NULL DEFAULT 'unchecked'
+                         CONSTRAINT ck_company_url_status CHECK (url_status IN ('valid','invalid','unchecked')),
+    source               TEXT                         -- 名單來源網站代號
 );
 CREATE INDEX idx_company_status ON company(status);
 CREATE INDEX idx_company_owner  ON company(owner_id);
+CREATE INDEX idx_company_source ON company(source);
 
 -- ---------- 模型輸出（每次 run 保留版本）----------
 CREATE TABLE model_run (
@@ -99,6 +106,10 @@ CREATE TABLE classification (
     reason             TEXT,                           -- 判斷理由
     is_current         BOOLEAN NOT NULL DEFAULT TRUE,  -- 每家公司只有一筆 current
     created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- 0009：CSV 欄位規格 v1
+    fit_stars          NUMERIC(2,1) CONSTRAINT ck_classification_fit_stars CHECK (fit_stars BETWEEN 1.0 AND 5.0),
+    product_type       TEXT,
+    tags               TEXT[] NOT NULL DEFAULT '{}',
     UNIQUE (company_id, run_id)
 );
 CREATE UNIQUE INDEX uq_classification_current ON classification(company_id) WHERE is_current;
@@ -322,7 +333,10 @@ SELECT c.company_id, c.tax_id, c.name, c.website_url, c.website_verified,
        cl.run_id, cl.priority, COALESCE(p.stars, 0) AS stars, cl.score,
        cl.likelihood, COALESCE(cl.is_competitor, FALSE) AS is_competitor,
        COALESCE(c.industry_override_id, cl.industry_id) AS industry_id,
-       i.name AS industry, cl.customer_type, cl.reason
+       i.name AS industry, cl.customer_type, cl.reason,
+       c.country, c.url_status, c.source,                       -- 0009 起往後加的欄位
+       COALESCE(cl.fit_stars, p.stars::numeric(2,1)) AS fit_stars,
+       cl.product_type, COALESCE(cl.tags, '{}') AS tags
 FROM company c
 LEFT JOIN classification cl ON cl.company_id = c.company_id AND cl.is_current
 LEFT JOIN dim_priority  p  ON p.priority = cl.priority

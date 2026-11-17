@@ -109,6 +109,7 @@ class ImportBatch(Base):
     imported_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.user_id"))
     status: Mapped[str] = mapped_column(Text, default="previewed")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    funnel: Mapped[Any] = mapped_column(JSONB)
 
 
 class Company(Base):
@@ -129,6 +130,9 @@ class Company(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    country: Mapped[str] = mapped_column(String(2), default="TW")
+    url_status: Mapped[str] = mapped_column(Text, default="unchecked")
+    source: Mapped[str | None] = mapped_column(Text)
 
 
 class Classification(Base):
@@ -145,6 +149,9 @@ class Classification(Base):
     reason: Mapped[str | None] = mapped_column(Text)
     is_current: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    fit_stars: Mapped[Decimal | None] = mapped_column(Numeric(2, 1))
+    product_type: Mapped[str | None] = mapped_column(Text)
+    tags: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
 
 
 class Review(Base):
@@ -353,6 +360,12 @@ v_recommendation = Table(
     Column("industry", Text),
     Column("customer_type", Text),
     Column("reason", Text),
+    Column("country", String(2)),
+    Column("url_status", Text),
+    Column("source", Text),
+    Column("fit_stars", Numeric(2, 1)),
+    Column("product_type", Text),
+    Column("tags", ARRAY(Text)),
     info={"is_view": True},
 )
 
