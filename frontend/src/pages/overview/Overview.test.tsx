@@ -77,10 +77,10 @@ describe("M3-12b 總覽純函式", () => {
 describe("M3-12b 總覽頁", () => {
   it("test_f_dash_1_kpis_and_funnel：顯示 KPI 與漏斗留存率（不在前端重算）", async () => {
     const fn = setup("/overview?from=2026-11-01");
-    expect(await screen.findByText("名單公司數")).toBeInTheDocument();
+    expect(await screen.findByText("已寄出")).toBeInTheDocument();
     expect(screen.getByText("25.0%")).toBeInTheDocument();
-    expect(screen.getByText("（留存 50.0%）")).toBeInTheDocument();
-    expect(screen.getByText(/資料庫總數 39,000 → 產品命中 900/)).toBeInTheDocument();
+    expect(screen.getByText("· 50.0%")).toBeInTheDocument();
+    expect(screen.queryByText(/資料庫總數 39,000/)).not.toBeInTheDocument();
     expect(String(fn.mock.calls[0]?.[0])).toContain("from=2026-11-01");
   });
 

@@ -1,29 +1,52 @@
-/* 總覽頁（/overview）；先寫手機版 */
+/* 首頁（/overview）；成果優先，篩選與技術資訊退到第二層 */
 
-/* 區塊：篩選 */
-.filters { display: grid; gap: var(--space-3); }
+.titleRow { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.filterControls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); }
+.rangeField { display: inline-flex; min-width: 0; }
+.rangeSelect {
+  min-width: 7.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+}
+.activeFilters { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.filterDrawer { gap: var(--space-4); }
+.drawerHeader { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.filterGrid { display: grid; gap: var(--space-3); }
 
-/* 區塊：KPI 卡 */
+.sectionTitle { margin-bottom: var(--space-3); font-size: var(--text-lg); line-height: var(--line-height-tight); }
 .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .kpi {
   display: grid;
+  align-content: start;
   gap: var(--space-1);
+  min-width: 0;
   padding: var(--space-4);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
-.kpiValue { font-size: var(--text-xl); font-weight: var(--font-weight-bold); }
+.kpi:hover { border-color: var(--color-accent); box-shadow: var(--shadow-card); color: inherit; transform: translateY(calc(var(--space-1) * -0.25)); }
+.kpiValue { min-width: 0; overflow-wrap: anywhere; font-size: var(--text-xl); line-height: var(--line-height-tight); }
+.kpiHint { color: var(--color-accent); font-size: var(--text-sm); }
+.featuredKpi { border-color: var(--color-accent); background: var(--color-accent-soft); }
+.compactKpi { box-shadow: none; background: var(--color-surface-muted); }
+.inventory { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 
-/* 區塊：漏斗＋待辦 · 寬螢幕左右排 */
 .grid { display: grid; gap: var(--space-4); }
+.sectionHeading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .funnel { display: grid; gap: var(--space-3); }
 .stage { display: grid; gap: var(--space-1); font-size: var(--text-sm); }
 .stageHead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); }
 .bar { display: block; height: var(--space-2); border-radius: var(--radius-pill); background: var(--color-surface-muted); overflow: hidden; }
 .barFill { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--color-accent); }
 
-/* 區塊：待辦提醒 */
 .reminders { display: grid; gap: var(--space-2); }
 .reminder {
   display: flex;
@@ -36,15 +59,22 @@
   color: inherit;
   text-decoration: none;
 }
-.reminder:hover { border-color: var(--color-accent); }
+.reminder:hover { border-color: var(--color-accent); color: inherit; }
+.completed { color: var(--color-success); font-size: var(--text-sm); }
+.primaryAction { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius); background: var(--color-accent); color: var(--color-on-accent); font-weight: var(--font-weight-bold); text-decoration: none; }
+.primaryAction:hover { background: var(--color-accent-hover); color: var(--color-on-accent); }
 
 @media (min-width: 768px) {
-  .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
-  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .filterControls { width: auto; }
+  .filterGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .inventory { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .filterControls { width: 100%; justify-content: flex-start; }
 }
 
 @media (min-width: 1024px) {
-  .filters { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
 }
