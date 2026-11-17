@@ -259,13 +259,13 @@ PostgreSQL 16，完整的 DDL 在 [`backend/db/schema.sql`](../backend/db/schema
 |---|---|---|
 | 使用者 | `app_user` | 業務、主管、管理員 |
 | 維度 | `dim_industry`、`dim_priority` | 18 類產業；A–D 優先級和星級的對照（取代 Excel 裡混在資料欄的圖例） |
-| 名單 | `import_batch`、`company` | 匯入批次；公司主檔（統編唯一）、目前狀態、負責業務 |
+| 名單 | `import_batch`、`company` | 匯入批次（預覽時把解析好的資料暫存在 `payload`，確認後才寫入）；公司主檔（統編唯一）、目前狀態、負責業務、業務修正的產業 `industry_override_id` |
 | 模型 | `model_run`、`classification` | 每次模型 run 都保留一份分類結果，`is_current` 標示目前生效的那一份 |
 | 回饋 | `review`、`gold_label` | 業務審核（排除一定要有原因）；盲標的標準答案 |
 | 聯絡 | `contact` | 聯絡人和退訂狀態 |
 | 郵件 | `email_template`、`campaign`、`email_draft`、`email_message`、`email_event` | 模板 → 批次 → 草稿（含 AI 原稿）→ 實際寄出 → 事件 |
 | 成果 | `opportunity`、`activity_log` | 商機階段和金額；所有變更的稽核紀錄 |
-| 指標 | `v_recommendation`、`v_funnel`、`v_win_rate_by_priority`、`v_reject_reasons` | **KPI 只在這些 view 定義一次** |
+| 指標 | `v_recommendation`、`v_kpi_summary`、`v_funnel`、`v_win_rate_by_priority`、`v_reject_reasons` | **KPI 只在這些 view 定義一次** |
 
 ### 8.2 ER 關係（簡化）
 ```
