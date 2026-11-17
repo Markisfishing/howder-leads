@@ -202,7 +202,7 @@ function TemplateEditor({
           <textarea
             ref={bodyRef}
             className={`${styles.input} ${t.body}`}
-            rows={14}
+            rows={5}
             value={body}
             onChange={(e) => setBody(e.target.value)}
           />
