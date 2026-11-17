@@ -24,9 +24,21 @@ PG_DIR = Path(os.environ.get("HOWDER_TEST_PGDATA", Path(tempfile.gettempdir()) /
 
 # 這些表每個測試後都清空；dim_* 是 migration 種子資料，保留
 _DATA_TABLES = [
-    "activity_log", "opportunity", "email_event", "email_message", "email_draft", "campaign",
-    "email_template", "contact", "gold_label", "review", "classification", "company",
-    "import_batch", "model_run", "app_user",
+    "activity_log",
+    "opportunity",
+    "email_event",
+    "email_message",
+    "email_draft",
+    "campaign",
+    "email_template",
+    "contact",
+    "gold_label",
+    "review",
+    "classification",
+    "company",
+    "import_batch",
+    "model_run",
+    "app_user",
 ]
 
 
@@ -35,8 +47,12 @@ def database_url() -> Iterator[str]:
     _server, url = pg_local.start(PG_DIR, "howder_test", recreate=True)
 
     os.environ.update(
-        DATABASE_URL=url, ENV="test", AUTH_MODE="dev", MAIL_MODE="sandbox",
-        IMPORT_API_KEY="test-key", BOOTSTRAP_ADMIN_EMAILS="admin@example.com",
+        DATABASE_URL=url,
+        ENV="test",
+        AUTH_MODE="dev",
+        MAIL_MODE="sandbox",
+        IMPORT_API_KEY="test-key",
+        BOOTSTRAP_ADMIN_EMAILS="admin@example.com",
     )
     from app.config import get_settings
     from app.db import get_engine

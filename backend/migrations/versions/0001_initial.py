@@ -20,9 +20,23 @@ SQL_FILE = Path(__file__).resolve().parent.parent / "sql" / "0001_initial.sql"
 
 _VIEWS = ["v_kpi_summary", "v_reject_reasons", "v_win_rate_by_priority", "v_funnel", "v_recommendation"]
 _TABLES = [
-    "activity_log", "opportunity", "email_event", "email_message", "email_draft", "campaign",
-    "email_template", "contact", "gold_label", "review", "classification", "company",
-    "import_batch", "model_run", "dim_priority", "dim_industry", "app_user",
+    "activity_log",
+    "opportunity",
+    "email_event",
+    "email_message",
+    "email_draft",
+    "campaign",
+    "email_template",
+    "contact",
+    "gold_label",
+    "review",
+    "classification",
+    "company",
+    "import_batch",
+    "model_run",
+    "dim_priority",
+    "dim_industry",
+    "app_user",
 ]
 _TYPES = ["draft_status", "gen_mode", "company_status", "user_role"]
 

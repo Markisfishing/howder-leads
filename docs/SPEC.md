@@ -90,7 +90,7 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 | F-IMP-2 | 匯入前先預覽 | 顯示「新增 X、更新 Y、錯誤 Z」和每一筆錯誤的原因；要按「確認匯入」才會寫入 |
 | F-IMP-3 | 用統編去重 | 同一份檔案匯入兩次，`company` 的筆數不會增加 |
 | F-IMP-4 | 檢查欄位 | 統編必須是 8 碼數字；產業和優先級必須是維度表裡有的值，否則列入錯誤 |
-| F-IMP-5 | API 匯入 | `POST /api/v1/imports` 可以收 JSON，之後 MLE 的 function 可以直接寫入，不用再經過 CSV |
+| F-IMP-5 | API 匯入 | `POST /api/v1/imports/api` 可以收 JSON，之後 MLE 的 function 可以直接寫入，不用再經過 CSV |
 
 ### 4.2 推薦清單（業務的首頁）
 | ID | 需求 | 驗收條件 |
@@ -220,7 +220,10 @@ backend/app/
 | POST | `/companies` | 手動加入公司 |
 | POST | `/reviews` | 批次審核 `{company_ids[], decision, reject_reason?, note?}` |
 | POST | `/contacts` / PATCH `/contacts/{id}` | 管理聯絡人 |
-| POST | `/imports` | 上傳檔案或 JSON → 回傳預覽（`status = previewed`） |
+| POST | `/imports` | 管理員上傳 CSV / XLSX → 回傳預覽（`status = previewed`） |
+| POST | `/imports/api?commit=` | MLE function 用 JSON 匯入（`X-API-Key`）；`commit=true` 直接寫入，有錯誤就整批拒絕 |
+| GET | `/imports`、`/imports/{id}` | 匯入紀錄與預覽內容 |
+| POST | `/imports/{id}/cancel` | 取消預覽中的批次 |
 | POST | `/imports/{id}/commit` | 確認匯入 |
 | GET/POST/PATCH | `/templates` | 模板管理（admin） |
 | POST | `/campaigns` | 建立 campaign，並開始產生草稿（回傳 `job_id`） |
