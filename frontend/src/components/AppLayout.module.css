@@ -25,7 +25,10 @@
 .brandText { font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
 .brandText small { display: block; font-size: var(--text-sm); font-weight: normal; color: var(--color-text-muted); }
 
-.list { display: flex; gap: var(--space-1); overflow-x: auto; max-width: 100%; order: 3; width: 100%; }
+.sections { display: flex; gap: var(--space-4); overflow-x: auto; max-width: 100%; order: 3; width: 100%; }
+.section { display: grid; gap: var(--space-1); min-width: max-content; }
+.sectionTitle { padding: 0 var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm); font-weight: var(--font-weight-bold); }
+.list { display: flex; gap: var(--space-1); max-width: 100%; }
 .link {
   display: block;
   padding: var(--space-2) var(--space-3);
@@ -40,15 +43,23 @@ a.link:hover { background: var(--color-surface-muted); color: var(--color-text);
 .active { background: var(--color-accent-soft); color: var(--color-accent-hover); font-weight: var(--font-weight-bold); }
 .disabled { color: var(--color-text-muted); cursor: not-allowed; }
 
-.user { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
-.userName small { margin-left: var(--space-1); color: var(--color-text-muted); }
+.account { position: relative; font-size: var(--text-sm); }
+.accountSummary { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius); cursor: pointer; list-style: none; }
+.accountSummary::-webkit-details-marker { display: none; }
+.accountSummary::after { content: "▾"; color: var(--color-text-muted); }
+.accountSummary:hover { background: var(--color-surface-muted); }
+.userName { display: grid; line-height: var(--line-height-tight); }
+.userName small { color: var(--color-text-muted); }
+.accountMenu { position: absolute; right: 0; bottom: calc(100% + var(--space-2)); min-width: 7rem; padding: var(--space-1); background: var(--color-surface); border: var(--border-width) solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-card); }
 .logout {
-  border: var(--border-width) solid var(--color-border);
+  width: 100%;
+  border: 0;
   background: var(--color-surface);
   border-radius: var(--radius);
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
   cursor: pointer;
+  text-align: left;
 }
 .logout:hover { background: var(--color-surface-muted); }
 
@@ -81,9 +92,12 @@ a.link:hover { background: var(--color-surface-muted); color: var(--color-text);
     gap: var(--space-5);
   }
   .brand { margin-right: 0; }
-  .list { flex-direction: column; order: 0; flex: 1; }
+  .sections { flex-direction: column; order: 0; flex: 1; overflow: visible; }
+  .section { gap: var(--space-1); }
+  .sectionTitle { padding: 0 var(--space-3); }
+  .list { flex-direction: column; }
   .link { font-size: var(--text-base); }
-  .link small { display: block; margin-left: 0; }
-  .user { flex-direction: column; align-items: stretch; }
+  .account { margin-top: auto; }
+  .accountSummary { padding: var(--space-2) var(--space-3); }
   .main { width: 100%; }
 }
