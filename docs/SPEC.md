@@ -285,7 +285,7 @@ backend/app/
 | POST | `/cases/{id}/unsubscribe` | 客戶要求退訂：聯絡人退訂、公司改 `do_not_contact`、案件結案為失敗（F-CASE-5） |
 | GET | `/reminders` | 目前使用者的待辦提醒件數（讀 `v_case_reminder`）＋新名單待審核 |
 | GET | `/metrics/overview?from=&to=&industry=&product_type=&owner=` | 總覽：KPI、漏斗（含 MLE 附的前段數字）、各來源回覆率、待辦件數（讀 `v_case_fact`、`v_company_fact`）。業務只看自己的案件，`owner` 只有主管能指定；名單數是共用名單池；日期以寄出日（台灣時間）計算 |
-| GET | `/companies/export?…` | 依目前篩選條件匯出 CSV |
+| GET | `/companies/export?…&columns=` | 依目前篩選條件匯出 CSV（UTF-8 BOM）；`columns` 指定欄位與順序（和畫面的欄位自選同一組 key），沒給用預設欄位；不含聯絡人 email |
 | GET | `/metrics/kpis` | 推薦清單頁的 KPI 卡（讀 `v_kpi_summary`） |
 | GET | `/metrics/{funnel\|win-rate\|templates\|reps}` | 績效資料（M4） |
 | GET | `/dimensions` | 下拉選單用：產業、優先級、排除原因、狀態、業務名單 |
