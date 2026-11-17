@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-17 |
 | 目前階段 | **M1 MVP（功能完成；只剩 M1-03 Docker 驗證）** |
-| 下一個任務 | M2-10 Outlook 委派權杖 ADR，接著 M2-11 migration 0003 |
+| 下一個任務 | M2-11 migration 0003：`job`、`user_mail_credential`、寄送欄位 |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -86,11 +86,11 @@
 
 ### 先決定（會影響後面所有任務）
 - [x] M2-09 ADR：背景工作佇列 — 2026-11-17（使用者決定改用 PostgreSQL 佇列，見 `docs/adr/0003`；CLAUDE.md、SPEC、docker-compose 已同步拿掉 Redis）
-- [ ] M2-10 ADR：Outlook 委派權杖。每位業務只授權 `Mail.Send`（ADR 0004 決定不申請 `Mail.Read`），後端加密存 refresh token，worker 用它代業務寄信（SPEC 7.5、9 安全）
+- [x] M2-10 ADR：Outlook 委派權杖。每位業務只授權 `Mail.Send`（ADR 0004 決定不申請 `Mail.Read`），後端加密存 refresh token，worker 用它代業務寄信（SPEC 7.5、9 安全） — 2026-11-17（見 `docs/adr/0005`：On-Behalf-Of＋Fernet 加密，一位業務一筆）
 - [ ] M2-11 migration 0003（單獨 commit），同步 `schema.sql` 和 SPEC 8.1：
   - `email_draft` 加上 `scheduled_at`、`send_attempts`、`last_error`
   - `campaign.status` 加 CHECK
-  - 新增 `user_mail_credential`（加密權杖）
+  - 新增 `user_mail_credential`（欄位依 ADR 0005）
   - 新增 `job` 佇列表（ADR 0003）
 
 ### 聯絡人
@@ -154,7 +154,11 @@
   - [ ] M2-07b `GraphMailer`：
     - 先建立草稿再送出，才拿得到 message id 和 conversation id
     - 失敗時指數退避重試 3 次
-  - [ ] M2-07c 業務「連結 Outlook」授權流程：前端按鈕，後端加密存放權杖（依 M2-10）
+  - [ ] M2-07c 業務「連結 Outlook」（ADR 0005）：
+    - `GET/POST/DELETE /me/mail-connection`，用 On-Behalf-Of 換權杖，Fernet 加密存放
+    - 新增 `msal` 套件，設定 `ENTRA_CLIENT_SECRET`、`MAIL_TOKEN_KEY`（`.env.example` 同步）；`MAIL_MODE=live` 少了這兩個就啟動失敗
+    - 權杖失效時標成 `needs_reconnect`，暫停寄送並提示業務
+    - 測試：回應與 log 不含權杖、只能用本人權杖、假的 OBO／Graph
   - [ ] M2-07d `POST /campaigns/{id}/send`（可帶 `scheduled_at`）＋ worker `send_scheduled`（寄出成功時開案在 M3-08 接上）：
     - 每人每天上限、每分鐘限速，超過的排到隔天
     - 寫入 `email_message` 和 `activity_log`
