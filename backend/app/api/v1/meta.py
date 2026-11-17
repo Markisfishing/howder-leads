@@ -1,16 +1,17 @@
 """KPI 與下拉選單用的維度資料（F-REC-5）。KPI 一律讀 view，不在這裡重算。"""
 
 from decimal import Decimal
+from typing import Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import current_user
 from app.db import get_db
 from app.domain.company_rules import REJECT_REASONS, STATUS_LABELS
-from app.models import AppUser, DimIndustry, DimPriority, v_kpi_summary
+from app.models import AppUser, DimIndustry, DimPriority, v_kpi_summary, v_recommendation
 
 router = APIRouter()
 
@@ -51,6 +52,13 @@ class Dimensions(BaseModel):
     reject_reasons: list[str]
     statuses: list[str]
     users: list[SalesUser]
+    # M3-06c：名單裡實際出現過的值，給推薦清單的篩選下拉選單用
+    countries: list[str]
+    sources: list[str]
+    tags: list[str]
+
+
+FACET_LIMIT = 200
 
 
 @router.get("/metrics/kpis", response_model=Kpis)
@@ -82,4 +90,16 @@ def dimensions(_: AppUser = Depends(current_user), db: Session = Depends(get_db)
             SalesUser(user_id=u.user_id, display_name=u.display_name, role=u.role)
             for u in db.scalars(select(AppUser).where(AppUser.is_active).order_by(AppUser.display_name))
         ],
+        countries=_distinct(db, v_recommendation.c.country),
+        sources=_distinct(db, v_recommendation.c.source),
+        tags=list(
+            db.scalars(
+                select(func.unnest(v_recommendation.c.tags).label("t")).distinct().order_by("t").limit(FACET_LIMIT)
+            )
+        ),
     )
+
+
+def _distinct(db: Session, col: Any) -> list[str]:
+    stmt = select(col).where(col.is_not(None)).distinct().order_by(col).limit(FACET_LIMIT)
+    return [str(v) for v in db.scalars(stmt)]

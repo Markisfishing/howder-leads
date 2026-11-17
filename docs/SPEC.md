@@ -249,7 +249,7 @@ backend/app/
 | 方法 | 路徑 | 說明 |
 |---|---|---|
 | GET | `/me` | 目前登入的使用者和角色 |
-| GET | `/companies?stars=&industry=&status=&owner=&q=&sort=&page=` | 推薦清單（讀 `v_recommendation`） |
+| GET | `/companies?stars=&industry=&status=&owner=&q=&country=&source=&url_status=&product_type=&tag=&min_stars=&sort=&page=` | 推薦清單（讀 `v_recommendation`；`source=none` 是未標示來源；`/dimensions` 回傳名單裡出現過的國別、來源、標籤給下拉選單） |
 | GET | `/companies/{id}` | 詳情，包含分類、聯絡人、活動紀錄 |
 | PATCH | `/companies/{id}` | 修正官網、產業、加備註 |
 | POST | `/companies/{id}/claim`、`/release` | 認領（鎖定 30 天）／釋出 |

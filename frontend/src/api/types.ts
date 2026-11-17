@@ -54,6 +54,13 @@ export interface CompanyRow {
   customer_type: string | null;
   reason: string | null;
   updated_at: string;
+  // CSV 欄位規格 v1（M3-06c）；fit_stars 是小數字串（例如 "4.5"），沒給時後端用優先級星等補上
+  country: string;
+  url_status: "valid" | "invalid" | "unchecked";
+  source: string | null;
+  fit_stars: string | null;
+  product_type: string | null;
+  tags: string[];
 }
 
 export interface CompanyPage {
@@ -121,6 +128,9 @@ export interface Dimensions {
   reject_reasons: RejectReason[];
   statuses: CompanyStatus[];
   users: { user_id: number; display_name: string; role: Role }[];
+  countries: string[];
+  sources: string[];
+  tags: string[];
 }
 
 export interface ImportRow {

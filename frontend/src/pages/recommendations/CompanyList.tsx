@@ -44,7 +44,7 @@ export function CompanyList({ rows, selected, onToggle, onToggleAll, onOpen }: P
               aria-label={`選取 ${c.name}`}
             />
             <div className={styles.rowStars}>
-              <Stars stars={c.stars} priority={c.priority} />
+              <Stars stars={c.stars} priority={c.priority} fitStars={c.fit_stars} />
             </div>
             <div className={styles.rowCompany}>
               <button type="button" className={styles.rowName} onClick={() => onOpen(c.company_id)}>
@@ -61,7 +61,18 @@ export function CompanyList({ rows, selected, onToggle, onToggleAll, onOpen }: P
                   <span>無官網</span>
                 )}
                 {c.added_manually && " · 手動加入"}
+                {c.country !== "TW" && ` · ${c.country}`}
+                {c.source && ` · 來源 ${c.source}`}
               </p>
+              {c.tags.length > 0 && (
+                <p className={styles.rowTags}>
+                  {c.tags.map((t) => (
+                    <Tag key={t} tone="neutral">
+                      {t}
+                    </Tag>
+                  ))}
+                </p>
+              )}
             </div>
             <p className={styles.rowReason}>{c.reason ?? "—"}</p>
             <div className={styles.rowLikely}>

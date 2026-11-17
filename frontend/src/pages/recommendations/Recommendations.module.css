@@ -84,6 +84,7 @@
 }
 .rowName:hover { color: var(--color-accent-hover); }
 .rowMeta { font-size: var(--text-sm); color: var(--color-text-muted); overflow-wrap: anywhere; }
+.rowTags { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-1); }
 .rowReason { grid-area: reason; font-size: var(--text-sm); }
 .rowLikely { grid-area: likely; display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .owner { font-size: var(--text-sm); color: var(--color-text-muted); }
