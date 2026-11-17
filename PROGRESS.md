@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-18 |
 | 目前階段 | **M3 案件追蹤（進行中）**；M2 完成（sandbox），只剩 M2-15 真實 Outlook 驗收；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | M3-11a 前端案件列表 |
+| 下一個任務 | M3-12a 總覽 view migration |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -182,8 +182,8 @@
 - [~] M3-01 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3）（取消：移到 M4-06，會議決定先做追蹤閉環）
 - [~] M3-02 Graph 收件匣訂閱與回覆比對（F-TRK-1）（取消：不讀業務信箱，改人工回填，見 ADR 0004；自動化改為 M5-03 專用信箱轉寄）
 - [~] M3-03 回覆態度分類（F-TRK-2）（取消：移到 M4-07，改成依回填內容分類）
-- [ ] M3-04 退訂處理：客戶用任何管道要求時，業務手動標記（F-CASE-5、F-TRK-3；拆成下列 a）
-  - [ ] M3-04a 案件頁「客戶要求退訂」：標記聯絡人退訂、公司改 `do_not_contact`、案件結案（結果 `lost`，備註「退訂」），時間軸留紀錄＋測試
+- [x] M3-04 退訂處理：客戶用任何管道要求時，業務手動標記（F-CASE-5、F-TRK-3；拆成下列 a）
+  - [x] M3-04a 案件頁「客戶要求退訂」：標記聯絡人退訂、公司改 `do_not_contact`、案件結案（結果 `lost`，備註「退訂」），時間軸留紀錄＋測試 — 2026-11-18（聯絡人退訂也會一併結案）
 - [~] M3-05 商機階段與金額（F-TRK-4）（取消：併入 M3-09 案件回填）
 - [ ] M3-06 CSV 欄位規格 v1（SPEC 8.4）
   - [ ] M3-06a migration：`company` 加 `country`、`url_status`、`source`；`classification` 加 `fit_stars`、`product_type`、`tags`；匯入批次存漏斗前段數字（單獨 commit）
@@ -207,9 +207,9 @@
 - [x] M3-10 worker 每日催辦（`job` 排程）＋ `GET /reminders`（F-CASE-3；拆成下列 a、b）
   - [x] M3-10a migration 0007（單獨 commit）：view `v_case_reminder`（逾期未回報、該追蹤了、無回應建議拜訪），提醒條件只在 view 定義一次 — 2026-11-18
   - [x] M3-10b worker `case_daily`：每天把寄出 14 天沒回覆的案件標成 `no_response`（時間軸記一筆 system），做完排下一次；worker 啟動時確保有一筆排程；`GET /reminders`＋測試 — 2026-11-18（另外新增 migration 0008 讓 `job.kind` 接受 `case_daily`）
-- [ ] M3-11 前端 `/cases`：列表、各狀態件數、時間軸、回填表單；可以只用鍵盤回填（F-CASE-4；拆成下列 a、b）
-  - [ ] M3-11a `/cases` 列表：各狀態件數、篩選（反映在網址）、逾期標記、匯出 CSV；導覽列加「案件」
-  - [ ] M3-11b `/cases/:id` 詳情：時間軸、回填表單（管道、結果、備註、下次追蹤日、成交金額）、Vitest
+- [x] M3-11 前端 `/cases`：列表、各狀態件數、時間軸、回填表單；可以只用鍵盤回填（F-CASE-4；拆成下列 a、b）
+  - [x] M3-11a `/cases` 列表：各狀態件數、篩選（反映在網址）、逾期標記、匯出 CSV；導覽列加「案件」 — 2026-11-18
+  - [x] M3-11b `/cases/:id` 詳情：時間軸、回填表單（管道、結果、備註、下次追蹤日、成交金額）、Vitest — 2026-11-18（`/cases/:id` 是同一頁右側詳情，可直接連結）
 - [ ] M3-12 總覽頁 `/overview`：KPI、名單漏斗、各來源回覆率、待辦提醒（F-DASH-1～4，數字只從 view 來；拆成下列 a、b）
   - [ ] M3-12a migration 0009（單獨 commit；0008 已用在 job.kind）：`v_case_fact`（每件案件一列，含是否回覆、成交、金額、產業、來源、業務、寄出日）；`v_kpi_summary` 的回覆率改用案件（不再讀 `email_event`）
   - [ ] M3-12b `GET /metrics/overview`（日期區間、產業、業務篩選）＋前端 `/overview`：KPI、漏斗、各來源回覆率（少於 10 封標「樣本不足」）、待辦件數可點進清單；導覽列加「總覽」

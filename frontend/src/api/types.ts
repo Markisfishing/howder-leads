@@ -279,3 +279,67 @@ export interface MailConnection {
   scopes: string[];
   resumed: number;
 }
+
+// ---------- 案件追蹤（M3-09～M3-11）----------
+export type CaseStatus = "sent" | "tracking" | "replied" | "negotiating" | "no_response" | "won" | "lost";
+export type CaseChannel = "email" | "line" | "wechat" | "phone" | "visit" | "other" | "system";
+export type CaseResult = "sent" | "replied" | "negotiating" | "won" | "lost" | "no_response";
+export type ReminderKind = "overdue_report" | "follow_up_due" | "no_response";
+
+export interface SalesCase {
+  case_id: number;
+  case_no: string;
+  company_id: number;
+  company_name: string;
+  company_status: CompanyStatus;
+  contact_id: number | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  owner_id: number;
+  owner_name: string | null;
+  origin: "email" | "tracking";
+  status: CaseStatus;
+  opened_at: string;
+  last_update_at: string | null;
+  next_follow_up: string | null;
+  amount_twd: string | null;
+  closed_at: string | null;
+  reminders: ReminderKind[];
+}
+
+export interface CaseList {
+  items: SalesCase[];
+  counts: Record<CaseStatus, number>;
+}
+
+export interface CaseTimelineItem {
+  update_id: number;
+  user_name: string | null;
+  channel: CaseChannel;
+  contact_name: string | null;
+  result: CaseResult;
+  note: string | null;
+  next_follow_up: string | null;
+  amount_twd: string | null;
+  created_at: string;
+}
+
+export interface CaseDetail extends SalesCase {
+  timeline: CaseTimelineItem[];
+  contacts: { contact_id: number; name: string | null; email: string; unsubscribed: boolean }[];
+}
+
+export interface CaseUpdateInput {
+  channel: Exclude<CaseChannel, "system">;
+  result: Exclude<CaseResult, "sent">;
+  note?: string | null;
+  next_follow_up?: string | null;
+  amount_twd?: number | null;
+  contact_id?: number | null;
+}
+
+export interface ReminderItem {
+  kind: ReminderKind | "pending_review";
+  label: string;
+  count: number;
+}

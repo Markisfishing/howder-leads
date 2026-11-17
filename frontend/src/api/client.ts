@@ -81,6 +81,6 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   return (await res.json()) as T;
 }
 
-export async function apiBlob(path: string): Promise<Blob> {
-  return (await send(path, {})).blob();
+export async function apiBlob(path: string, query?: Query): Promise<Blob> {
+  return (await send(path, { query })).blob();
 }

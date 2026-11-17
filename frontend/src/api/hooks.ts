@@ -2,7 +2,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import * as ep from "./endpoints";
-import type { Campaign } from "./types";
+import type { Campaign, CaseUpdateInput } from "./types";
 import type { ListFilters } from "../lib/filters";
 
 export const keys = {
@@ -22,6 +22,9 @@ export const keys = {
   candidates: ["candidates"] as const,
   exclusionReasons: ["exclusionReasons"] as const,
   mailConnection: ["mailConnection"] as const,
+  cases: (q: object) => ["cases", q] as const,
+  case: (id: number) => ["case", id] as const,
+  reminders: ["reminders"] as const,
 };
 
 export const useCompanies = (f: ListFilters) =>
@@ -173,3 +176,26 @@ export function useMailConnectionActions() {
     disconnect: useMutation({ mutationFn: ep.disconnectMail, onSuccess: refresh }),
   };
 }
+
+// ---------- 案件追蹤（M3-09～M3-11）----------
+export const useCases = (q: ep.CaseQuery) =>
+  useQuery({ queryKey: keys.cases(q), queryFn: () => ep.listCases(q), placeholderData: keepPreviousData });
+export const useCase = (id: number) => useQuery({ queryKey: keys.case(id), queryFn: () => ep.getCase(id) });
+export const useReminders = () => useQuery({ queryKey: keys.reminders, queryFn: ep.getReminders });
+
+/** 案件變動會影響：案件列表、提醒、公司狀態、KPI、總覽 */
+function useCaseMutation<TArgs, TResult>(fn: (args: TArgs) => Promise<TResult>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      for (const key of [["cases"], ["case"], keys.reminders, ["companies"], ["company"], keys.kpis, ["overview"]])
+        void qc.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+export const useAddCaseUpdate = () =>
+  useCaseMutation(({ id, body }: { id: number; body: CaseUpdateInput }) => ep.addCaseUpdate(id, body));
+export const useUnsubscribeCase = () =>
+  useCaseMutation(({ id, contactId }: { id: number; contactId?: number | null }) => ep.unsubscribeCase(id, contactId));
+export const useAddTracking = () => useCaseMutation(ep.addTracking);

@@ -48,6 +48,15 @@ const MESSAGES: Record<string, string> = {
   MAIL_SANDBOX: "目前是測試模式，信不會真的寄出，不需要連結 Outlook",
   MAIL_NOT_CONFIGURED: "系統尚未設定寄信金鑰，請聯絡管理員",
   MAIL_CONNECT_FAILED: "無法取得 Outlook 寄信權限，請確認管理員已同意 Mail.Send",
+  CASE_NOT_FOUND: "找不到這件案件",
+  CASE_CLOSED: "這件案件已經結案，不能再回填",
+  INVALID_CHANNEL: "請選擇聯絡管道",
+  AMOUNT_ONLY_WHEN_WON: "成交金額只在結果是「成交」時填寫",
+  INVALID_AMOUNT: "成交金額要是 0 以上的整數",
+  FOLLOW_UP_IN_PAST: "下次追蹤日不能早於今天",
+  FOLLOW_UP_ON_CLOSED: "結案的案件不需要下次追蹤日",
+  NOTE_TOO_LONG: "備註最多 2000 字",
+  NO_CONTACT: "請選擇要求退訂的聯絡人",
   IMPORT_FILE_TOO_LARGE: "檔案超過 10 MB",
   IMPORT_UNSUPPORTED_TYPE: "只支援 .csv 或 .xlsx 檔",
   IMPORT_DECODE_FAILED: "無法讀取檔案編碼，請存成 UTF-8 或 Big5 的 CSV",
@@ -65,6 +74,8 @@ const PREFER_SERVER = new Set([
   "TEMPLATE_UNSUBSCRIBE_IN_SUBJECT",
   "NO_ELIGIBLE_TARGETS",
   "INVALID_DRAFT_TRANSITION",
+  "INVALID_CASE_RESULT",
+  "TRACK_REJECTED",
 ]);
 
 export function errorMessage(code: string, serverMessage: string): string {

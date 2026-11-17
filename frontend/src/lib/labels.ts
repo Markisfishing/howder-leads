@@ -1,5 +1,5 @@
 // 程式代碼 → UI 中文（CLAUDE.md 第 2 節的專有名詞）
-import type { CampaignStatus, CompanyStatus, ContactSource, DraftStatus, GenMode, RejectReason } from "../api/types";
+import type { CampaignStatus, CaseChannel, CaseResult, CaseStatus, CompanyStatus, ContactSource, DraftStatus, GenMode, RejectReason } from "../api/types";
 import { errorMessage } from "../api/errorMessages";
 
 export const STATUS_LABELS: Record<CompanyStatus, string> = {
@@ -169,4 +169,61 @@ export function draftErrorText(code: string | null, reasons: Record<string, stri
     return `寄出前檢查沒過：${list.map((r) => reasons[r] ?? r).join("、")}`;
   }
   return errorMessage(code, `錯誤代碼 ${code}`);
+}
+
+// ---------- 案件（M3）----------
+export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
+  sent: "已寄出",
+  tracking: "追蹤中",
+  replied: "已回覆",
+  negotiating: "洽談中",
+  no_response: "無回應",
+  won: "成交",
+  lost: "失敗",
+};
+
+export const CASE_STATUS_TONE: Record<CaseStatus, Tone> = {
+  sent: "info",
+  tracking: "info",
+  replied: "success",
+  negotiating: "warning",
+  no_response: "neutral",
+  won: "success",
+  lost: "neutral",
+};
+
+export const CASE_RESULT_LABELS: Record<CaseResult, string> = {
+  sent: "寄出開發信",
+  replied: "已回覆",
+  negotiating: "洽談中",
+  won: "成交",
+  lost: "失敗",
+  no_response: "無回應",
+};
+
+export const CASE_CHANNEL_LABELS: Record<CaseChannel, string> = {
+  email: "Email",
+  line: "LINE",
+  wechat: "WeChat",
+  phone: "電話",
+  visit: "拜訪",
+  other: "其他",
+  system: "系統",
+};
+
+export const REMINDER_LABELS: Record<string, string> = {
+  overdue_report: "逾期未回報",
+  follow_up_due: "該追蹤了",
+  no_response: "無回應，建議電話或拜訪",
+  pending_review: "新名單待審核",
+};
+
+export function formatTwd(amount: string | number | null): string {
+  if (amount === null || amount === "") return "—";
+  return `NT$ ${new Intl.NumberFormat("zh-TW").format(Number(amount))}`;
+}
+
+/** 台灣今天的日期（YYYY-MM-DD），給日期欄位的最小值用 */
+export function taipeiToday(): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Taipei" }).format(new Date());
 }

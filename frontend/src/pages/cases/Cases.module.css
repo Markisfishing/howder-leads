@@ -1,0 +1,83 @@
+/* 案件追蹤頁（/cases、/cases/:id）；先寫手機版 */
+
+/* 區塊：頁首 */
+.headRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+
+/* 區塊：各狀態件數（同時是狀態篩選） */
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--color-accent); }
+.chip[aria-pressed="true"] { border-color: var(--color-accent); background: var(--color-accent-soft); font-weight: var(--font-weight-bold); }
+.chipCount { font-weight: var(--font-weight-bold); }
+
+/* 區塊：篩選列 */
+.filters { display: grid; gap: var(--space-3); }
+.checkRow { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.check { width: var(--space-4); height: var(--space-4); accent-color: var(--color-accent); }
+
+/* 區塊：左清單、右詳情 · 手機上下排 */
+.layout { display: grid; gap: var(--space-4); }
+.list { display: grid; gap: var(--space-2); align-content: start; }
+.item {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.item:hover { border-color: var(--color-accent); }
+.item[aria-current="page"] { border-color: var(--color-accent); background: var(--color-accent-soft); }
+.itemTop { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); font-weight: var(--font-weight-bold); }
+.itemMeta { font-size: var(--text-sm); color: var(--color-text-muted); }
+.tags { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+
+/* 區塊：案件資訊 */
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2) var(--space-4); font-size: var(--text-sm); }
+.facts dt { color: var(--color-text-muted); }
+.facts dd { overflow-wrap: anywhere; }
+
+/* 區塊：時間軸 */
+.timeline { display: grid; gap: var(--space-3); border-left: var(--border-width) solid var(--color-border); padding-left: var(--space-4); }
+.event { display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.eventHead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.eventNote { white-space: pre-wrap; overflow-wrap: anywhere; line-height: var(--line-height); }
+
+/* 區塊：回填表單 */
+.form { display: grid; gap: var(--space-3); }
+.formRow { display: grid; gap: var(--space-3); }
+.note { font-family: inherit; line-height: var(--line-height); resize: vertical; }
+.danger {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-danger-bg);
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 768px) {
+  .filters { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; }
+  .formRow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .layout { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); align-items: start; }
+  .list { max-height: 75vh; overflow-y: auto; }
+}
