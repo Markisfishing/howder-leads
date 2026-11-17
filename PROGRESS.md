@@ -6,8 +6,8 @@
 | 項目 | 狀態 |
 |---|---|
 | 最後更新 | 2026-11-17 |
-| 目前階段 | M0 規劃 ✅ → **M1 MVP（尚未開始）** |
-| 下一個任務 | M1-01 建立後端專案骨架 |
+| 目前階段 | **M1 MVP（進行中）** |
+| 下一個任務 | M1-05 導入 Alembic |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准應用程式權限（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -29,14 +29,14 @@
 ## M1 MVP：匯入、推薦清單、審核
 
 ### 基礎建設
-- [ ] M1-01 建立後端專案骨架（uv、pyproject、`app/main.py`、`GET /health`）
-- [ ] M1-02 後端加上 ruff、mypy、pytest 設定，第一個測試 `test_health`
-- [ ] M1-03 `docker-compose.yml`：postgres 16 + redis（開發用）
-- [ ] M1-04 `.env.example` 和設定讀取（pydantic-settings），包含 `MAIL_MODE=sandbox`
+- [x] M1-01 建立後端專案骨架（uv、pyproject、`app/main.py`、`GET /health`） — 2026-11-17
+- [x] M1-02 後端加上 ruff、mypy、pytest 設定，第一個測試 `test_health` — 2026-11-17
+- [ ] M1-03 `docker-compose.yml`：postgres 16 + redis（開發用）（進行中：已寫 docker-compose.yml，但 Docker Desktop 在這台電腦無法啟動、未驗證；開發與測試改用 backend/scripts/dev_db.py 內嵌 Postgres）
+- [x] M1-04 `.env.example` 和設定讀取（pydantic-settings），包含 `MAIL_MODE=sandbox` — 2026-11-17
 - [ ] M1-05 導入 Alembic，把 `schema.sql` 轉成第一個 migration
 - [ ] M1-06 SQLAlchemy models（company、classification、review、dim_*、activity_log、import_batch、model_run、app_user）
 - [ ] M1-07 種子資料：`dim_industry` 18 類、`dim_priority` A–D
-- [ ] M1-08 統一錯誤格式 `{error:{code,message}}` 和例外處理
+- [x] M1-08 統一錯誤格式 `{error:{code,message}}` 和例外處理 — 2026-11-17
 - [ ] M1-09 建立前端專案骨架（Vite + React + TS strict、ESLint、Vitest）
 - [ ] M1-10 前端引入 `design-tokens.css`，建立 `global.css`
 - [ ] M1-11 前端 `src/api/` 基礎 client（錯誤碼對應中文訊息）
