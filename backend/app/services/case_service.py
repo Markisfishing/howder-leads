@@ -9,7 +9,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.domain import case_rules, company_rules
@@ -226,11 +226,20 @@ class CaseFilter:
     owner_id: int | None = None
     sent_from: date | None = None
     sent_to: date | None = None
+    search: str | None = None
+    queue: str | None = None
     case_ids: frozenset[int] | None = None  # 只看逾期時由呼叫端帶入（提醒條件在 view）
+    reminders_only: bool = False
+    page: int = 1
+    page_size: int = 30
 
 
 def _scoped(user: AppUser, f: CaseFilter) -> Select[SalesCase]:
     q = select(SalesCase)
+    if f.search:
+        q = q.join(Company, Company.company_id == SalesCase.company_id).where(
+            SalesCase.case_no.ilike(f"%{f.search}%") | Company.name.ilike(f"%{f.search}%")
+        )
     if not company_svc.is_manager(user):
         q = q.where(SalesCase.owner_id == user.user_id)
     elif f.owner_id is not None:
@@ -240,21 +249,56 @@ def _scoped(user: AppUser, f: CaseFilter) -> Select[SalesCase]:
     if f.sent_to is not None:
         end = datetime.combine(f.sent_to + timedelta(days=1), datetime.min.time(), TAIPEI)
         q = q.where(SalesCase.opened_at < end)
-    if f.case_ids is not None:
+    if f.case_ids is not None and f.queue != "todo":
+        q = q.where(SalesCase.case_id.in_(f.case_ids))
+    if f.queue == "todo":
+        if f.reminders_only:
+            q = q.where(SalesCase.closed_at.is_(None), SalesCase.case_id.in_(f.case_ids or frozenset()))
+        else:
+            q = q.where(
+                SalesCase.closed_at.is_(None),
+                or_(
+                    SalesCase.status.in_(("tracking", "replied", "negotiating", "no_response")),
+                    SalesCase.case_id.in_(f.case_ids or frozenset()),
+                ),
+            )
+    elif f.queue in {"overdue", "follow_up"} and f.case_ids is not None:
         q = q.where(SalesCase.case_id.in_(f.case_ids))
     return q
 
 
-def list_cases(db: Session, user: AppUser, f: CaseFilter) -> tuple[list[SalesCase], dict[str, int]]:
-    """回傳（案件清單、各狀態件數）。件數不受狀態篩選影響，給上方的狀態切換用。"""
+def _count(db: Session, q: Select[SalesCase]) -> int:
+    return int(db.scalar(select(func.count()).select_from(q.subquery())) or 0)
+
+
+def count_cases(db: Session, user: AppUser, f: CaseFilter) -> int:
+    """只計算案件數，不載入資料列；給工作佇列摘要使用。"""
+    q = _scoped(user, f)
+    if f.status is not None:
+        q = q.where(SalesCase.status == f.status)
+    return _count(db, q)
+
+
+def list_cases(db: Session, user: AppUser, f: CaseFilter) -> tuple[list[SalesCase], dict[str, int], int]:
+    """回傳分頁案件、各狀態件數與目前篩選的總筆數。"""
     base = _scoped(user, f)
-    sub = base.subquery()
-    counts: dict[str, int] = {r[0]: r[1] for r in db.execute(select(sub.c.status, func.count()).group_by(sub.c.status))}
+    counts_sub = base.subquery()
+    counts: dict[str, int] = {
+        r[0]: r[1] for r in db.execute(select(counts_sub.c.status, func.count()).group_by(counts_sub.c.status))
+    }
     q = base
     if f.status is not None:
         q = q.where(SalesCase.status == f.status)
-    cases = list(db.scalars(q.order_by(SalesCase.closed_at.is_not(None), SalesCase.opened_at.desc()).limit(500)))
-    return cases, {s: int(counts.get(s, 0)) for s in case_rules.CASE_STATUS_LABELS}
+    total = _count(db, q)
+    offset = max(f.page - 1, 0) * f.page_size
+    cases = list(
+        db.scalars(
+            q.order_by(SalesCase.closed_at.is_not(None), SalesCase.next_follow_up, SalesCase.opened_at.desc())
+            .offset(offset)
+            .limit(f.page_size)
+        )
+    )
+    return cases, {s: int(counts.get(s, 0)) for s in case_rules.CASE_STATUS_LABELS}, total
 
 
 def timeline(db: Session, case_id: int) -> list[CaseUpdate]:
