@@ -3,6 +3,8 @@
 activity_log 只記聯絡人編號，不記姓名或 email（CLAUDE.md 第 8 節第 4 點；刪除後也不留個資）。
 """
 
+from datetime import UTC, datetime
+
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
@@ -10,6 +12,7 @@ from app.domain import company_rules as rules
 from app.domain import contact_rules
 from app.domain.company_rules import DomainError
 from app.models import AppUser, Company, Contact
+from app.services import case_service
 from app.services import company_service as company_svc
 
 
@@ -111,6 +114,10 @@ def unsubscribe(db: Session, user: AppUser, contact: Contact, note: str | None =
         company_svc.log(db, company, user, "contact_unsubscribe", to_value=str(contact.contact_id), note=note)
     if rules.can_transition(company.status, "do_not_contact"):
         company_svc.change_status(db, company, "do_not_contact", user, "聯絡人退訂")
+        # 不再聯絡 → 進行中的案件一起結案（M3-04a），之後也不會再出現催辦
+        case = case_service.open_case(db, company.company_id, lock=True)
+        if case is not None:
+            case_service.close_for_unsubscribe(db, user, case, datetime.now(UTC))
     db.commit()
     return contact
 
