@@ -44,6 +44,10 @@ COMPANY_STATUSES = (
 
 user_role_enum = ENUM(*USER_ROLES, name="user_role", create_type=False)
 company_status_enum = ENUM(*COMPANY_STATUSES, name="company_status", create_type=False)
+GEN_MODES = ("template_only", "template_ai", "full_ai")
+DRAFT_STATUSES = ("generating", "pending_review", "approved", "discarded", "sent", "failed")
+gen_mode_enum = ENUM(*GEN_MODES, name="gen_mode", create_type=False)
+draft_status_enum = ENUM(*DRAFT_STATUSES, name="draft_status", create_type=False)
 
 
 class Base(DeclarativeBase):
@@ -212,6 +216,73 @@ class Job(Base):
     created_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.user_id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+# ---------- 郵件（M2）----------
+class EmailTemplate(Base):
+    """郵件模板。修改時新增一列（version + 1），同一個 family_id 只有一個啟用中的版本（migration 0005）。"""
+
+    __tablename__ = "email_template"
+    template_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    family_id: Mapped[int | None] = mapped_column(ForeignKey("email_template.template_id"))
+    name: Mapped[str] = mapped_column(Text)
+    language: Mapped[str] = mapped_column(Text, default="zh-TW")
+    subject: Mapped[str] = mapped_column(Text)
+    body_text: Mapped[str] = mapped_column(Text)
+    body_html: Mapped[str] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.user_id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Campaign(Base):
+    __tablename__ = "campaign"
+    campaign_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    template_id: Mapped[int | None] = mapped_column(ForeignKey("email_template.template_id"))
+    gen_mode: Mapped[str] = mapped_column(gen_mode_enum, default="template_only")
+    owner_id: Mapped[int] = mapped_column(ForeignKey("app_user.user_id"))
+    status: Mapped[str] = mapped_column(Text, default="draft")
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EmailDraft(Base):
+    """草稿。業務編輯 body_text，系統轉成 body_html；ai_original 是一開始產生的原稿（算 edit_ratio 用）。"""
+
+    __tablename__ = "email_draft"
+    draft_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaign.campaign_id"))
+    company_id: Mapped[int] = mapped_column(ForeignKey("company.company_id"))
+    contact_id: Mapped[int] = mapped_column(ForeignKey("contact.contact_id"))
+    subject: Mapped[str] = mapped_column(Text, default="")
+    body_text: Mapped[str] = mapped_column(Text, default="")
+    body_html: Mapped[str] = mapped_column(Text, default="")
+    ai_original: Mapped[str | None] = mapped_column(Text)
+    edit_ratio: Mapped[Decimal | None] = mapped_column(Numeric(4, 3))
+    status: Mapped[str] = mapped_column(draft_status_enum, default="generating")
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.user_id"))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    send_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text)
+
+    def __repr__(self) -> str:  # 不印內文（CLAUDE.md 第 8 節第 4 點）
+        return f"EmailDraft(draft_id={self.draft_id}, status={self.status!r})"
+
+
+class EmailMessage(Base):
+    """實際寄出的信。只有核准的草稿才會變成這個（CLAUDE.md 第 6 節）。"""
+
+    __tablename__ = "email_message"
+    message_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    draft_id: Mapped[int] = mapped_column(ForeignKey("email_draft.draft_id"))
+    sender_id: Mapped[int] = mapped_column(ForeignKey("app_user.user_id"))
+    graph_message_id: Mapped[str | None] = mapped_column(Text)
+    conversation_id: Mapped[str | None] = mapped_column(Text)
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 # ---------- 指標層 view（唯讀）----------
