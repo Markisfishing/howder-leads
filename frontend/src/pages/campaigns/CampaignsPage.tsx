@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useCampaigns } from "../../api/hooks";
@@ -29,6 +30,17 @@ export function progressText(p: CampaignProgress): string {
 export function CampaignsPage() {
   const { data, isLoading, error, refetch } = useCampaigns();
   const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [view, setView] = useState<"todo" | "active" | "done" | "all">("todo");
+  const filtered = useMemo(() => (data ?? []).filter((campaign) => {
+    const term = search.trim().toLowerCase();
+    const matchesSearch = !term || `${campaign.name} ${campaign.owner_name ?? ""} ${campaign.template_name ?? ""}`.toLowerCase().includes(term);
+    const matchesView = view === "all" || (view === "done" ? campaign.status === "done" : view === "active" ? campaign.status !== "done" : campaign.progress.pending_review > 0 || campaign.progress.failed > 0);
+    return matchesSearch && matchesView;
+  }), [data, search, view]);
+  const todoCount = (data ?? []).filter((campaign) => campaign.progress.pending_review > 0 || campaign.progress.failed > 0).length;
+  const activeCount = (data ?? []).filter((campaign) => campaign.status !== "done").length;
+  const doneCount = (data ?? []).filter((campaign) => campaign.status === "done").length;
 
   return (
     <>
@@ -39,23 +51,31 @@ export function CampaignsPage() {
             建立邀請信批次
           </Button>
         </div>
-        <p className={styles.meta}>從已通過的公司產生草稿，逐封確認、核准後才會寄出。系統不會自動寄信。</p>
       </header>
       <MailConnectionBanner />
 
       <section className={styles.card} aria-labelledby="campaign-list-title">
-        <h2 id="campaign-list-title" className={styles.cardTitle}>
-          我的批次
-        </h2>
+        <div className={c.listHeader}><h2 id="campaign-list-title" className={styles.cardTitle}>邀請信批次</h2><span className={styles.hint}>{filtered.length} 筆</span></div>
+        <div className={c.draftToolbar}>
+          <label className={c.searchField}><span className="visually-hidden">搜尋批次、負責人或模板</span><span aria-hidden="true">⌕</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜尋批次、負責人或模板" /></label>
+          <nav className={c.statusTabs} aria-label="邀請信工作檢視">
+            <CampaignViewButton active={view === "todo"} count={todoCount} onClick={() => setView("todo")}>我的待辦</CampaignViewButton>
+            <CampaignViewButton active={view === "active"} count={activeCount} onClick={() => setView("active")}>進行中</CampaignViewButton>
+            <CampaignViewButton active={view === "done"} count={doneCount} onClick={() => setView("done")}>最近完成</CampaignViewButton>
+            <CampaignViewButton active={view === "all"} count={data?.length ?? 0} onClick={() => setView("all")}>全部</CampaignViewButton>
+          </nav>
+        </div>
         {isLoading ? (
           <Loading />
         ) : error ? (
           <ErrorState error={error} onRetry={() => void refetch()} />
         ) : !data || data.length === 0 ? (
           <Empty title="還沒有邀請信批次">按「建立邀請信批次」，從已通過的公司裡挑選要寄的對象。</Empty>
+        ) : filtered.length === 0 ? (
+          <Empty title="找不到符合條件的批次">請換一個搜尋字詞或工作檢視。</Empty>
         ) : (
           <ul className={c.list}>
-            {data.map((cp) => (
+            {filtered.map((cp) => (
               <li key={cp.campaign_id}>
                 <Link to={`/campaigns/${cp.campaign_id}`} className={c.item}>
                   <span>
@@ -76,4 +96,8 @@ export function CampaignsPage() {
       </section>
     </>
   );
+}
+
+function CampaignViewButton({ active, count, onClick, children }: { active: boolean; count: number; onClick: () => void; children: string }) {
+  return <button type="button" aria-pressed={active} onClick={onClick}>{children} <strong>{count}</strong></button>;
 }

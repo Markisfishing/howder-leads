@@ -16,7 +16,7 @@ import {
   useSendCampaign,
   useUnapproveDraft,
 } from "../../api/hooks";
-import type { Campaign, Draft, ExcludedCompany, SendResult } from "../../api/types";
+import type { Campaign, Draft, DraftStatus, ExcludedCompany, SendResult } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
@@ -30,9 +30,9 @@ import {
   draftErrorText,
   formatDateTime,
 } from "../../lib/labels";
+import { useDebounced } from "../../lib/useDebounced";
 import styles from "../Page.module.css";
 import c from "./Campaigns.module.css";
-import { progressText } from "./CampaignsPage";
 import { MailConnectionBanner } from "./MailConnectionBanner";
 
 const NEEDS_REVIEW = new Set(["pending_review", "failed"]);
@@ -53,13 +53,19 @@ export function CampaignReviewPage() {
   const location = useLocation();
   const excluded = (location.state as { excluded?: ExcludedCompany[] } | null)?.excluded ?? [];
   const campaign = useCampaign(id);
-  const drafts = useDrafts(id, isBusy(campaign.data));
   const { data: reasonLabels = {} } = useExclusionReasons();
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
   const [focusEditor, setFocusEditor] = useState(false);
+  const [draftSearch, setDraftSearch] = useState("");
+  const [draftStatus, setDraftStatus] = useState<DraftStatus | "all">("pending_review");
+  const [draftPage, setDraftPage] = useState(1);
+  const [editorOpen, setEditorOpen] = useState(false);
 
-  const visible = (drafts.data ?? []).filter((d) => d.status !== "discarded");
+  const debouncedDraftSearch = useDebounced(draftSearch);
+  const draftQuery = { q: debouncedDraftSearch.trim() || undefined, status: draftStatus, page: draftPage, page_size: 25 };
+  const drafts = useDrafts(id, isBusy(campaign.data), draftQuery);
+  const visible = drafts.data?.items ?? [];
   const current = visible.find((d) => d.draft_id === currentId) ?? visible[0] ?? null;
 
   if (campaign.isLoading) return <Loading />;
@@ -79,11 +85,12 @@ export function CampaignReviewPage() {
             <Tag tone={CAMPAIGN_STATUS_TONE[cp.status]}>{CAMPAIGN_STATUS_LABELS[cp.status]}</Tag>
           </span>
         </div>
-        <p className={styles.meta} aria-live="polite">
-          {cp.template_name ? `模板：${cp.template_name}（第 ${cp.template_version} 版）· ` : ""}
-          {progressText(cp.progress)}
-          {cp.scheduled_at && ` · 排程 ${formatDateTime(cp.scheduled_at)} 開始寄`}
-        </p>
+        <section className={c.campaignSummary} aria-label="批次摘要">
+          <div><span>已完成</span><strong>{cp.progress.sent + cp.progress.discarded} / {cp.progress.total}</strong></div>
+          <div><span>寄件人</span><strong>{cp.owner_name ?? "未指定"}</strong></div>
+          <div><span>開始寄送</span><strong>{cp.scheduled_at ? formatDateTime(cp.scheduled_at) : "尚未排程"}</strong></div>
+          <div><span>模板</span><strong>{cp.template_name ? `${cp.template_name} v${cp.template_version ?? ""}` : "未指定"}</strong></div>
+        </section>
       </header>
       <MailConnectionBanner />
       {excluded.length > 0 && (
@@ -110,53 +117,56 @@ export function CampaignReviewPage() {
         ) : visible.length === 0 ? (
           <Empty title="這個批次沒有草稿">草稿都已丟棄。可以回列表建立新的批次。</Empty>
         ) : (
-          <div className={c.queue}>
-            <section className={styles.card} aria-labelledby="draft-list-title">
-              <h2 id="draft-list-title" className={styles.cardTitle}>
-                草稿（{visible.length}）
-              </h2>
-              <ul className={c.draftList}>
-              {visible.map((d) => (
-                <li key={d.draft_id}>
-                  <button
-                    type="button"
-                    className={c.draftBtn}
-                    aria-current={d.draft_id === current?.draft_id}
-                    onClick={() => {
-                      setFocusEditor(false);
-                      setCurrentId(d.draft_id);
-                    }}
-                  >
-                    <span className={c.draftCompany}>
-                      {d.company_name}
-                      <Tag tone={DRAFT_STATUS_TONE[d.status]}>{draftLabel(d)}</Tag>
-                    </span>
-                    <span className={c.draftTo}>{d.contact_name ?? d.contact_email}</span>
-                  </button>
-                </li>
-              ))}
-              </ul>
-            </section>
-            {current && (
-              <div className={c.editorPane}>
-                <DraftEditor
-                  key={current.draft_id}
-                  draft={current}
-                  reasonLabels={reasonLabels}
-                  focusOnMount={focusEditor}
-                  onNext={() => {
-                    setFocusEditor(true);
-                    setCurrentId(nextToReview(visible, current.draft_id) ?? current.draft_id);
-                  }}
-                  onNotice={setNotice}
-                />
-              </div>
-            )}
-          </div>
+          <section className={`${styles.card} ${c.draftQueue}`} aria-labelledby="draft-list-title">
+            <div className={c.listHeader}>
+              <div><h2 id="draft-list-title" className={styles.cardTitle}>草稿 {drafts.data?.total ?? 0}</h2><p className={styles.meta}>一次顯示 25 封，點選列查看完整信件。</p></div>
+              <span className={c.pageSummary}>{drafts.data?.total ? `${(drafts.data.page - 1) * drafts.data.page_size + 1}–${Math.min(drafts.data.page * drafts.data.page_size, drafts.data.total)} / ${drafts.data.total}` : "0 封"}</span>
+            </div>
+            <div className={c.draftToolbar}>
+              <label className={c.searchField}><span className="visually-hidden">搜尋公司或收件人</span><span aria-hidden="true">⌕</span><input type="search" value={draftSearch} onChange={(event) => { setDraftSearch(event.target.value); setDraftPage(1); }} placeholder="搜尋公司或收件人" /></label>
+              <nav className={c.statusTabs} aria-label="草稿狀態">
+                {(["pending_review", "approved", "sent", "failed", "all"] as const).map((value) => <button key={value} type="button" aria-pressed={draftStatus === value} onClick={() => { setDraftStatus(value); setDraftPage(1); }}>{DRAFT_STATUS_FILTER_LABELS[value]} <strong>{value === "all" ? Object.values(drafts.data?.status_counts ?? {}).reduce((sum, count) => sum + (count ?? 0), 0) : drafts.data?.status_counts[value] ?? 0}</strong></button>)}
+              </nav>
+            </div>
+            {visible.length === 0 ? <Empty title="找不到符合條件的草稿">請換一個公司名稱、收件人或狀態。</Empty> : <div className={c.draftTable} role="table" aria-label="草稿列表">
+              <div className={c.draftTableHeader} role="row"><span role="columnheader">公司</span><span role="columnheader">收件人</span><span role="columnheader">狀態</span><span role="columnheader">更新時間</span></div>
+              <div role="rowgroup">{visible.map((draft) => <button key={draft.draft_id} type="button" className={c.draftRow} role="row" onClick={() => { setFocusEditor(false); setCurrentId(draft.draft_id); setEditorOpen(true); }}><span><strong>{draft.company_name}</strong></span><span>{draft.contact_name ?? draft.contact_email}</span><span><Tag tone={DRAFT_STATUS_TONE[draft.status]}>{draftLabel(draft)}</Tag></span><time>{draft.approved_at || draft.scheduled_at ? formatDateTime(draft.approved_at ?? draft.scheduled_at ?? "") : "—"}</time></button>)}</div>
+            </div>}
+            <Pagination page={drafts.data?.page ?? draftPage} pageCount={Math.max(1, Math.ceil((drafts.data?.total ?? 0) / (drafts.data?.page_size ?? 25)))} onPage={setDraftPage} />
+          </section>
         )}
       </div>
+      {current && <Modal open={editorOpen} onOpenChange={setEditorOpen} variant="side" title={`${current.company_name} · ${draftLabel(current)}`} description={`收件人：${current.contact_name ?? current.contact_email}`}>
+        <DraftEditor
+          key={current.draft_id}
+          draft={current}
+          reasonLabels={reasonLabels}
+          focusOnMount={focusEditor}
+          onNext={() => {
+            setFocusEditor(true);
+            const next = nextToReview(visible, current.draft_id);
+            if (next) setCurrentId(next);
+            else setEditorOpen(false);
+          }}
+          onNotice={setNotice}
+        />
+      </Modal>}
     </>
   );
+}
+
+const DRAFT_STATUS_FILTER_LABELS: Record<DraftStatus | "all", string> = {
+  pending_review: "待確認",
+  approved: "已核准",
+  sent: "已寄出",
+  failed: "失敗",
+  generating: "產生中",
+  discarded: "已丟棄",
+  all: "全部",
+};
+
+function Pagination({ page, pageCount, onPage }: { page: number; pageCount: number; onPage: (page: number) => void }) {
+  return <nav className={c.pagination} aria-label="草稿分頁"><Button size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>上一頁</Button><span>第 {page} / {pageCount} 頁</span><Button size="sm" disabled={page >= pageCount} onClick={() => onPage(page + 1)}>下一頁</Button></nav>;
 }
 
 /** 批次層級的動作：全部核准（要再按一次確認）、寄出（只有負責業務；可排程） */
