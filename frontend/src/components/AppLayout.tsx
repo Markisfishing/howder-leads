@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthProvider";
 import styles from "./AppLayout.module.css";
@@ -13,27 +13,26 @@ export function AppLayout() {
   return (
     <div className={styles.app}>
       <nav className={styles.nav} aria-label="主選單">
-        <div className={styles.brand}>
+        <Link to="/overview" className={styles.brand} aria-label="厚達電子業務推薦系統首頁">
           <span className={styles.mark} aria-hidden="true">
             厚
           </span>
           <span className={styles.brandText}>
             厚達電子<small>業務推薦系統</small>
           </span>
-        </div>
+        </Link>
         <div className={styles.sections}>
+          <section className={styles.homeSection} aria-label="首頁">
+            <ul className={styles.list}>
+              <li><NavLink to="/overview" className={linkClass}>首頁</NavLink></li>
+            </ul>
+          </section>
           <section className={styles.section} aria-labelledby="nav-work-title">
             <h2 id="nav-work-title" className={styles.sectionTitle}>工作</h2>
             <ul className={styles.list}>
               <li><NavLink to="/recommendations" className={linkClass}>今日審核</NavLink></li>
               <li><NavLink to="/campaigns" className={linkClass}>邀請信</NavLink></li>
               <li><NavLink to="/cases" className={linkClass}>案件</NavLink></li>
-            </ul>
-          </section>
-          <section className={styles.section} aria-labelledby="nav-analysis-title">
-            <h2 id="nav-analysis-title" className={styles.sectionTitle}>分析</h2>
-            <ul className={styles.list}>
-              <li><NavLink to="/overview" className={linkClass}>總覽</NavLink></li>
             </ul>
           </section>
           {isAdmin && (
