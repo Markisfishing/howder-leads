@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-17 |
 | 目前階段 | **M1 MVP（進行中）** |
-| 下一個任務 | M1-12 Entra ID 登入（M1-09~11 前端骨架在後端 API 完成後一起做） |
+| 下一個任務 | M1-16 名單匯入 importer |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准應用程式權限（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -42,9 +42,9 @@
 - [ ] M1-11 前端 `src/api/` 基礎 client（錯誤碼對應中文訊息）
 
 ### 登入與權限
-- [ ] M1-12 Microsoft Entra ID OIDC 登入（後端驗證 token）
-- [ ] M1-13 `GET /api/v1/me` 與 `app_user` 自動建立
-- [ ] M1-14 角色權限檢查（sales / manager / admin）＋測試：業務不能呼叫 `/admin`
+- [x] M1-12 Microsoft Entra ID OIDC 登入（後端驗證 token） — 2026-11-17（後端驗證完成；尚未用真實租用戶測試，待 SPEC 11-4 權限核准）
+- [x] M1-13 `GET /api/v1/me` 與 `app_user` 自動建立 — 2026-11-17
+- [x] M1-14 角色權限檢查（sales / manager / admin）＋測試：業務不能呼叫 `/admin` — 2026-11-17
 - [ ] M1-15 前端登入流程與路由守衛
 
 ### 名單匯入（F-IMP）
