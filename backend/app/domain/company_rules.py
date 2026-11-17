@@ -23,7 +23,8 @@ class DomainError(Exception):
 TRANSITIONS: dict[str, frozenset[str]] = {
     "imported": frozenset({"pending_review"}),
     "pending_review": frozenset({"approved", "rejected"}),
-    "approved": frozenset({"rejected", "drafted"}),
+    # 「加入追蹤」（F-REC-9）的公司沒有寄信，由案件回填直接改成已回覆或失敗（M3-08a）
+    "approved": frozenset({"rejected", "drafted", "replied", "lost"}),
     "rejected": frozenset({"approved"}),  # 重新審核
     "drafted": frozenset({"draft_approved", "approved"}),  # 草稿丟棄就回到 approved
     "draft_approved": frozenset({"sent", "drafted"}),
