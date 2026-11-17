@@ -36,8 +36,8 @@ class Data:
         amount: int | None = None,
     ) -> SalesCase:
         self.n += 1
+        # 寄信不會自動認領公司（owner_id 留空），漏斗要依「案件」的負責業務算
         company = Company(tax_id=f"9100{self.n:04d}", name=f"公司{self.n}", status="sent", source=source)
-        company.owner_id = owner.user_id
         self.db.add(company)
         self.db.flush()
         case = SalesCase(
@@ -129,6 +129,14 @@ def test_f_dash_2_funnel_with_retention(client: TestClient, seeded: dict[str, di
     assert stages["replied"] == (4, "0.2500")
     assert stages["won"] == (1, "0.2500")
     assert body["mle_funnel"] == {"資料庫總數": 39000, "產品命中": 900}
+
+
+def test_f_dash_2_sales_funnel_counts_own_cases(client: TestClient, seeded: dict[str, dict[str, str]]) -> None:
+    """M3-14 發現的 bug：寄信沒認領公司時，業務的漏斗「已寄信」變成 0。"""
+    stages = {s["key"]: s["count"] for s in _get(client, seeded["s1"])["funnel"]}
+    assert (stages["sent"], stages["replied"], stages["won"]) == (15, 4, 1)
+    dated = {s["key"]: s["count"] for s in _get(client, seeded["s1"], "from=2026-11-05")["funnel"]}
+    assert dated["sent"] == 3
 
 
 def test_f_dash_3_source_rates_flag_small_samples(client: TestClient, seeded: dict[str, dict[str, str]]) -> None:

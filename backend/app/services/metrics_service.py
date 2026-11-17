@@ -74,18 +74,6 @@ def _cases(stmt: Select[Any], f: OverviewFilter) -> Select[Any]:
     return stmt
 
 
-def _companies_contacted(stmt: Select[Any], f: OverviewFilter) -> Select[Any]:
-    stmt = _pool(stmt, f, C)
-    if f.owner_id is not None:
-        stmt = stmt.where(C.owner_id == f.owner_id)
-    start, end = _bounds(f)
-    if start:
-        stmt = stmt.where(C.first_sent_at >= start)
-    if end:
-        stmt = stmt.where(C.first_sent_at < end)
-    return stmt
-
-
 def _count_if(cond: Any) -> Any:
     return func.count().filter(cond)
 
@@ -120,11 +108,14 @@ def funnel(db: Session, f: OverviewFilter) -> list[dict[str, Any]]:
     total, approved = db.execute(
         _pool(select(func.count(), _count_if(C.is_approved)).select_from(v_company_fact), f, C)
     ).one()
-    sent, replied, won = db.execute(
-        _companies_contacted(
-            select(_count_if(C.is_sent), _count_if(C.is_replied), _count_if(C.is_won)).select_from(v_company_fact), f
-        )
-    ).one()
+    # 後三段依「案件」的負責業務與寄出日算（寄信不會自動認領公司，不能用 company.owner_id）；一家公司只算一次
+    distinct: Any = func.count(F.company_id.distinct())
+    contacted = select(
+        distinct.filter(F.is_sent),
+        distinct.filter(F.is_sent & F.is_replied),
+        distinct.filter(F.is_sent & F.is_won),
+    ).select_from(v_case_fact)
+    sent, replied, won = db.execute(_cases(contacted, f)).one()
     stages = [("list", "名單", total), ("approved", "審核通過", approved), ("sent", "已寄信", sent)]
     stages += [("replied", "回覆", replied), ("won", "成交", won)]
     out: list[dict[str, Any]] = []
