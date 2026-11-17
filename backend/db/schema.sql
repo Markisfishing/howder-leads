@@ -287,7 +287,7 @@ CREATE TABLE user_mail_credential (
 -- ---------- 背景工作佇列（0003，ADR 0003）----------
 CREATE TABLE job (
     job_id        BIGSERIAL PRIMARY KEY,
-    kind          TEXT NOT NULL CHECK (kind IN ('generate_drafts', 'send_email')),
+    kind          TEXT NOT NULL CHECK (kind IN ('generate_drafts', 'send_email', 'case_daily')),  -- 0008：case_daily
     payload       JSONB NOT NULL DEFAULT '{}'::jsonb,
     status        TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed')),
     run_after     TIMESTAMPTZ NOT NULL DEFAULT now(),   -- 排程與重試退避
