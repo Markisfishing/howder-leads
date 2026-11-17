@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { downloadCompanies } from "../api/endpoints";
-import { useCompanies, useReview } from "../api/hooks";
+import { useAddTracking, useCompanies, useReview } from "../api/hooks";
 import { useAuth } from "../auth/AuthProvider";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
@@ -30,6 +30,7 @@ export function RecommendationsPage() {
 
   const { data, isLoading, isFetching, error, refetch } = useCompanies(filters);
   const review = useReview();
+  const tracking = useAddTracking();
 
   // 勾選跟著目前的篩選條件；條件一變，勾選自動清空，避免對看不到的公司做批次操作
   const [selection, setSelection] = useState<{ key: string; ids: Set<number> }>({ key: "", ids: new Set() });
@@ -101,6 +102,17 @@ export function RecommendationsPage() {
         },
       },
     );
+  };
+
+  // F-REC-9：不寄信也能直接開案（先打電話、拜訪），之後在案件頁回填
+  const trackSelected = () => {
+    setNotice("");
+    tracking.mutate([...selected], {
+      onSuccess: (cases) => {
+        setNotice(`已加入追蹤 ${cases.length} 家，請到「案件」回填聯絡結果`);
+        setSelected(new Set());
+      },
+    });
   };
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
@@ -182,9 +194,12 @@ export function RecommendationsPage() {
       {selected.size > 0 && (
         <div className={styles.bulkbar} role="region" aria-label="批次操作">
           <span className={styles.bulkCount}>已選 {selected.size} 家</span>
-          <InlineError error={review.error} />
+          <InlineError error={review.error ?? tracking.error} />
           <span className={styles.bulkActions}>
             <Button onClick={() => setSelected(new Set())}>取消選取</Button>
+            <Button busy={tracking.isPending} onClick={trackSelected}>
+              加入追蹤
+            </Button>
             <Button variant="danger" onClick={() => setRejectOpen(true)}>
               排除…
             </Button>
