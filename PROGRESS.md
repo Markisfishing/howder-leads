@@ -205,14 +205,18 @@
 - [ ] M4-03 回饋資料匯出（F-MLE-2）
 - [ ] M4-04 盲標工作台＋「不含模型欄位」測試（F-MLE-3）
 - [ ] M4-05 模型品質頁（F-MLE-4）
-- [ ] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）
+- [ ] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）。先用地端 LLM（ADR 0006），拆成下列 a～d
+  - [ ] M4-06a `LlmClient` 介面＋`LocalLlmClient`（OpenAI 相容 API）＋`FakeLlmClient`；`LLM_PROVIDER` 等設定加進 `.env.example`；JSON 驗證、簡體字檢查、逾時重試＋測試
+  - [ ] M4-06b 選地端模型：2～3 個候選模型、同一批 10 家公司，業務盲評品質，記錄速度與硬體需求，結果寫回 ADR 0006
+  - [ ] M4-06c prompt `invite_v1`＋`template_ai` / `full_ai` 接進 worker `generate_drafts`；草稿記錄 provider、模型、prompt 版本（migration）
+  - [ ] M4-06d `ClaudeClient`（保留切換選項，用假的實作測試；要不要上線看 M4-06b 結果）
 - [ ] M4-07 依回填內容判斷回覆態度（F-TRK-2；原 M3-03）
 - [ ] M4-08 官網摘要：給 AI 寫信用的公司背景（SPEC 7.4；M4-06 的前置）
   - migration：新增 `company_site_summary` 表（公司、抓取網址、摘要、抓取時間、狀態、錯誤代碼），`job.kind` 加上 `fetch_site`
   - worker `fetch_site`：匯入確認後、或業務修正官網後排進佇列，不在匯入的 request 裡等
   - 只抓首頁和產品／關於我們頁；遵守 robots.txt，設定逾時與大小上限，同網域限速
   - 抓不到或沒有官網就標記失敗，寫信時改用推薦理由，不擋產生草稿
-  - 摘要只留公司產品與產業描述，不存網頁上的人名、email、電話
+  - 摘要用地端 LLM 產生（ADR 0006）；只留公司產品與產業描述，不存網頁上的人名、email、電話
   - 側欄顯示摘要和抓取時間，業務可以按「重新抓取」
   - 測試：用假的 HTTP 回應，不連真實網站
 
