@@ -170,7 +170,7 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
  瀏覽器 ───►│ Nginx (HTTPS) ─┬─► Frontend：靜態檔案 (React build)                            │
             │                └─► Backend API：FastAPI (uvicorn)  ──► PostgreSQL 16           │
             │                          └─► Worker（從 PostgreSQL 佇列領工作）                 │
-            │                                ├─ 產生草稿 ──► Claude API                       │
+            │                                ├─ 產生草稿 ──► 地端 LLM                       │
             │                                ├─ 寄信 / 讀回覆 ──► Microsoft Graph             │
             │                                └─ 匯入解析、排程寄送                            │
             └──────────────────────────────────────────────────────────────────────────────────┘
@@ -236,7 +236,7 @@ backend/app/
   domain/        商業規則：狀態機轉換、寄送防呆、鎖定規則（不依賴 FastAPI，方便單元測試）
   services/
     importer.py   解析 CSV/XLSX → 驗證 → 產生預覽差異 → 確認後寫入
-    generator.py  依生成模式組 prompt → 呼叫 Claude → 回填草稿
+    generator.py  依生成模式組 prompt → 呼叫 LLM（地端／Claude）→ 回填草稿
     mailer.py     Graph 寄信、訂閱收件匣、處理 webhook
     metrics.py    讀取 SQL view，不在 Python 裡重算 KPI
   workers/       背景工作（PostgreSQL 佇列）：generate_drafts, send_scheduled, sync_replies
@@ -286,11 +286,12 @@ backend/app/
 統一的錯誤格式：`{ "error": { "code": "DRAFT_NOT_APPROVED", "message": "…" } }`
 
 ### 7.4 AI 郵件產生
-- 模型：Claude（`claude-sonnet-5-5`），一家公司呼叫一次，並發數限制為 5。
-- 輸入：模板、公司名稱、產業、客戶屬性、判斷理由、官網摘要（匯入確認後由 worker 抓取並快取在 `company_site_summary`，抓不到時改用推薦理由；M4-08），再加上厚達的產品介紹（固定的 system prompt，使用 prompt caching）。
+- 模型：**先用地端 LLM**（OpenAI 相容 API，例如 Ollama），用 `LLM_PROVIDER` 可切換成 Claude（`claude-sonnet-5-5`）；一家公司呼叫一次，並發數可設定（ADR 0006）。用哪個地端模型，由 M4-06b 比較後決定。
+- 輸入：模板、公司名稱、產業、客戶屬性、判斷理由、官網摘要（匯入確認後由 worker 抓取並快取在 `company_site_summary`，抓不到時改用推薦理由；M4-08），再加上厚達的產品介紹（固定的 system prompt；用 Claude 時開 prompt caching）。
 - 輸出：要求回傳 JSON `{subject, ai_paragraph | body_html}`，並驗證長度和必要欄位。
 - 限制：不得捏造客戶實績、價格或認證；內容只能根據提供的資料撰寫。
-- 原稿存在 `ai_original`，業務修改後的版本存在 `body_html`。
+- 原稿存在 `ai_original`，業務修改後的版本存在 `body_html`；同時記錄產生的 provider、模型與 prompt 版本。
+- 繁中檢查：回傳內容出現簡體字就算失敗並重試一次。
 
 ### 7.5 寄信（Microsoft Graph）
 - 權限：每位業務各自授權 **`Mail.Send`**（delegated 委派權限），信件從本人的信箱寄出，也會留在本人的寄件備份。**不申請 `Mail.Read`**，系統不讀業務信箱（ADR 0004）。

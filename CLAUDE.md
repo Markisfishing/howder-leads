@@ -25,7 +25,7 @@ backend/                  後端 API + 背景 Worker（同一個 Python 套件�
   app/
     api/v1/               FastAPI 路由：只做輸入驗證、權限檢查、呼叫 domain/services
     domain/               商業規則：狀態機、寄送防呆、鎖定規則（不 import FastAPI 或 SQLAlchemy）
-    services/             對外整合與流程：importer、generator(Claude)、mailer(Graph)、metrics
+    services/             對外整合與流程：importer、generator(地端 LLM／Claude，ADR 0006)、mailer(Graph)、metrics
     workers/              背景工作（PostgreSQL 佇列，ADR 0003）：generate_drafts、send_scheduled、sync_replies
     models/               SQLAlchemy ORM
     prompts/              AI 郵件 prompt，檔名帶版本（invite_v1.md）
@@ -72,7 +72,7 @@ UI 文字用繁體中文；程式識別字（變數、函式、資料表、API �
 | 前端 | React 19 + TypeScript (strict) + Vite、React Router、TanStack Query / Table、Radix UI Primitives（無樣式）、CSS Modules + design tokens |
 | 後端 | Python 3.12、FastAPI、Pydantic v2、SQLAlchemy 2、Alembic；背景工作用 PostgreSQL 佇列（`SKIP LOCKED`，見 ADR 0003），不用 Redis |
 | 資料庫 | PostgreSQL 16 |
-| 外部服務 | Claude API（產生郵件）、Microsoft Graph（登入、寄信、讀回覆） |
+| 外部服務 | 地端 LLM（OpenAI 相容 API，產生郵件；可切換成 Claude API，ADR 0006）、Microsoft Graph（登入、寄信、讀回覆） |
 | 部署 | Docker Compose（Nginx + frontend 靜態檔 + api + worker + postgres） |
 
 指令（專案骨架建好後補上實際指令；**新增或修改指令時一併更新這一段**）：
@@ -103,7 +103,7 @@ npm run typecheck && npm run lint && npm run test && npm run build
 2. **`domain/` 是純 Python**，不 import FastAPI、SQLAlchemy 或任何外部 SDK，才能直接寫單元測試。
 3. **公司狀態只能透過 `domain` 的狀態機函式改變**，不可以直接 `company.status = ...`。每次變更都要寫一筆 `activity_log`。
 4. **KPI 只在資料庫 view（`v_*`）定義一次**。後端 `metrics` 只讀取 view，前端只負責顯示，不重算比例。
-5. **外部服務一律包在 `services/` 裡**（Claude、Graph），並且透過介面注入，測試時可以換成假的實作。
+5. **外部服務一律包在 `services/` 裡**（LLM、Graph），並且透過介面注入，測試時可以換成假的實作。
 6. **耗時的工作放進 worker**（產生草稿、寄信、同步回覆），API 只回傳 `job_id`，不在 request 裡等待。
 7. API 錯誤統一用 `{ "error": { "code": "UPPER_SNAKE", "message": "…" } }` 格式；`code` 要能讓前端對應到中文訊息。
 
@@ -124,7 +124,7 @@ npm run typecheck && npm run lint && npm run test && npm run build
 1. **系統絕對不會自動寄信。** 只有 `status = approved` 的草稿可以寄，後端寄送前要再檢查一次，不能只靠前端把按鈕藏起來。
 2. 寄送防呆一律在後端 `domain` 實作：已退訂、`do_not_contact`、被其他業務鎖定、14 天內寄過的對象都要排除。
 3. **開發和測試環境不可以真的寄信。** `MAIL_MODE=sandbox` 時，信件只寫進資料庫或 log。只有 `MAIL_MODE=live` 才會呼叫 Graph `sendMail`，而且只能在正式環境設定。
-4. 自動化測試不可以呼叫真實的 Claude 或 Graph API，一律用假的實作。
+4. 自動化測試不可以呼叫真實的 LLM（地端或 Claude）或 Graph API，一律用假的實作。
 5. AI prompt 放在 `backend/app/prompts/`，檔名要帶版本。修改 prompt 就新增一個版本，不覆蓋舊檔，這樣才能對照 `ai_original` 是哪一版產生的。
 6. Prompt 必須要求模型：不捏造客戶實績、價格、認證或交期，內容只能根據提供的公司資料撰寫。
 7. **盲標 API 的回應不可以包含任何模型欄位**（priority、stars、score、reason、industry 預測），寫測試驗證這一點。
