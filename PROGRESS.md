@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-18 |
 | 目前階段 | **M3 案件追蹤（進行中）**；M2 完成（sandbox），只剩 M2-15 真實 Outlook 驗收；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | M3-12a 總覽 view migration 0010 |
+| 下一個任務 | M3-12b 總覽 API 與 `/overview` 頁 |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -211,7 +211,7 @@
   - [x] M3-11a `/cases` 列表：各狀態件數、篩選（反映在網址）、逾期標記、匯出 CSV；導覽列加「案件」 — 2026-11-18
   - [x] M3-11b `/cases/:id` 詳情：時間軸、回填表單（管道、結果、備註、下次追蹤日、成交金額）、Vitest — 2026-11-18（`/cases/:id` 是同一頁右側詳情，可直接連結）
 - [ ] M3-12 總覽頁 `/overview`：KPI、名單漏斗、各來源回覆率、待辦提醒（F-DASH-1～4，數字只從 view 來；拆成下列 a、b）
-  - [ ] M3-12a migration 0010（單獨 commit；0008 已用在 job.kind、0009 用在 CSV 欄位）：`v_case_fact`（每件案件一列，含是否回覆、成交、金額、產業、來源、業務、寄出日）；`v_kpi_summary` 的回覆率改用案件（不再讀 `email_event`）
+  - [x] M3-12a migration 0010（單獨 commit；0008 已用在 job.kind、0009 用在 CSV 欄位）：`v_case_fact`（每件案件一列，含是否回覆、成交、金額、產業、來源、業務、寄出日）；`v_kpi_summary` 的回覆率改用案件（不再讀 `email_event`） — 2026-11-18（另加 `v_company_fact` 給名單漏斗；`v_kpi_summary` 最後面加 `won_total`、`won_amount_twd`）
   - [ ] M3-12b `GET /metrics/overview`（日期區間、產業、業務篩選）＋前端 `/overview`：KPI、漏斗、各來源回覆率（少於 10 封標「樣本不足」）、待辦件數可點進清單；導覽列加「總覽」
 - [ ] M3-13 候選名單欄位自選、匯出 CSV、批次「加入追蹤」（F-REC-8、F-REC-9；拆成下列 a～c）
   - [ ] M3-13a `GET /companies/export`：依目前篩選匯出 CSV（UTF-8 BOM，Excel 開得了）＋測試

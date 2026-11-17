@@ -343,17 +343,52 @@ LEFT JOIN dim_priority  p  ON p.priority = cl.priority
 LEFT JOIN dim_industry  i  ON i.industry_id = COALESCE(c.industry_override_id, cl.industry_id)
 LEFT JOIN app_user      u  ON u.user_id = c.owner_id;
 
-CREATE VIEW v_kpi_summary AS                        -- 推薦清單頁上方的 KPI 卡（比例也在這裡算，0002 加入 reply_rate）
-SELECT k.*,
-       CASE WHEN k.sent_total >= 10 THEN round(k.replied_total::numeric / k.sent_total, 4) END AS reply_rate
+-- 0010：「寄出」「回覆」「成交」的定義只在 v_case_fact（M3-12a、F-DASH-1～3）
+CREATE VIEW v_case_fact AS                          -- 每件案件一列，總覽依條件篩選加總
+SELECT sc.case_id, sc.case_no, sc.company_id, sc.owner_id, sc.origin, sc.status,
+       sc.opened_at, sc.closed_at,
+       s.first_sent_at                                  AS sent_at,
+       (s.first_sent_at IS NOT NULL)                    AS is_sent,      -- 時間軸有 result = 'sent'
+       EXISTS (SELECT 1 FROM case_update u
+               WHERE u.case_id = sc.case_id
+                 AND u.result IN ('replied','negotiating','won')) AS is_replied,
+       (sc.status = 'won')                              AS is_won,
+       CASE WHEN sc.status = 'won' THEN sc.amount_twd END AS won_amount,
+       r.industry_id, r.industry, r.source, r.product_type, r.priority, r.fit_stars
+FROM sales_case sc
+LEFT JOIN LATERAL (SELECT min(u.created_at) AS first_sent_at
+                   FROM case_update u
+                   WHERE u.case_id = sc.case_id AND u.result = 'sent') s ON TRUE
+JOIN v_recommendation r ON r.company_id = sc.company_id;
+
+CREATE VIEW v_company_fact AS                       -- 每家公司一列，名單漏斗用
+SELECT r.company_id, r.status, r.owner_id, r.industry_id, r.source, r.product_type,
+       r.priority, r.stars, r.fit_stars, c.created_at,
+       (r.status NOT IN ('imported','pending_review','rejected'))  AS is_approved,
+       COALESCE(bool_or(f.is_sent), FALSE)                         AS is_sent,
+       COALESCE(bool_or(f.is_sent AND f.is_replied), FALSE)        AS is_replied,
+       COALESCE(bool_or(f.is_won), FALSE)                          AS is_won,
+       min(f.sent_at)                                              AS first_sent_at
+FROM v_recommendation r
+JOIN company c ON c.company_id = r.company_id
+LEFT JOIN v_case_fact f ON f.company_id = r.company_id
+GROUP BY r.company_id, r.status, r.owner_id, r.industry_id, r.source, r.product_type,
+         r.priority, r.stars, r.fit_stars, c.created_at;
+
+CREATE VIEW v_kpi_summary AS                        -- KPI 卡（比例也在這裡算；0010 起回覆率改用案件）
+SELECT k.pending_review, k.total_companies, k.five_star, k.sent_7d, k.sent_total, k.replied_total,
+       CASE WHEN k.sent_total >= 10 THEN round(k.replied_total::numeric / k.sent_total, 4) END AS reply_rate,
+       k.won_total, k.won_amount_twd
 FROM (
   SELECT
     (SELECT count(*) FROM company WHERE status = 'pending_review')                 AS pending_review,
     (SELECT count(*) FROM company)                                                 AS total_companies,
     (SELECT count(*) FROM v_recommendation WHERE stars = 5)                        AS five_star,
     (SELECT count(*) FROM email_message WHERE sent_at >= now() - interval '7 days') AS sent_7d,
-    (SELECT count(*) FROM email_message)                                           AS sent_total,
-    (SELECT count(DISTINCT message_id) FROM email_event WHERE event_type = 'replied') AS replied_total
+    (SELECT count(*) FROM v_case_fact WHERE is_sent)                               AS sent_total,
+    (SELECT count(*) FROM v_case_fact WHERE is_sent AND is_replied)                AS replied_total,
+    (SELECT count(*) FROM v_case_fact WHERE is_won)                                AS won_total,
+    (SELECT COALESCE(sum(won_amount), 0) FROM v_case_fact)                         AS won_amount_twd
 ) k;
 
 CREATE VIEW v_funnel AS
