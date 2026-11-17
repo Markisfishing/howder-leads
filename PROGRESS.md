@@ -54,7 +54,7 @@
 - [x] M1-19 `importer`：確認寫入，以統編去重，建立 `model_run` 與 `classification`（F-IMP-3） — 2026-11-17
 - [x] M1-20 Excel 欄位轉換規則（拆「明確但競合」、忽略圖例欄）（SPEC 8.3） — 2026-11-17
 - [x] M1-21 `POST /imports`、`POST /imports/{id}/commit` API（F-IMP-2、F-IMP-5） — 2026-11-17
-- [ ] M1-22 前端 `/admin/imports` 上傳與預覽頁
+- [x] M1-22 前端 `/admin/imports` 上傳與預覽頁 — 2026-11-17
 
 ### 狀態機與審核
 - [x] M1-23 `domain/state_machine.py`：合法轉換表＋單元測試（SPEC 3.1） — 2026-11-17（實際檔名為 `domain/company_rules.py`，狀態機與認領規則放在同一檔）
