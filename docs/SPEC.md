@@ -254,7 +254,9 @@ backend/app/
 | POST | `/companies/{id}/assign` | 主管重新分派 |
 | POST | `/companies` | 手動加入公司 |
 | POST | `/reviews` | 批次審核 `{company_ids[], decision, reject_reason?, note?, corrected_industry_id?}`；整批成功才寫入 |
-| POST | `/contacts` / PATCH `/contacts/{id}` | 管理聯絡人 |
+| POST | `/contacts` / PATCH `/contacts/{id}` | 管理聯絡人（來源必填、email 格式檢查、同公司不重複） |
+| POST | `/contacts/{id}/unsubscribe` | 標記退訂，公司同時改成 `do_not_contact`（F-CASE-5） |
+| DELETE | `/contacts/{id}` | 個資刪除（主管／管理員，body 帶 `reason`）：連帶刪除草稿與寄出信件，寫 `activity_log` |
 | POST | `/imports` | 管理員上傳 CSV / XLSX → 回傳預覽（`status = previewed`） |
 | POST | `/imports/api?commit=` | MLE function 用 JSON 匯入（`X-API-Key`）；`commit=true` 直接寫入，有錯誤就整批拒絕 |
 | GET | `/imports`、`/imports/{id}` | 匯入紀錄與預覽內容 |

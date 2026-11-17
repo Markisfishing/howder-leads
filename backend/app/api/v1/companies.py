@@ -167,8 +167,16 @@ def _detail(db: Session, company_id: int) -> CompanyDetail:
     pr = db.get(DimPriority, cl.priority) if cl and cl.priority else None
     names = dict(db.execute(select(AppUser.user_id, AppUser.display_name)).all())
     contacts = [
-        {"contact_id": c.contact_id, "name": c.name, "title": c.title, "email": c.email, "unsubscribed": c.unsubscribed}
-        for c in db.scalars(select(Contact).where(Contact.company_id == company_id))
+        {
+            "contact_id": c.contact_id,
+            "name": c.name,
+            "title": c.title,
+            "email": c.email,
+            "source": c.source,
+            "is_verified": c.is_verified,
+            "unsubscribed": c.unsubscribed,
+        }
+        for c in db.scalars(select(Contact).where(Contact.company_id == company_id).order_by(Contact.contact_id))
     ]
     reviews = [
         {
