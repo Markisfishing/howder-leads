@@ -34,6 +34,7 @@
 }
 .kpi:hover { border-color: var(--color-accent); box-shadow: var(--shadow-card); color: inherit; transform: translateY(calc(var(--space-1) * -0.25)); }
 .kpiValue { min-width: 0; overflow-wrap: anywhere; font-size: var(--text-xl); line-height: var(--line-height-tight); }
+.kpiInsight { min-height: 1.25rem; color: var(--color-warning); font-size: var(--text-sm); }
 .kpiHint { color: var(--color-accent); font-size: var(--text-sm); }
 .featuredKpi { border-color: var(--color-accent); background: var(--color-accent-soft); }
 .compactKpi { box-shadow: none; background: var(--color-surface-muted); }

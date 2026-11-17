@@ -231,11 +231,14 @@ function OverviewBody({ data }: { data: Overview }) {
   const k = data.kpis;
   const [sourceExpanded, setSourceExpanded] = useState(false);
   const pendingReview = data.reminders.find((reminder) => reminder.kind === "pending_review")?.count ?? 0;
+  const comparison = data.comparison;
+  const rateDelta = comparison?.reply_rate_delta !== null && comparison?.reply_rate_delta !== undefined ? Number(comparison.reply_rate_delta) * 100 : null;
+  const targetRate = comparison ? Number(comparison.reply_rate_target) * 100 : null;
   const primaryKpis = [
-    { label: "已寄出", value: k.sent.toLocaleString("zh-TW"), hint: "查看邀請信", to: "/campaigns" },
-    { label: "回覆率", value: formatRate(k.reply_rate), hint: `回覆 ${k.replied.toLocaleString("zh-TW")} 件`, to: "/cases?status=replied" },
-    { label: "成交", value: k.won.toLocaleString("zh-TW"), hint: "查看成交案件", to: "/cases?status=won" },
-    { label: "成交金額", value: formatTwd(k.won_amount_twd), hint: "查看成交案件", to: "/cases?status=won", featured: true },
+    { label: "已寄出", value: k.sent.toLocaleString("zh-TW"), hint: "查看邀請信", insight: comparison ? `較前期 ${formatSigned(comparison.sent_delta)}` : undefined, to: "/campaigns" },
+    { label: "回覆率", value: formatRate(k.reply_rate), hint: `回覆 ${k.replied.toLocaleString("zh-TW")} 件`, insight: rateDelta !== null ? `較前期 ${formatSigned(rateDelta, "個百分點")}${targetRate !== null && Number(k.reply_rate ?? 0) < targetRate / 100 ? ` · 低於目標 ${targetRate}%` : ""}` : undefined, to: "/cases?status=replied" },
+    { label: "成交", value: k.won.toLocaleString("zh-TW"), hint: "查看成交案件", insight: comparison ? `較前期 ${formatSigned(comparison.won_delta)}` : undefined, to: "/cases?status=won" },
+    { label: "成交金額", value: formatTwd(k.won_amount_twd), hint: "查看成交案件", insight: comparison ? `較前期 ${formatTwd(comparison.won_amount_delta_twd)}` : undefined, to: "/cases?status=won", featured: true },
   ];
   const inventoryKpis = [
     { label: "公司總數", value: k.companies, hint: "查看完整推薦清單", to: "/recommendations" },
@@ -316,10 +319,16 @@ function OverviewBody({ data }: { data: Overview }) {
   );
 }
 
-function KpiLink({ label, value, hint, to, compact = false, featured = false }: { label: string; value: string | number; hint: string; to: string; compact?: boolean; featured?: boolean }) {
+function formatSigned(value: number, suffix = ""): string {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toLocaleString("zh-TW", { maximumFractionDigits: 1 })}${suffix}`;
+}
+
+function KpiLink({ label, value, hint, insight, to, compact = false, featured = false }: { label: string; value: string | number; hint: string; insight?: string; to: string; compact?: boolean; featured?: boolean }) {
   return <Link to={to} className={`${o.kpi} ${compact ? o.compactKpi : ""} ${featured ? o.featuredKpi : ""}`}>
     <span className={styles.countLabel}>{label}</span>
     <strong className={o.kpiValue}>{typeof value === "number" ? value.toLocaleString("zh-TW") : value}</strong>
+    {insight && <span className={o.kpiInsight}>{insight}</span>}
     <span className={o.kpiHint}>→ {hint}</span>
   </Link>;
 }

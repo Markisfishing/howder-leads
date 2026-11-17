@@ -48,9 +48,18 @@ class ReminderCount(BaseModel):
     count: int
 
 
+class OverviewComparison(BaseModel):
+    sent_delta: int
+    reply_rate_delta: Decimal | None
+    won_delta: int
+    won_amount_delta_twd: Decimal
+    reply_rate_target: Decimal
+
+
 class Overview(BaseModel):
     scope_owner_id: int | None  # null = 全團隊
     kpis: OverviewKpis
+    comparison: OverviewComparison | None
     funnel: list[FunnelStage]
     mle_funnel: dict[str, int] | None
     by_source: list[SourceRate]

@@ -9,7 +9,7 @@
 - 日期區間套在「寄出日」（台灣日期）
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
@@ -164,9 +164,27 @@ def mle_funnel(db: Session) -> dict[str, int] | None:
 
 
 def overview(db: Session, user: AppUser, f: OverviewFilter) -> dict[str, Any]:
+    current = kpis(db, f)
+    comparison = None
+    if f.date_from and f.date_to:
+        days = (f.date_to - f.date_from).days + 1
+        previous_to = f.date_from - timedelta(days=1)
+        previous = kpis(db, replace(f, date_from=previous_to - timedelta(days=days - 1), date_to=previous_to))
+        current_rate = current["reply_rate"]
+        previous_rate = previous["reply_rate"]
+        comparison = {
+            "sent_delta": current["sent"] - previous["sent"],
+            "reply_rate_delta": (
+                current_rate - previous_rate if current_rate is not None and previous_rate is not None else None
+            ),
+            "won_delta": current["won"] - previous["won"],
+            "won_amount_delta_twd": current["won_amount_twd"] - previous["won_amount_twd"],
+            "reply_rate_target": Decimal("0.05"),
+        }
     return {
         "scope_owner_id": f.owner_id,
-        "kpis": kpis(db, f),
+        "kpis": current,
+        "comparison": comparison,
         "funnel": funnel(db, f),
         "mle_funnel": mle_funnel(db),
         "by_source": by_source(db, f),
