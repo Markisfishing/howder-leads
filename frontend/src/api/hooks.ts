@@ -2,7 +2,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import * as ep from "./endpoints";
-import type { Campaign, CaseUpdateInput } from "./types";
+import type { Campaign, CaseUpdateInput, OverviewQuery } from "./types";
 import type { ListFilters } from "../lib/filters";
 
 export const keys = {
@@ -25,6 +25,7 @@ export const keys = {
   cases: (q: object) => ["cases", q] as const,
   case: (id: number) => ["case", id] as const,
   reminders: ["reminders"] as const,
+  overview: (q: object) => ["overview", q] as const,
 };
 
 export const useCompanies = (f: ListFilters) =>
@@ -182,6 +183,8 @@ export const useCases = (q: ep.CaseQuery) =>
   useQuery({ queryKey: keys.cases(q), queryFn: () => ep.listCases(q), placeholderData: keepPreviousData });
 export const useCase = (id: number) => useQuery({ queryKey: keys.case(id), queryFn: () => ep.getCase(id) });
 export const useReminders = () => useQuery({ queryKey: keys.reminders, queryFn: ep.getReminders });
+export const useOverview = (q: OverviewQuery) =>
+  useQuery({ queryKey: keys.overview(q), queryFn: () => ep.getOverview(q) });
 
 /** 案件變動會影響：案件列表、提醒、公司狀態、KPI、總覽 */
 function useCaseMutation<TArgs, TResult>(fn: (args: TArgs) => Promise<TResult>) {

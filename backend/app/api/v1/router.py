@@ -10,6 +10,7 @@ from app.api.v1 import (
     imports,
     mail_connection,
     meta,
+    overview,
     reminders,
     reviews,
     templates,
@@ -27,4 +28,5 @@ api_router.include_router(campaigns.router, tags=["campaigns"])
 api_router.include_router(mail_connection.router, tags=["mail"])
 api_router.include_router(cases.router, tags=["cases"])
 api_router.include_router(reminders.router, tags=["reminders"])
+api_router.include_router(overview.router, tags=["overview"])
 api_router.include_router(meta.router, tags=["meta"])

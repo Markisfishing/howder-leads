@@ -24,6 +24,8 @@ class Kpis(BaseModel):
     sent_total: int
     replied_total: int
     reply_rate: Decimal | None
+    won_total: int
+    won_amount_twd: Decimal
 
 
 class Industry(BaseModel):

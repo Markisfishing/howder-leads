@@ -20,6 +20,8 @@ import type {
   ImportBatch,
   ImportBatchDetail,
   Kpis,
+  Overview,
+  OverviewQuery,
   MailConnection,
   RejectReason,
   RenderedMail,
@@ -114,6 +116,7 @@ export const submitReview = (body: ReviewBody) =>
   api<{ updated: number; status: string }>("/reviews", { method: "POST", json: body });
 
 export const getKpis = () => api<Kpis>("/metrics/kpis");
+export const getOverview = (q: OverviewQuery) => api<Overview>("/metrics/overview", { query: { ...q } });
 export const getDimensions = () => api<Dimensions>("/dimensions");
 
 export const uploadImport = (file: File, modelName?: string) => {

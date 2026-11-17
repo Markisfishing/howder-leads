@@ -23,6 +23,11 @@ export function AppLayout() {
         </div>
         <ul className={styles.list}>
           <li>
+            <NavLink to="/overview" className={linkClass}>
+              總覽
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/" end className={linkClass}>
               推薦清單
             </NavLink>
