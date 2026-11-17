@@ -1,5 +1,6 @@
 // 程式代碼 → UI 中文（CLAUDE.md 第 2 節的專有名詞）
-import type { CompanyStatus, ContactSource, RejectReason } from "../api/types";
+import type { CampaignStatus, CompanyStatus, ContactSource, DraftStatus, GenMode, RejectReason } from "../api/types";
+import { errorMessage } from "../api/errorMessages";
 
 export const STATUS_LABELS: Record<CompanyStatus, string> = {
   imported: "已匯入",
@@ -115,4 +116,57 @@ export function hostname(url: string): string {
   } catch {
     return url;
   }
+}
+
+// ---------- 邀請信（M2-03～M2-07）----------
+export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
+  draft: "建立中",
+  generating: "產生草稿中",
+  reviewing: "待審核",
+  scheduled: "已排程",
+  sending: "寄送中",
+  done: "已完成",
+};
+
+export const CAMPAIGN_STATUS_TONE: Record<CampaignStatus, Tone> = {
+  draft: "neutral",
+  generating: "info",
+  reviewing: "warning",
+  scheduled: "info",
+  sending: "info",
+  done: "success",
+};
+
+export const DRAFT_STATUS_LABELS: Record<DraftStatus, string> = {
+  generating: "產生中",
+  pending_review: "待審核",
+  approved: "已核准",
+  failed: "失敗",
+  sent: "已寄出",
+  discarded: "已丟棄",
+};
+
+export const DRAFT_STATUS_TONE: Record<DraftStatus, Tone> = {
+  generating: "neutral",
+  pending_review: "warning",
+  approved: "success",
+  failed: "danger",
+  sent: "info",
+  discarded: "neutral",
+};
+
+export const GEN_MODE_LABELS: Record<GenMode, string> = {
+  template_only: "只用模板",
+  template_ai: "模板 + AI 段落",
+  full_ai: "整封 AI 撰寫",
+};
+
+/** 草稿 last_error 只放代碼：GUARD:原因1,原因2 → 防呆原因；其他 → 錯誤訊息對照 */
+export function draftErrorText(code: string | null, reasons: Record<string, string> = {}): string | null {
+  if (!code) return null;
+  if (code.startsWith("GUARD:")) {
+    const list = code.slice(6).split(",").filter(Boolean);
+    return `寄出前檢查沒過：${list.map((r) => reasons[r] ?? r).join("、")}`;
+  }
+  return errorMessage(code, `錯誤代碼 ${code}`);
 }

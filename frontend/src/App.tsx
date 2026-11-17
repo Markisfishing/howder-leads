@@ -6,6 +6,9 @@ import { AppLayout } from "./components/AppLayout";
 import { Empty, Loading } from "./components/StateView";
 import { AdminImportsPage } from "./pages/AdminImportsPage";
 import { AdminTemplatesPage } from "./pages/AdminTemplatesPage";
+import { CampaignNewPage } from "./pages/campaigns/CampaignNewPage";
+import { CampaignReviewPage } from "./pages/campaigns/CampaignReviewPage";
+import { CampaignsPage } from "./pages/campaigns/CampaignsPage";
 import { CompanyPage } from "./pages/CompanyPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RecommendationsPage } from "./pages/RecommendationsPage";
@@ -26,6 +29,9 @@ export function App() {
       <Route element={<AppLayout />}>
         <Route index element={<RecommendationsPage />} />
         <Route path="companies/:id" element={<CompanyPage />} />
+        <Route path="campaigns" element={<CampaignsPage />} />
+        <Route path="campaigns/new" element={<CampaignNewPage />} />
+        <Route path="campaigns/:id" element={<CampaignReviewPage />} />
         <Route
           path="admin/imports"
           element={

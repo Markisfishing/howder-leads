@@ -5,6 +5,48 @@
 
 ---
 
+## 2026-11-18｜M2 寄信：模板、批次、預覽佇列、寄出（sandbox）
+
+**改了哪些檔案**
+- `backend/migrations/versions/0005_template_versions_and_text_body.py`：模板版本（`family_id`、同一家族只有一個使用中版本）、純文字內文
+- `backend/app/domain/template_rules.py`：變數白名單、渲染、跳脫 HTML、強制附退訂說明
+- `backend/app/domain/send_guard.py`、`draft_rules.py`、`send_limits.py`：寄送防呆、草稿狀態機與改稿幅度、每日上限／每分鐘限速排程（台灣時間）
+- `backend/app/services/`：`template_service`、`campaign_service`、`generator`、`draft_service`、`send_service`、`mailer`（Sandbox／Graph）、`mail_token`（OBO＋Fernet）、`jobs`（重試與改期）
+- `backend/app/workers/`：`python -m app.workers`，LISTEN `job_queued` 立即處理
+- `backend/app/api/v1/templates.py`、`campaigns.py`、`mail_connection.py`：模板管理、批次／草稿／寄出、Outlook 連結
+- `backend/scripts/seed_templates.py`：初版模板（佔位文字，等 SPEC 11-5）
+- `frontend/src/pages/AdminTemplatesPage.tsx`：模板列表、編輯、插入變數、假資料預覽
+- `frontend/src/pages/campaigns/`：`/campaigns` 列表、`/campaigns/new` 建立批次、`/campaigns/:id` 預覽佇列與寄出、Outlook 連結提示
+- `frontend/src/api/*`、`lib/labels.ts`：批次／草稿型別、hooks（產生中與寄送中每 2 秒更新）、錯誤訊息與狀態中文
+- `frontend/src/components/AppLayout.tsx`：導覽列開放「邀請信」；`KpiCards.tsx` 提示文字更新
+- 測試：`backend/tests/test_mail_domain.py`、`test_campaigns.py`、`test_mail_connection.py`、`test_templates.py`；`frontend/src/pages/campaigns/Campaigns.test.tsx`、`AdminTemplatesPage.test.tsx`
+- `CLAUDE.md` 第 3 節：加上 worker 指令
+
+**解決了什麼問題**
+- 業務可以從「已通過」的公司建立批次，產生草稿、逐封修改核准（Ctrl+Enter 核准並跳下一封）、全部核准（要按兩次）、立即或排程寄出。
+- 系統不會自動寄信：只有 `approved` 的草稿會排進寄送工作，建立批次、按寄出、worker 真正寄出前各檢查一次防呆。
+- sandbox 端到端（M2-13）：10 家 → 產生 → 改一封 → 核准 → 寄出，`email_message` 10 筆、公司都變 `sent`、改過的那封 `edit_ratio` 0.030。
+- 修 bug：API 的 `contact_id` 可以不填，但後端判成「沒有聯絡人」；改成用該公司第一位沒退訂的聯絡人（先寫重現測試）。
+
+**做了哪些決定**
+- 預覽佇列直接放在 `/campaigns/:id`，不另開 `/review`（SPEC 6.2 已同步）。
+- 寄出只限批次負責業務本人（信從本人信箱寄）；主管可以看、可以審，但不能代寄。
+- 失敗的草稿要先存一次（回到待審核）才能再核准；防呆沒過的原因存成 `GUARD:代碼` 給前端翻成中文。
+- Outlook 權杖失效時暫停（不算失敗），重新連結後自動恢復排程。
+- 寄送時間從每天 9 點開始（`SEND_DAY_START_HOUR`），本機端到端測試時用環境變數設成 0。
+
+**還沒處理的問題**
+- M2-15 真實 Outlook 驗收：等 Microsoft 365 管理員核准 `Mail.Send`（SPEC 11-4）。
+- 模板內文還是佔位文字（SPEC 11-5）。
+- 前端 bundle 超過 500 kB 的警告仍在（已列在 PROGRESS）。
+- 一位聯絡人退訂就封鎖整家公司是否太嚴、「取消退訂」入口，仍待業務主管決定。
+- `CLAUDE.md` 第 3 節外部服務仍寫 Graph「讀回覆」，和 ADR 0004（不讀信箱）不一致，等使用者決定是否修改。
+
+**下一步**
+- 把 M3 拆成 commit 大小的任務，從 M3-07 `sales_case` migration、M3-08 案件 domain 規則開始；寄出成功時自動開案接到 M2-07d 的 worker。
+
+---
+
 ## 2026-11-17｜M2-10、M2-11、M2-01 聯絡人管理
 
 **改了哪些檔案**

@@ -5,9 +5,9 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 最後更新 | 2026-11-17 |
-| 目前階段 | **M2 寄信（進行中）**；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | M2-04a 寄送防呆 domain，接著 M2-03b 建立 campaign |
+| 最後更新 | 2026-11-18 |
+| 目前階段 | **M2 寄信完成（sandbox）**，只剩 M2-15 真實 Outlook 驗收；M1 只剩 M1-03 Docker 驗證 |
+| 下一個任務 | 先把 M3 拆成 commit 大小的任務，再從 M3-07 `sales_case` migration 開始 |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -108,69 +108,69 @@
   - [x] M2-02c 初版模板種子（內容等 SPEC 11-5，先放佔位文字） — 2026-11-17（`uv run python -m scripts.seed_templates`）
 
 ### 產生草稿
-- [ ] M2-03 建立 campaign 與 `template_only` 草稿產生（F-MAIL-1、F-MAIL-2、F-MAIL-3；拆成下列 a～e）
+- [x] M2-03 建立 campaign 與 `template_only` 草稿產生（F-MAIL-1、F-MAIL-2、F-MAIL-3；拆成下列 a～e） — 2026-11-18
   - [x] M2-03a `domain` 模板渲染純函式：代入變數、跳脫 HTML、缺變數就報錯、強制附上退訂說明 — 2026-11-17（`domain/template_rules.py`）
-  - [ ] M2-03b `POST /campaigns`
+  - [x] M2-03b `POST /campaigns` — 2026-11-18
     - 只能選「已通過」而且自己能操作的公司，每家選一位聯絡人
     - 回傳 `job_id`
     - 公司狀態 `approved → drafted`
-  - [ ] M2-03c worker `generate_drafts`（`template_only`）
+  - [x] M2-03c worker `generate_drafts`（`template_only`） — 2026-11-18
     - 單封失敗不影響其他封
     - `GET /campaigns/{id}` 回傳產生進度
     - 一開始產生的內文存進 `ai_original`，給 F-MAIL-8 比對
-  - [ ] M2-03d 前端 `/campaigns/new`
+  - [x] M2-03d 前端 `/campaigns/new` — 2026-11-18
     - 從已通過名單選對象 → 選模板
-    - 生成模式只開放 `template_only`，AI 模式顯示「M3 開放」
+    - 生成模式只開放 `template_only`，AI 模式顯示「M4 開放」
     - 顯示被防呆排除的公司和原因
-  - [ ] M2-03e 前端 `/campaigns` 列表；導覽列開放「邀請信」
+  - [x] M2-03e 前端 `/campaigns` 列表；導覽列開放「邀請信」 — 2026-11-18
 
 ### 寄送防呆
-- [ ] M2-04 寄送防呆 domain 規則＋測試（F-MAIL-7；拆成下列 a、b）
-  - [ ] M2-04a `domain/send_guard`：排除已退訂、`do_not_contact`、被其他業務鎖定、14 天內寄過、沒有聯絡人的對象。回傳原因代碼，每條規則至少一個 test
-  - [ ] M2-04b 產生草稿時和真正寄出前都要檢查（寄出前再查一次）＋ API 測試
+- [x] M2-04 寄送防呆 domain 規則＋測試（F-MAIL-7；拆成下列 a、b） — 2026-11-18
+  - [x] M2-04a `domain/send_guard`：排除已退訂、`do_not_contact`、被其他業務鎖定、14 天內寄過、沒有聯絡人的對象。回傳原因代碼，每條規則至少一個 test — 2026-11-18
+  - [x] M2-04b 產生草稿時和真正寄出前都要檢查（寄出前再查一次）＋ API 測試 — 2026-11-18
 
 ### 預覽佇列
-- [ ] M2-05 預覽佇列頁（F-MAIL-4；拆成下列 a～c）
-  - [ ] M2-05a 後端：
+- [x] M2-05 預覽佇列頁（F-MAIL-4；拆成下列 a～c） — 2026-11-18
+  - [x] M2-05a 後端： — 2026-11-18
     - `GET /campaigns/{id}/drafts`
     - `PATCH /drafts/{id}`（修改、核准、丟棄）
     - `POST /drafts/{id}/regenerate`
     - 全部核准（要帶確認參數）
     - 丟棄後公司狀態退回 `approved`
-  - [ ] M2-05b 前端 `/campaigns/:id/review`：
+  - [x] M2-05b 前端 `/campaigns/:id`（路由依 SPEC 6.2 改成批次頁本身）： — 2026-11-18
     - 左邊清單、右邊預覽，逐封修改
     - 顯示產生進度
     - 只用鍵盤就能逐封核准
-  - [ ] M2-05c 「全部核准」要再按一次確認；核准後公司狀態改成 `draft_approved`
+  - [x] M2-05c 「全部核准」要再按一次確認；核准後公司狀態改成 `draft_approved` — 2026-11-18
 
 ### 寄出
-- [ ] M2-06 只有核准的草稿可以寄＋測試（F-MAIL-5；拆成下列 a）
-  - [ ] M2-06a 寄送前在 domain 檢查：不是 `approved` 一律回 `DRAFT_NOT_APPROVED`。測試 `test_f_mail_5_*` 要涵蓋每一種非核准狀態
-- [ ] M2-07 Graph `sendMail`（`MAIL_MODE=sandbox` / `live`）、每日上限、排程（F-MAIL-6；拆成下列 a～e）
-  - [ ] M2-07a `services/mailer` 介面：
+- [x] M2-06 只有核准的草稿可以寄＋測試（F-MAIL-5；拆成下列 a） — 2026-11-18
+  - [x] M2-06a 寄送前在 domain 檢查：不是 `approved` 一律回 `DRAFT_NOT_APPROVED`。測試 `test_f_mail_5_*` 要涵蓋每一種非核准狀態 — 2026-11-18
+- [x] M2-07 Graph `sendMail`（`MAIL_MODE=sandbox` / `live`）、每日上限、排程（F-MAIL-6；拆成下列 a～e） — 2026-11-18
+  - [x] M2-07a `services/mailer` 介面： — 2026-11-18
     - `SandboxMailer` 只寫資料庫和 log（開發、測試用）
     - 測試用的假 Graph
     - 確認 log 不會印出信件全文
-  - [ ] M2-07b `GraphMailer`：
+  - [x] M2-07b `GraphMailer`： — 2026-11-18
     - 先建立草稿再送出，才拿得到 message id 和 conversation id
     - 失敗時指數退避重試 3 次
-  - [ ] M2-07c 業務「連結 Outlook」（ADR 0005）：
+  - [x] M2-07c 業務「連結 Outlook」（ADR 0005）： — 2026-11-18
     - `GET/POST/DELETE /me/mail-connection`，用 On-Behalf-Of 換權杖，Fernet 加密存放
     - 新增 `msal` 套件，設定 `ENTRA_CLIENT_SECRET`、`MAIL_TOKEN_KEY`（`.env.example` 同步）；`MAIL_MODE=live` 少了這兩個就啟動失敗
     - 權杖失效時標成 `needs_reconnect`，暫停寄送並提示業務
     - 測試：回應與 log 不含權杖、只能用本人權杖、假的 OBO／Graph
-  - [ ] M2-07d `POST /campaigns/{id}/send`（可帶 `scheduled_at`）＋ worker `send_scheduled`（寄出成功時開案在 M3-08 接上）：
+  - [x] M2-07d `POST /campaigns/{id}/send`（可帶 `scheduled_at`）＋ worker `send_scheduled`（寄出成功時開案在 M3-08 接上）： — 2026-11-18
     - 每人每天上限、每分鐘限速，超過的排到隔天
     - 寫入 `email_message` 和 `activity_log`
     - 公司狀態改成 `sent`
-  - [ ] M2-07e 重試都失敗時，草稿標記 `failed`，在 campaign 頁通知寄件的業務
+  - [x] M2-07e 重試都失敗時，草稿標記 `failed`，在 campaign 頁通知寄件的業務 — 2026-11-18
 
 ### 收尾
-- [ ] M2-08 計算改稿幅度 `edit_ratio`（F-MAIL-8；拆成下列 a）
-  - [ ] M2-08a `domain` 計算函式（0 = 沒改，1 = 全部重寫），核准時寫入，加上測試
-- [ ] M2-12 KPI 卡「近 7 天已寄出」接上真實資料，在瀏覽器確認
-- [ ] M2-13 sandbox 走完一輪：10 家 → 產生 → 修改 → 核准 → 寄出，`email_message` 有 10 筆
-- [ ] M2-14 375px / 1280px 瀏覽器檢查；預覽佇列可以只用鍵盤核准
+- [x] M2-08 計算改稿幅度 `edit_ratio`（F-MAIL-8；拆成下列 a） — 2026-11-18
+  - [x] M2-08a `domain` 計算函式（0 = 沒改，1 = 全部重寫），核准時寫入，加上測試 — 2026-11-18
+- [x] M2-12 KPI 卡「近 7 天已寄出」接上真實資料，在瀏覽器確認 — 2026-11-18
+- [x] M2-13 sandbox 走完一輪：10 家 → 產生 → 修改 → 核准 → 寄出，`email_message` 有 10 筆 — 2026-11-18（腳本跑 API＋worker；修掉 contact_id 未填的 bug）
+- [x] M2-14 375px / 1280px 瀏覽器檢查；預覽佇列可以只用鍵盤核准 — 2026-11-18
 - [ ] M2-15 驗收：真實 Outlook 寄 10 封到測試信箱，確認出現在寄件備份（等 SPEC 11-4 權限核准；只能寄到公司內部的測試信箱）
 
 ## M3 案件追蹤與總覽（閉環）
@@ -238,4 +238,7 @@
 - [ ] 公司詳情側欄打開時焦點落在「排除…」按鈕，改成落在標題或關閉鈕比較安全
 - [ ] 審核結果 CSV 的時間是 UTC ISO 格式，確認 MLE 是否需要台灣時間
 - [ ] `RecommendationsPage` 與 `AdminImportsPage` 尚無元件測試（目前靠瀏覽器檢查），M2 前補上
+- [ ] 寄送時段：`SEND_DAY_START_HOUR`（預設 9 點）之前按寄出會排到當天 9 點；要不要也設下班時間上限，請業務確認
+- [ ] 批次全部核准後狀態仍顯示「待審核」（`reviewing`），直到按寄出才變「已排程」；考慮加一個「待寄出」狀態或改顯示文字
+- [ ] 建立批次頁的候選公司超過 50 家時沒有搜尋或篩選，M3-13 候選名單改版時一併處理
 - [ ] 聯絡人「取消退訂」目前沒有入口（PATCH 不能改 `unsubscribed`）；若客戶主動要求恢復聯絡，需決定由誰、怎麼操作
