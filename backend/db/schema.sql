@@ -164,7 +164,9 @@ CREATE TABLE campaign (
     template_id   BIGINT REFERENCES email_template(template_id),
     gen_mode      gen_mode NOT NULL DEFAULT 'template_ai',
     owner_id      BIGINT NOT NULL REFERENCES app_user(user_id),
-    status        TEXT NOT NULL DEFAULT 'draft',    -- draft | reviewing | scheduled | sending | done
+    status        TEXT NOT NULL DEFAULT 'draft'
+                  CONSTRAINT ck_campaign_status
+                  CHECK (status IN ('draft','generating','reviewing','scheduled','sending','done')),  -- 0003
     scheduled_at  TIMESTAMPTZ,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -183,7 +185,10 @@ CREATE TABLE email_draft (
     status          draft_status NOT NULL DEFAULT 'generating',
     approved_by     BIGINT REFERENCES app_user(user_id),
     approved_at     TIMESTAMPTZ,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    scheduled_at    TIMESTAMPTZ,                     -- 0003：排程寄出時間
+    send_attempts   INT NOT NULL DEFAULT 0 CHECK (send_attempts >= 0),  -- 0003
+    last_error      TEXT                             -- 0003：錯誤代碼，不放信件內容
 );
 CREATE INDEX idx_draft_campaign_status ON email_draft(campaign_id, status);
 
@@ -195,6 +200,7 @@ CREATE TABLE email_message (                        -- 實際寄出的信
     conversation_id   TEXT,                          -- 用來比對回覆
     sent_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+CREATE INDEX idx_message_sender_sent ON email_message(sender_id, sent_at);  -- 0003：每日上限
 
 CREATE TABLE email_event (
     event_id      BIGSERIAL PRIMARY KEY,
@@ -229,6 +235,47 @@ CREATE TABLE activity_log (                         -- 稽核 + 業務備註，�
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_log_company ON activity_log(company_id, created_at DESC);
+
+-- ---------- Outlook 寄信權杖（0003，ADR 0005）----------
+CREATE TABLE user_mail_credential (
+    user_id       BIGINT PRIMARY KEY REFERENCES app_user(user_id) ON DELETE CASCADE,
+    token_cache   BYTEA NOT NULL,                       -- Fernet 加密後的 MSAL 快取
+    scopes        TEXT[] NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'connected' CHECK (status IN ('connected', 'needs_reconnect')),
+    connected_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_used_at  TIMESTAMPTZ,
+    last_error    TEXT
+);
+
+-- ---------- 背景工作佇列（0003，ADR 0003）----------
+CREATE TABLE job (
+    job_id        BIGSERIAL PRIMARY KEY,
+    kind          TEXT NOT NULL CHECK (kind IN ('generate_drafts', 'send_email')),
+    payload       JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status        TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed')),
+    run_after     TIMESTAMPTZ NOT NULL DEFAULT now(),   -- 排程與重試退避
+    attempts      INT NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+    max_attempts  INT NOT NULL DEFAULT 3 CHECK (max_attempts >= 1),
+    last_error    TEXT,
+    locked_at     TIMESTAMPTZ,
+    locked_by     TEXT,
+    created_by    BIGINT REFERENCES app_user(user_id),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    finished_at   TIMESTAMPTZ
+);
+CREATE INDEX idx_job_ready ON job(run_after) WHERE status = 'queued';
+
+CREATE FUNCTION notify_job_queued() RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('job_queued', NEW.kind);   -- 叫醒 worker（LISTEN job_queued）
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_job_queued
+AFTER INSERT ON job
+FOR EACH ROW WHEN (NEW.status = 'queued')
+EXECUTE FUNCTION notify_job_queued();
 
 -- ---------- 指標層：KPI 只在這裡定義一次 ----------
 CREATE VIEW v_recommendation AS                     -- 推薦清單：產業以業務修正為優先
