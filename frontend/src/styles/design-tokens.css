@@ -67,6 +67,7 @@
   --radius-pill: 999px;     /* 狀態標籤 */
   --max-width: 1280px;      /* 表格欄位多，給到 1280；再寬一行字會太長 */
   --sidebar-width: 232px;   /* 左側導覽列 */
+  --sidebar-collapsed-width: 72px; /* 收合後只保留圖示 */
   --border-width: 1px;      /* 所有分隔線、外框 */
   --focus-width: 2px;       /* 鍵盤焦點外框：只用鍵盤操作也看得到目前在哪 */
 
