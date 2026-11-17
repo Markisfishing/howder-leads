@@ -75,13 +75,20 @@ UI 文字用繁體中文；程式識別字（變數、函式、資料表、API �
 ```bash
 # 原型預覽：http://127.0.0.1:5510/prototypes/recommendations.html
 python -m http.server 5510 --bind 127.0.0.1 --directory frontend
-# 後端（待建立）
-#   cd backend && uv run fastapi dev app/main.py
-#   cd backend && uv run pytest
-#   cd backend && uv run ruff check . && uv run mypy app
-# 前端（待建立）
-#   cd frontend && npm run dev / npm run test / npm run lint / npm run typecheck
+
+# 後端（在 backend/ 底下；第一次先 `uv sync`，並把 .env.example 複製成 .env）
+uv run python -m scripts.dev_db          # 不用 Docker 的開發資料庫，印出 DATABASE_URL 填進 .env，保持執行
+uv run alembic upgrade head              # 套用 migration
+uv run uvicorn app.main:app --port 8000  # API：http://127.0.0.1:8000/api/v1
+uv run pytest                            # 測試（自己會開一個暫時的 Postgres，不碰開發資料庫）
+uv run ruff check . && uv run ruff format --check . && uv run mypy app
+
+# 前端（在 frontend/ 底下；第一次先 `npm install`）
+npm run dev        # http://127.0.0.1:5173，/api 轉到 8000
+npm run typecheck && npm run lint && npm run test && npm run build
 ```
+
+> 專案路徑有中文：`scripts/pg_local.py` 會把 Postgres 執行檔複製到 `%LOCALAPPDATA%\howder\` 再啟動（initdb 不吃非 ASCII 路徑）；`alembic.ini` 只能寫 ASCII（configparser 用系統編碼讀檔）。
 
 ---
 
