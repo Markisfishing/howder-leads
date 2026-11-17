@@ -287,7 +287,7 @@ backend/app/
 
 ### 7.4 AI 郵件產生
 - 模型：Claude（`claude-sonnet-5-5`），一家公司呼叫一次，並發數限制為 5。
-- 輸入：模板、公司名稱、產業、客戶屬性、判斷理由、官網摘要（匯入時預先爬取並快取），再加上厚達的產品介紹（固定的 system prompt，使用 prompt caching）。
+- 輸入：模板、公司名稱、產業、客戶屬性、判斷理由、官網摘要（匯入確認後由 worker 抓取並快取在 `company_site_summary`，抓不到時改用推薦理由；M4-08），再加上厚達的產品介紹（固定的 system prompt，使用 prompt caching）。
 - 輸出：要求回傳 JSON `{subject, ai_paragraph | body_html}`，並驗證長度和必要欄位。
 - 限制：不得捏造客戶實績、價格或認證；內容只能根據提供的資料撰寫。
 - 原稿存在 `ai_original`，業務修改後的版本存在 `body_html`。
