@@ -1,0 +1,50 @@
+/* 總覽頁（/overview）；先寫手機版 */
+
+/* 區塊：篩選 */
+.filters { display: grid; gap: var(--space-3); }
+
+/* 區塊：KPI 卡 */
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.kpi {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+.kpiValue { font-size: var(--text-xl); font-weight: var(--font-weight-bold); }
+
+/* 區塊：漏斗＋待辦 · 寬螢幕左右排 */
+.grid { display: grid; gap: var(--space-4); }
+.funnel { display: grid; gap: var(--space-3); }
+.stage { display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.stageHead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); }
+.bar { display: block; height: var(--space-2); border-radius: var(--radius-pill); background: var(--color-surface-muted); overflow: hidden; }
+.barFill { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--color-accent); }
+
+/* 區塊：待辦提醒 */
+.reminders { display: grid; gap: var(--space-2); }
+.reminder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+}
+.reminder:hover { border-color: var(--color-accent); }
+
+@media (min-width: 768px) {
+  .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
+  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .filters { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
+}

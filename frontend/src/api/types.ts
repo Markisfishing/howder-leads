@@ -120,6 +120,34 @@ export interface Kpis {
   sent_total: number;
   replied_total: number;
   reply_rate: string | null;
+  won_total: number;
+  won_amount_twd: string;
+}
+
+// ---------- 總覽（M3-12b、F-DASH-1～4）----------
+export interface OverviewQuery {
+  from: string | null;
+  to: string | null;
+  industry: number | null;
+  product_type: string;
+  owner: number | null;
+}
+
+export interface Overview {
+  scope_owner_id: number | null;
+  kpis: {
+    companies: number;
+    high_priority: number;
+    sent: number;
+    replied: number;
+    reply_rate: string | null;
+    won: number;
+    won_amount_twd: string;
+  };
+  funnel: { key: string; label: string; count: number; rate: string | null }[];
+  mle_funnel: Record<string, number> | null;
+  by_source: { source: string; sent: number; replied: number; reply_rate: string | null; insufficient: boolean }[];
+  reminders: { kind: string; label: string; count: number }[];
 }
 
 export interface Dimensions {

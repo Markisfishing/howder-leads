@@ -11,6 +11,7 @@ import { CampaignNewPage } from "./pages/campaigns/CampaignNewPage";
 import { CampaignReviewPage } from "./pages/campaigns/CampaignReviewPage";
 import { CampaignsPage } from "./pages/campaigns/CampaignsPage";
 import { CompanyPage } from "./pages/CompanyPage";
+import { OverviewPage } from "./pages/overview/OverviewPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RecommendationsPage } from "./pages/RecommendationsPage";
 
@@ -33,6 +34,7 @@ export function App() {
         <Route path="campaigns" element={<CampaignsPage />} />
         <Route path="campaigns/new" element={<CampaignNewPage />} />
         <Route path="campaigns/:id" element={<CampaignReviewPage />} />
+        <Route path="overview" element={<OverviewPage />} />
         <Route path="cases" element={<CasesPage />} />
         <Route path="cases/:id" element={<CasesPage />} />
         <Route
