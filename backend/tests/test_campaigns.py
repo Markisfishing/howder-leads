@@ -144,6 +144,19 @@ def test_f_mail_1_create_campaign_returns_job_and_marks_drafted(world: World) ->
     assert world.db.scalar(select(func.count()).select_from(Job).where(Job.kind == "generate_drafts")) == 1
 
 
+def test_m2_03b_missing_contact_id_uses_default_contact(world: World) -> None:
+    """bug（M2-13 發現）：API 允許 contact_id 不填，應該用該公司第一位沒退訂的聯絡人，不是判成「沒有聯絡人」。"""
+    a = world.ids["10000001"]
+    res = world.client.post(
+        "/api/v1/campaigns",
+        json={"name": "x", "template_id": world.template_id, "targets": [{"company_id": a}]},
+        headers=world.sales1,
+    )
+    assert res.status_code == 201, res.text
+    world.worker()
+    assert [d["contact_id"] for d in world.drafts(res.json()["campaign"]["campaign_id"])] == [world.contacts[a]]
+
+
 def test_f_mail_1_pending_company_is_excluded_with_reason(world: World) -> None:
     out = world.create([world.ids["10000001"], world.ids["10000004"]])
     assert [(e["company_id"], e["reasons"]) for e in out["excluded"]] == [(world.ids["10000004"], ["NOT_APPROVED"])]

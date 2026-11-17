@@ -85,6 +85,11 @@ def draft_counts(db: Session, campaign_ids: list[int]) -> dict[int, dict[str, in
     return out
 
 
+def default_contact(contacts: list[Contact]) -> Contact | None:
+    """沒指定聯絡人時寄給誰：第一位（最早建立）沒退訂的聯絡人。候選清單和建立批次共用。"""
+    return next((ct for ct in sorted(contacts, key=lambda x: x.contact_id) if not ct.unsubscribed), None)
+
+
 def candidates(db: Session, user: AppUser, now: datetime) -> list[dict[str, object]]:
     """可以選進批次的公司：所有「已通過」的公司，附上聯絡人與不能寄的原因（給前端顯示）。"""
     companies = list(db.scalars(select(Company).where(Company.status == "approved").order_by(Company.name)))
@@ -98,7 +103,7 @@ def candidates(db: Session, user: AppUser, now: datetime) -> list[dict[str, obje
     out: list[dict[str, object]] = []
     for c in companies:
         cts = contacts.get(c.company_id, [])
-        default = next((ct for ct in cts if not ct.unsubscribed), None)
+        default = default_contact(cts)
         reasons = send_guard.exclusions(guard_input(db, c, default), user.user_id, now, stage="draft")
         r = rec.get(c.company_id)
         out.append(
@@ -159,7 +164,10 @@ def create_campaign(
         company = companies.get(t.company_id)
         if company is None:
             raise DomainError("COMPANY_NOT_FOUND", f"找不到公司 #{t.company_id}", 404)
-        contact = db.get(Contact, t.contact_id) if t.contact_id else None
+        if t.contact_id:
+            contact = db.get(Contact, t.contact_id)
+        else:
+            contact = default_contact(list(db.scalars(select(Contact).where(Contact.company_id == company.company_id))))
         reasons = send_guard.exclusions(guard_input(db, company, contact), user.user_id, now, stage="draft")
         if contact is not None and contact.company_id != company.company_id:
             reasons = ["CONTACT_NOT_IN_COMPANY", *[r for r in reasons if r != "NO_CONTACT"]]
