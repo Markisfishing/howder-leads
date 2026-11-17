@@ -266,6 +266,7 @@ backend/app/
 | PATCH | `/drafts/{id}` | 修改內容、核准或丟棄 |
 | POST | `/drafts/{id}/regenerate` | 重新生成這一封 |
 | POST | `/campaigns/{id}/send` | 寄出全部已核准的草稿（可帶 `scheduled_at`） |
+| GET/POST/DELETE | `/me/mail-connection` | 查看、連結、中斷自己的 Outlook 寄信權限（只回傳狀態，不回傳權杖） |
 | GET | `/cases?status=&owner=&sent_from=&overdue=` | 案件列表與各狀態件數 |
 | GET | `/cases/{id}` | 案件詳情與時間軸 |
 | POST | `/cases` | 批次「加入追蹤」（不寄信直接開案） |
@@ -291,6 +292,7 @@ backend/app/
 
 ### 7.5 寄信（Microsoft Graph）
 - 權限：每位業務各自授權 **`Mail.Send`**（delegated 委派權限），信件從本人的信箱寄出，也會留在本人的寄件備份。**不申請 `Mail.Read`**，系統不讀業務信箱（ADR 0004）。
+- 權杖：業務按「連結 Outlook」時，後端用 On-Behalf-Of 換到 Graph 權杖；權杖快取用 Fernet 加密存在 `user_mail_credential`，worker 只用寄件人本人的那一筆。失效時標成 `needs_reconnect`，暫停寄送並請業務重新連結（ADR 0005）。
 - 不直接使用 SMTP：Exchange Online 正在淘汰 SMTP 基本驗證。
 - 限速：每位寄件人每分鐘最多 N 封，每天最多 50 封，超過的自動排到隔天。
 - 每封信的結尾都要有退訂說明。
