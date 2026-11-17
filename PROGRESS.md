@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-17 |
 | 目前階段 | **M1 MVP（功能完成；只剩 M1-03 Docker 驗證）** |
-| 下一個任務 | M2-09 決定背景工作佇列方案（要使用者決定），接著 M2-10、M2-11 |
+| 下一個任務 | M2-10 Outlook 委派權杖 ADR，接著 M2-11 migration 0003 |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准應用程式權限（SPEC 11-4）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -31,7 +31,7 @@
 ### 基礎建設
 - [x] M1-01 建立後端專案骨架（uv、pyproject、`app/main.py`、`GET /health`） — 2026-11-17
 - [x] M1-02 後端加上 ruff、mypy、pytest 設定，第一個測試 `test_health` — 2026-11-17
-- [ ] M1-03 `docker-compose.yml`：postgres 16 + redis（開發用）（進行中：已寫 docker-compose.yml，但 Docker Desktop 在這台電腦無法啟動、未驗證；開發與測試改用 backend/scripts/dev_db.py 內嵌 Postgres）
+- [ ] M1-03 `docker-compose.yml`：postgres 16（開發用；依 ADR 0003 不再需要 redis）（進行中：已寫 docker-compose.yml，但 Docker Desktop 在這台電腦無法啟動、未驗證；開發與測試改用 backend/scripts/dev_db.py 內嵌 Postgres）
 - [x] M1-04 `.env.example` 和設定讀取（pydantic-settings），包含 `MAIL_MODE=sandbox` — 2026-11-17
 - [x] M1-05 導入 Alembic，把 `schema.sql` 轉成第一個 migration — 2026-11-17
 - [x] M1-06 SQLAlchemy models（company、classification、review、dim_*、activity_log、import_batch、model_run、app_user） — 2026-11-17
@@ -85,12 +85,13 @@
 原本的 M2-01～08 太大，依 CLAUDE.md 第 13 節拆成 a、b、c…；子任務全部完成才勾原本那一行。新發現的工作從 M2-09 往後編。
 
 ### 先決定（會影響後面所有任務）
-- [ ] M2-09 ADR：背景工作佇列。arq 需要 Redis，但這台電腦的 Docker 起不來。三個選項：Windows 版 Redis（Memurai）、WSL 裡的 Redis、改用 PostgreSQL 當佇列（`SKIP LOCKED`）。**這是換技術棧，要使用者決定**
+- [x] M2-09 ADR：背景工作佇列 — 2026-11-17（使用者決定改用 PostgreSQL 佇列，見 `docs/adr/0003`；CLAUDE.md、SPEC、docker-compose 已同步拿掉 Redis）
 - [ ] M2-10 ADR：Outlook 委派權杖。每位業務授權 `Mail.Send`、`Mail.Read`，後端加密存 refresh token，worker 用它代業務寄信（SPEC 7.5、9 安全）
 - [ ] M2-11 migration 0003（單獨 commit），同步 `schema.sql` 和 SPEC 8.1：
   - `email_draft` 加上 `scheduled_at`、`send_attempts`、`last_error`
   - `campaign.status` 加 CHECK
   - 新增 `user_mail_credential`（加密權杖）
+  - 新增 `job` 佇列表（ADR 0003）
 
 ### 聯絡人
 - [ ] M2-01 聯絡人 CRUD（拆成下列 a、b）

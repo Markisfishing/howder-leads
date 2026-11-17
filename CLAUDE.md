@@ -26,7 +26,7 @@ backend/                  後端 API + 背景 Worker（同一個 Python 套件�
     api/v1/               FastAPI 路由：只做輸入驗證、權限檢查、呼叫 domain/services
     domain/               商業規則：狀態機、寄送防呆、鎖定規則（不 import FastAPI 或 SQLAlchemy）
     services/             對外整合與流程：importer、generator(Claude)、mailer(Graph)、metrics
-    workers/              arq 背景工作：generate_drafts、send_scheduled、sync_replies
+    workers/              背景工作（PostgreSQL 佇列，ADR 0003）：generate_drafts、send_scheduled、sync_replies
     models/               SQLAlchemy ORM
     prompts/              AI 郵件 prompt，檔名帶版本（invite_v1.md）
   db/schema.sql           資料庫參考 DDL（M1 導入 Alembic 後，以 migrations 為準）
@@ -65,10 +65,10 @@ UI 文字用繁體中文；程式識別字（變數、函式、資料表、API �
 | 層 | 技術 |
 |---|---|
 | 前端 | React 19 + TypeScript (strict) + Vite、React Router、TanStack Query / Table、Radix UI Primitives（無樣式）、CSS Modules + design tokens |
-| 後端 | Python 3.12、FastAPI、Pydantic v2、SQLAlchemy 2、Alembic、arq + Redis |
+| 後端 | Python 3.12、FastAPI、Pydantic v2、SQLAlchemy 2、Alembic；背景工作用 PostgreSQL 佇列（`SKIP LOCKED`，見 ADR 0003），不用 Redis |
 | 資料庫 | PostgreSQL 16 |
 | 外部服務 | Claude API（產生郵件）、Microsoft Graph（登入、寄信、讀回覆） |
-| 部署 | Docker Compose（Nginx + frontend 靜態檔 + api + worker + postgres + redis） |
+| 部署 | Docker Compose（Nginx + frontend 靜態檔 + api + worker + postgres） |
 
 指令（專案骨架建好後補上實際指令；**新增或修改指令時一併更新這一段**）：
 
