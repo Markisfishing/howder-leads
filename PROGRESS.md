@@ -8,7 +8,7 @@
 | 最後更新 | 2026-11-17 |
 | 目前階段 | **M1 MVP（功能完成；只剩 M1-03 Docker 驗證）** |
 | 下一個任務 | M2-10 Outlook 委派權杖 ADR，接著 M2-11 migration 0003 |
-| 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准應用程式權限（SPEC 11-4）、Docker Desktop 無法啟動（M1-03） |
+| 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
 一個任務的大小以「一次對話、一個 commit 做得完」為準；太大就拆開。
@@ -86,7 +86,7 @@
 
 ### 先決定（會影響後面所有任務）
 - [x] M2-09 ADR：背景工作佇列 — 2026-11-17（使用者決定改用 PostgreSQL 佇列，見 `docs/adr/0003`；CLAUDE.md、SPEC、docker-compose 已同步拿掉 Redis）
-- [ ] M2-10 ADR：Outlook 委派權杖。每位業務授權 `Mail.Send`、`Mail.Read`，後端加密存 refresh token，worker 用它代業務寄信（SPEC 7.5、9 安全）
+- [ ] M2-10 ADR：Outlook 委派權杖。每位業務只授權 `Mail.Send`（ADR 0004 決定不申請 `Mail.Read`），後端加密存 refresh token，worker 用它代業務寄信（SPEC 7.5、9 安全）
 - [ ] M2-11 migration 0003（單獨 commit），同步 `schema.sql` 和 SPEC 8.1：
   - `email_draft` 加上 `scheduled_at`、`send_attempts`、`last_error`
   - `campaign.status` 加 CHECK
@@ -155,7 +155,7 @@
     - 先建立草稿再送出，才拿得到 message id 和 conversation id
     - 失敗時指數退避重試 3 次
   - [ ] M2-07c 業務「連結 Outlook」授權流程：前端按鈕，後端加密存放權杖（依 M2-10）
-  - [ ] M2-07d `POST /campaigns/{id}/send`（可帶 `scheduled_at`）＋ worker `send_scheduled`：
+  - [ ] M2-07d `POST /campaigns/{id}/send`（可帶 `scheduled_at`）＋ worker `send_scheduled`（寄出成功時開案在 M3-08 接上）：
     - 每人每天上限、每分鐘限速，超過的排到隔天
     - 寫入 `email_message` 和 `activity_log`
     - 公司狀態改成 `sent`
@@ -169,21 +169,47 @@
 - [ ] M2-14 375px / 1280px 瀏覽器檢查；預覽佇列可以只用鍵盤核准
 - [ ] M2-15 驗收：真實 Outlook 寄 10 封到測試信箱，確認出現在寄件備份（等 SPEC 11-4 權限核准；只能寄到公司內部的測試信箱）
 
-## M3 AI 與追蹤（之後再拆細）
+## M3 案件追蹤與總覽（閉環）
 
-- [ ] M3-01 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3）
-- [ ] M3-02 Graph 收件匣訂閱與回覆比對（F-TRK-1）
-- [ ] M3-03 回覆態度分類（F-TRK-2）
-- [ ] M3-04 退信與退訂處理（F-TRK-3）
-- [ ] M3-05 商機階段與金額（F-TRK-4）
+依 2026-11-17 會議調整（ADR 0004）：先做出「寄信 → 人工回填 → 成交」的閉環，AI 寫信移到 M4。
+完成條件（SPEC 10）：用 100 筆名單寄出後，模擬一位客戶回覆並回填到成交，總覽頁的回覆率、成交數、待辦提醒都正確。
+開始做之前，依 CLAUDE.md 第 13 節再把下面每一項拆成一個 commit 做得完的大小。
 
-## M4 績效與回饋（之後再拆細）
+- [~] M3-01 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3）（取消：移到 M4-06，會議決定先做追蹤閉環）
+- [~] M3-02 Graph 收件匣訂閱與回覆比對（F-TRK-1）（取消：不讀業務信箱，改人工回填，見 ADR 0004；自動化改為 M5-03 專用信箱轉寄）
+- [~] M3-03 回覆態度分類（F-TRK-2）（取消：移到 M4-07，改成依回填內容分類）
+- [ ] M3-04 退訂處理：客戶用任何管道要求時，業務手動標記（F-CASE-5、F-TRK-3）
+- [~] M3-05 商機階段與金額（F-TRK-4）（取消：併入 M3-09 案件回填）
+- [ ] M3-06 CSV 欄位規格 v1（SPEC 8.4）
+  - [ ] M3-06a migration：`company` 加 `country`、`url_status`、`source`；`classification` 加 `fit_stars`、`product_type`、`tags`；匯入批次存漏斗前段數字（單獨 commit）
+  - [ ] M3-06b 匯入器支援新欄位、`invalid` 網址列為「略過」、未知欄位提示；附一份範例 CSV（假資料）給 MLE
+  - [ ] M3-06c 推薦清單顯示小數星等，新增篩選條件：國別、來源、網址狀態、產品類型、標籤、星等下限（F-REC-1、F-REC-7）
+- [ ] M3-07 migration：`opportunity` 改名擴充為 `sales_case`，新增 `case_update`（單獨 commit）
+- [ ] M3-08 `domain` 案件規則：狀態轉換、回填帶動公司狀態、逾期判斷（7 天、下次追蹤日、14 天）＋單元測試
+- [ ] M3-09 案件 API：寄出時自動開案（F-CASE-1）、`POST /cases` 加入追蹤（F-REC-9）、`POST /cases/{id}/updates` 回填（F-CASE-2）、列表與詳情
+- [ ] M3-10 worker 每日催辦（`job` 排程）＋ `GET /reminders`（F-CASE-3）
+- [ ] M3-11 前端 `/cases`：列表、各狀態件數、時間軸、回填表單；可以只用鍵盤回填（F-CASE-4）
+- [ ] M3-12 總覽頁 `/overview`：KPI、名單漏斗、各來源回覆率、待辦提醒（F-DASH-1～4，數字只從 view 來）
+- [ ] M3-13 候選名單欄位自選、匯出 CSV、批次「加入追蹤」（F-REC-8、F-REC-9）
+- [ ] M3-14 示範閉環：100 筆假資料名單 → 寄出（sandbox）→ 模擬一位客戶回覆並回填到成交 → 總覽與待辦正確
+- [ ] M3-15 375px / 1280px 瀏覽器檢查、鍵盤操作檢查
 
-- [ ] M4-01 績效頁：漏斗、各星級成交率、模板回覆率、業務排行（F-TRK-5）
+## M4 AI 寫信、績效與回饋（之後再拆細）
+
+- [ ] M4-01 績效頁：漏斗、各星級成交率、各來源／標籤／模板回覆率、業務排行（F-TRK-5）
 - [ ] M4-02 排除原因報表（F-MLE-1）
 - [ ] M4-03 回饋資料匯出（F-MLE-2）
 - [ ] M4-04 盲標工作台＋「不含模型欄位」測試（F-MLE-3）
 - [ ] M4-05 模型品質頁（F-MLE-4）
+- [ ] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）
+- [ ] M4-07 依回填內容判斷回覆態度（F-TRK-2；原 M3-03）
+
+## M5 延伸（之後再拆細）
+
+- [ ] M5-01 來源管理頁 `/admin/sources`（F-SRC-1）
+- [ ] M5-02 產品標籤維護 `/admin/tags`（F-TAG-1）
+- [ ] M5-03 專用信箱轉寄、自動比對案件，業務確認後才生效（F-TRK-1）
+- [ ] M5-04 給管理者的 BI 儀表板（案件數、成功開案數）
 
 ---
 
