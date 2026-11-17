@@ -216,9 +216,11 @@ backend/app/
 | GET | `/me` | 目前登入的使用者和角色 |
 | GET | `/companies?stars=&industry=&status=&owner=&q=&sort=&page=` | 推薦清單（讀 `v_recommendation`） |
 | GET | `/companies/{id}` | 詳情，包含分類、聯絡人、活動紀錄 |
-| PATCH | `/companies/{id}` | 修正官網、產業，或認領 |
+| PATCH | `/companies/{id}` | 修正官網、產業、加備註 |
+| POST | `/companies/{id}/claim`、`/release` | 認領（鎖定 30 天）／釋出 |
+| POST | `/companies/{id}/assign` | 主管重新分派 |
 | POST | `/companies` | 手動加入公司 |
-| POST | `/reviews` | 批次審核 `{company_ids[], decision, reject_reason?, note?}` |
+| POST | `/reviews` | 批次審核 `{company_ids[], decision, reject_reason?, note?, corrected_industry_id?}`；整批成功才寫入 |
 | POST | `/contacts` / PATCH `/contacts/{id}` | 管理聯絡人 |
 | POST | `/imports` | 管理員上傳 CSV / XLSX → 回傳預覽（`status = previewed`） |
 | POST | `/imports/api?commit=` | MLE function 用 JSON 匯入（`X-API-Key`）；`commit=true` 直接寫入，有錯誤就整批拒絕 |
@@ -232,7 +234,10 @@ backend/app/
 | POST | `/drafts/{id}/regenerate` | 重新生成這一封 |
 | POST | `/campaigns/{id}/send` | 寄出全部已核准的草稿（可帶 `scheduled_at`） |
 | POST | `/webhooks/graph` | Graph 推送通知（回覆、退信） |
-| GET | `/metrics/{funnel\|win-rate\|templates\|reps}` | 績效資料 |
+| GET | `/metrics/kpis` | 推薦清單頁的 KPI 卡（讀 `v_kpi_summary`） |
+| GET | `/metrics/{funnel|win-rate|templates|reps}` | 績效資料（M4） |
+| GET | `/dimensions` | 下拉選單用：產業、優先級、排除原因、狀態、業務名單 |
+| GET | `/admin/reviews/export` | 審核紀錄 CSV（含當時模型判斷），給 MLE 用 |
 | GET | `/feedback/export?run_id=` | 匯出給 MLE 的資料 |
 | GET | `/labeling/next` / POST `/labeling` | 盲標 |
 

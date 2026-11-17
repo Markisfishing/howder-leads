@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-17 |
 | 目前階段 | **M1 MVP（進行中）** |
-| 下一個任務 | M1-23 狀態機 |
+| 下一個任務 | M1-09 前端專案骨架 |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准應用程式權限（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -57,16 +57,16 @@
 - [ ] M1-22 前端 `/admin/imports` 上傳與預覽頁
 
 ### 狀態機與審核
-- [ ] M1-23 `domain/state_machine.py`：合法轉換表＋單元測試（SPEC 3.1）
-- [ ] M1-24 狀態變更一律寫 `activity_log`
-- [ ] M1-25 `POST /reviews` 批次審核，排除一定要有原因（F-REC-3）
-- [ ] M1-26 認領與 30 天鎖定規則＋測試（SPEC 3.1）
+- [x] M1-23 `domain/state_machine.py`：合法轉換表＋單元測試（SPEC 3.1） — 2026-11-17
+- [x] M1-24 狀態變更一律寫 `activity_log` — 2026-11-17
+- [x] M1-25 `POST /reviews` 批次審核，排除一定要有原因（F-REC-3） — 2026-11-17
+- [x] M1-26 認領與 30 天鎖定規則＋測試（SPEC 3.1） — 2026-11-17
 
 ### 推薦清單（F-REC）
-- [ ] M1-27 `GET /companies`：讀 `v_recommendation`，支援篩選、排序、分頁（F-REC-1、F-REC-2）
-- [ ] M1-28 `GET /companies/{id}`、`PATCH /companies/{id}`（F-REC-4）
-- [ ] M1-29 `POST /companies` 手動加入（F-REC-6）
-- [ ] M1-30 KPI API（讀 view）（F-REC-5）
+- [x] M1-27 `GET /companies`：讀 `v_recommendation`，支援篩選、排序、分頁（F-REC-1、F-REC-2） — 2026-11-17
+- [x] M1-28 `GET /companies/{id}`、`PATCH /companies/{id}`（F-REC-4） — 2026-11-17
+- [x] M1-29 `POST /companies` 手動加入（F-REC-6） — 2026-11-17
+- [x] M1-30 KPI API（讀 view）（F-REC-5） — 2026-11-17
 - [ ] M1-31 前端版面：側邊導覽列（照原型）
 - [ ] M1-32 前端推薦清單表格（星級、理由、狀態；四種狀態：載入／空／錯誤／正常）
 - [ ] M1-33 前端篩選列，篩選條件同步到網址（F-REC-2）

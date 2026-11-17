@@ -2,8 +2,11 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import imports, users
+from app.api.v1 import companies, imports, meta, reviews, users
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
 api_router.include_router(imports.router, tags=["imports"])
+api_router.include_router(companies.router, tags=["companies"])
+api_router.include_router(reviews.router, tags=["reviews"])
+api_router.include_router(meta.router, tags=["meta"])
