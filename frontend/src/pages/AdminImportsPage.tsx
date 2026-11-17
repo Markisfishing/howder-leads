@@ -74,10 +74,7 @@ export function AdminImportsPage() {
     <>
       <header className={styles.head}>
         <h1 className={styles.title}>名單管理</h1>
-        <p className={styles.meta}>
-          上傳 MLE 產出的 CSV 或 Excel，先預覽差異，確認後才會寫入。同一統編不會重複新增。欄位格式見
-          docs/samples/import_v1_sample.csv（CSV 欄位規格 v1）。
-        </p>
+        <p className={styles.meta}>上傳 CSV 或 Excel，確認資料差異後再正式匯入。</p>
       </header>
 
       <div aria-live="polite">{notice && <p className={styles.hint}>{notice}</p>}</div>
@@ -101,10 +98,13 @@ export function AdminImportsPage() {
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           </label>
-          <label className={styles.field}>
-            <span className={styles.label}>模型名稱（選填）</span>
-            <input className={styles.input} value={modelName} onChange={(e) => setModelName(e.target.value)} />
-          </label>
+          <details className={styles.advanced}>
+            <summary>進階設定</summary>
+            <label className={styles.field}>
+              <span className={styles.label}>模型名稱（選填）</span>
+              <input className={styles.input} value={modelName} onChange={(e) => setModelName(e.target.value)} />
+            </label>
+          </details>
           <Button variant="primary" type="submit" disabled={!file} busy={upload.isPending}>
             上傳並預覽
           </Button>

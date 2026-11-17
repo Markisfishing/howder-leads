@@ -2,6 +2,8 @@
 
 /* 區塊：模板列表 */
 .listHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.searchField { display: flex; align-items: center; gap: var(--space-2); width: min(100%, 24rem); padding: var(--space-2) var(--space-3); border: var(--border-width) solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); color: var(--color-text-muted); }
+.searchField input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; }
 .list { display: grid; gap: var(--space-2); }
 .item {
   display: grid;
@@ -12,6 +14,13 @@
 }
 .itemInfo { display: grid; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
 .itemName { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-weight: var(--font-weight-bold); }
+.itemMeta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); color: var(--color-text-muted); font-size: var(--text-sm); }
+.itemMenu { position: relative; }
+.menuTrigger { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border: var(--border-width) solid var(--color-border); border-radius: var(--radius); color: var(--color-text-muted); cursor: pointer; list-style: none; }
+.menuTrigger::-webkit-details-marker { display: none; }
+.menuPanel { position: absolute; right: 0; z-index: 2; min-width: 6rem; margin-top: var(--space-1); padding: var(--space-1); border: var(--border-width) solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); box-shadow: var(--shadow-card); }
+.menuPanel button { width: 100%; padding: var(--space-2) var(--space-3); border: 0; background: transparent; color: var(--color-danger); text-align: left; cursor: pointer; white-space: nowrap; }
+.menuPanel button:hover { background: var(--color-danger-bg); }
 
 /* 區塊：編輯器 */
 .editorGrid { display: grid; gap: var(--space-4); min-width: 0; }

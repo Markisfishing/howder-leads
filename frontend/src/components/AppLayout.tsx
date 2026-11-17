@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthProvider";
+import { useMailConnection } from "../api/hooks";
 import styles from "./AppLayout.module.css";
 
 const ROLE_LABELS = { sales: "業務", manager: "主管", admin: "管理員" } as const;
@@ -9,6 +10,7 @@ const ROLE_LABELS = { sales: "業務", manager: "主管", admin: "管理員" } a
 /** 整體骨架：寬螢幕左側導覽 + 右側內容；手機導覽在上方（照 prototypes/recommendations.html） */
 export function AppLayout() {
   const { user, isAdmin, logout } = useAuth();
+  const mailConnection = useMailConnection();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
       return window.localStorage.getItem("howder.sidebarCollapsed") === "true";
@@ -38,6 +40,7 @@ export function AppLayout() {
               厚達電子<small>業務推薦系統</small>
             </span>
           </Link>
+          {mailConnection.data?.mail_mode === "sandbox" && <span className={styles.environmentBadge}>TEST 測試模式</span>}
           <button
             type="button"
             className={styles.collapseToggle}

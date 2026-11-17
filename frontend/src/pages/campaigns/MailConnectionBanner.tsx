@@ -10,13 +10,7 @@ export function MailConnectionBanner() {
   const { connect, disconnect } = useMailConnectionActions();
   if (!data) return null;
 
-  if (data.mail_mode === "sandbox") {
-    return (
-      <div className={c.banner} role="note">
-        測試模式：按「寄出」後信件只會記錄在系統裡，不會真的寄給客戶。
-      </div>
-    );
-  }
+  if (data.mail_mode === "sandbox") return null;
 
   const warn = data.status !== "connected";
   return (
