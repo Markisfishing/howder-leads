@@ -5,7 +5,7 @@ import { useDimensions, useOverview } from "../../api/hooks";
 import type { Overview, OverviewQuery } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
-import { Empty, ErrorState, Loading } from "../../components/StateView";
+import { ErrorState, Loading } from "../../components/StateView";
 import { Tag } from "../../components/Tag";
 import { formatTwd } from "../../lib/labels";
 import styles from "../Page.module.css";
@@ -229,6 +229,7 @@ export function OverviewPage() {
 
 function OverviewBody({ data }: { data: Overview }) {
   const k = data.kpis;
+  const [sourceExpanded, setSourceExpanded] = useState(false);
   const pendingReview = data.reminders.find((reminder) => reminder.kind === "pending_review")?.count ?? 0;
   const primaryKpis = [
     { label: "已寄出", value: k.sent.toLocaleString("zh-TW"), hint: "查看邀請信", to: "/campaigns" },
@@ -244,6 +245,7 @@ function OverviewBody({ data }: { data: Overview }) {
   const top = data.funnel[0]?.count ?? 0;
   const activeReminders = data.reminders.filter((reminder) => reminder.count > 0);
   const completedReminderCount = data.reminders.length - activeReminders.length;
+  const visibleSources = sourceExpanded ? data.by_source : data.by_source.slice(0, 5);
 
   return (
     <>
@@ -284,14 +286,32 @@ function OverviewBody({ data }: { data: Overview }) {
         <div className={o.inventory}>{inventoryKpis.map((kpi) => <KpiLink key={kpi.label} {...kpi} compact />)}</div>
       </section>
 
-      <section className={styles.card} aria-labelledby="source-title">
-        <div className={o.sectionHeading}><h2 id="source-title" className={styles.cardTitle}>來源成效</h2><span className={styles.hint}>依回覆率排序</span></div>
-        {data.by_source.length === 0 ? <Empty title="還沒有寄出的開發信">寄出後，這裡會依名單來源比較回覆率。</Empty> : (
-          <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>資料來源</th><th>寄出</th><th>回覆</th><th>回覆率</th></tr></thead><tbody>
-            {data.by_source.map((source) => <tr key={source.source}><td>{source.source}</td><td>{source.sent}</td><td>{source.replied}</td><td>{source.insufficient ? <Tag tone="neutral">樣本不足</Tag> : formatRate(source.reply_rate)}</td></tr>)}
-          </tbody></table></div>
-        )}
-      </section>
+      {data.by_source.length >= 2 && (
+        <section className={styles.card} aria-labelledby="source-title">
+          <div className={o.sectionHeading}>
+            <div>
+              <h2 id="source-title" className={styles.cardTitle}>來源成效</h2>
+              <span className={styles.hint}>依回覆率排序</span>
+            </div>
+            {data.by_source.length > 5 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-expanded={sourceExpanded}
+                aria-controls="source-performance-table"
+                onClick={() => setSourceExpanded((expanded) => !expanded)}
+              >
+                {sourceExpanded ? "收起來源" : "查看全部來源"}
+              </Button>
+            )}
+          </div>
+          <div id="source-performance-table" className={styles.tableWrap}>
+            <table className={styles.table}><thead><tr><th>資料來源</th><th>寄出</th><th>回覆</th><th>回覆率</th></tr></thead><tbody>
+              {visibleSources.map((source) => <tr key={source.source}><td>{source.source}</td><td>{source.sent}</td><td>{source.replied}</td><td>{source.insufficient ? <Tag tone="neutral">樣本不足</Tag> : formatRate(source.reply_rate)}</td></tr>)}
+            </tbody></table>
+          </div>
+        </section>
+      )}
     </>
   );
 }
