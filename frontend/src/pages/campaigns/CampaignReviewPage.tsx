@@ -100,21 +100,22 @@ export function CampaignReviewPage() {
       )}
       <div aria-live="polite">{notice && <p className={styles.hint}>{notice}</p>}</div>
 
-      <BatchActions campaign={cp} onNotice={setNotice} />
+      <div className={c.reviewWorkArea}>
+        <BatchActions campaign={cp} onNotice={setNotice} />
 
-      {drafts.isLoading ? (
-        <Loading />
-      ) : drafts.error ? (
-        <ErrorState error={drafts.error} onRetry={() => void drafts.refetch()} />
-      ) : visible.length === 0 ? (
-        <Empty title="這個批次沒有草稿">草稿都已丟棄。可以回列表建立新的批次。</Empty>
-      ) : (
-        <div className={c.queue}>
-          <section className={styles.card} aria-labelledby="draft-list-title">
-            <h2 id="draft-list-title" className={styles.cardTitle}>
-              草稿（{visible.length}）
-            </h2>
-            <ul className={c.draftList}>
+        {drafts.isLoading ? (
+          <Loading />
+        ) : drafts.error ? (
+          <ErrorState error={drafts.error} onRetry={() => void drafts.refetch()} />
+        ) : visible.length === 0 ? (
+          <Empty title="這個批次沒有草稿">草稿都已丟棄。可以回列表建立新的批次。</Empty>
+        ) : (
+          <div className={c.queue}>
+            <section className={styles.card} aria-labelledby="draft-list-title">
+              <h2 id="draft-list-title" className={styles.cardTitle}>
+                草稿（{visible.length}）
+              </h2>
+              <ul className={c.draftList}>
               {visible.map((d) => (
                 <li key={d.draft_id}>
                   <button
@@ -134,23 +135,26 @@ export function CampaignReviewPage() {
                   </button>
                 </li>
               ))}
-            </ul>
-          </section>
-          {current && (
-            <DraftEditor
-              key={current.draft_id}
-              draft={current}
-              reasonLabels={reasonLabels}
-              focusOnMount={focusEditor}
-              onNext={() => {
-                setFocusEditor(true);
-                setCurrentId(nextToReview(visible, current.draft_id) ?? current.draft_id);
-              }}
-              onNotice={setNotice}
-            />
-          )}
-        </div>
-      )}
+              </ul>
+            </section>
+            {current && (
+              <div className={c.editorPane}>
+                <DraftEditor
+                  key={current.draft_id}
+                  draft={current}
+                  reasonLabels={reasonLabels}
+                  focusOnMount={focusEditor}
+                  onNext={() => {
+                    setFocusEditor(true);
+                    setCurrentId(nextToReview(visible, current.draft_id) ?? current.draft_id);
+                  }}
+                  onNotice={setNotice}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </>
   );
 }
