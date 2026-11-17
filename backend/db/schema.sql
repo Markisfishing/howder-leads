@@ -155,8 +155,12 @@ CREATE TABLE email_template (
     is_active     BOOLEAN NOT NULL DEFAULT TRUE,
     version       INT NOT NULL DEFAULT 1,
     created_by    BIGINT REFERENCES app_user(user_id),
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    family_id     BIGINT REFERENCES email_template(template_id),  -- 0005：同一份模板的各版本共用
+    body_text     TEXT NOT NULL                      -- 0005：業務編輯的純文字，body_html 由它轉出
 );
+CREATE UNIQUE INDEX uq_template_active_version ON email_template(family_id) WHERE is_active;  -- 0005
+CREATE UNIQUE INDEX uq_template_family_version ON email_template(family_id, version);        -- 0005
 
 CREATE TYPE gen_mode AS ENUM ('template_only', 'template_ai', 'full_ai');
 
@@ -190,7 +194,8 @@ CREATE TABLE email_draft (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     scheduled_at    TIMESTAMPTZ,                     -- 0003：排程寄出時間
     send_attempts   INT NOT NULL DEFAULT 0 CHECK (send_attempts >= 0),  -- 0003
-    last_error      TEXT                             -- 0003：錯誤代碼，不放信件內容
+    last_error      TEXT,                            -- 0003：錯誤代碼，不放信件內容
+    body_text       TEXT NOT NULL DEFAULT ''         -- 0005：業務編輯的純文字，body_html 由它轉出
 );
 CREATE INDEX idx_draft_campaign_status ON email_draft(campaign_id, status);
 
