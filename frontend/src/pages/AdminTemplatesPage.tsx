@@ -140,6 +140,7 @@ function TemplateEditor({
   const [name, setName] = useState(template?.name ?? "");
   const [subject, setSubject] = useState(template?.subject ?? "");
   const [body, setBody] = useState(template?.body_text ?? NEW_BODY);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const preview = useTemplatePreview(useDebounced(subject), useDebounced(body));
   const mutation = template ? update : create;
@@ -147,12 +148,14 @@ function TemplateEditor({
   const insert = (variable: string) => {
     const el = bodyRef.current;
     const token = `{{${variable}}}`;
-    const start = el?.selectionStart ?? body.length;
-    const end = el?.selectionEnd ?? body.length;
-    setBody(body.slice(0, start) + token + body.slice(end));
+    const currentBody = el?.value ?? body;
+    const start = Math.min(el?.selectionStart ?? currentBody.length, currentBody.length);
+    const end = Math.min(el?.selectionEnd ?? currentBody.length, currentBody.length);
+    setBody((value) => value.slice(0, start) + token + value.slice(end));
     requestAnimationFrame(() => {
-      el?.focus();
-      el?.setSelectionRange(start + token.length, start + token.length);
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      el.setSelectionRange(start + token.length, start + token.length);
     });
   };
 
@@ -170,10 +173,22 @@ function TemplateEditor({
 
   return (
     <div className={t.editorGrid}>
-      <section className={styles.card} aria-labelledby="tpl-edit-title">
-        <h2 id="tpl-edit-title" className={styles.cardTitle}>
-          {template ? `編輯「${template.name}」（存檔會變成第 ${template.version + 1} 版）` : "新增模板"}
-        </h2>
+      <section className={`${styles.card} ${t.editorCard}`} aria-labelledby="tpl-edit-title">
+        <div className={t.editorHeader}>
+          <h2 id="tpl-edit-title" className={styles.cardTitle}>
+            {template ? `編輯「${template.name}」` : "新增模板"}
+          </h2>
+          <Button
+            size="sm"
+            className={t.previewToggle}
+            aria-expanded={previewOpen}
+            aria-controls="tpl-preview-panel"
+            onClick={() => setPreviewOpen((open) => !open)}
+          >
+            {previewOpen ? "隱藏預覽" : "顯示預覽"}
+          </Button>
+        </div>
+        {template && <p className={styles.hint}>存檔會建立第 {template.version + 1} 版，既有草稿不受影響。</p>}
         <label className={styles.field}>
           <span className={styles.label}>模板名稱</span>
           <input className={styles.input} value={name} maxLength={100} onChange={(e) => setName(e.target.value)} />
@@ -192,13 +207,18 @@ function TemplateEditor({
             onChange={(e) => setBody(e.target.value)}
           />
         </label>
-        <div className={t.vars}>
-          <span className={styles.label}>插入變數：</span>
-          {variables?.map((v) => (
-            <button key={v.name} type="button" className={t.var} onClick={() => insert(v.name)} title={v.label}>
-              {v.label}
-            </button>
-          ))}
+        <div className={t.variablePanel}>
+          <div className={t.variableHeader}>
+            <span className={styles.label}>插入變數</span>
+            <span className={styles.hint}>插入到目前游標位置</span>
+          </div>
+          <div className={t.vars} aria-label="可插入的變數">
+            {variables?.map((v) => (
+              <button key={v.name} type="button" className={t.var} onClick={() => insert(v.name)} title={`插入 ${v.label}`}>
+                {v.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className={styles.actions}>
           <Button
@@ -230,7 +250,7 @@ function TemplateEditor({
       </section>
 
       {/* 區塊：即時預覽（假資料） */}
-      <section className={styles.card} aria-labelledby="tpl-preview-title" aria-live="polite">
+      <section id="tpl-preview-panel" className={`${styles.card} ${t.previewCard} ${previewOpen ? t.previewOpen : ""}`} aria-labelledby="tpl-preview-title" aria-live="polite">
         <h2 id="tpl-preview-title" className={styles.cardTitle}>
           預覽（假資料）
         </h2>

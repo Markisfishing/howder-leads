@@ -41,7 +41,11 @@ describe("M2-02b 郵件模板頁", () => {
   it("test_m2_02b_edit_saves_new_version：編輯後存成新版本，並能插入變數", async () => {
     const fetchMock = setup();
     fireEvent.click(await screen.findByRole("button", { name: "編輯" }));
-    expect(screen.getByText(/存檔會變成第 2 版/)).toBeInTheDocument();
+    expect(screen.getByText(/存檔會建立第 2 版/)).toBeInTheDocument();
+    const previewToggle = screen.getByRole("button", { name: "顯示預覽" });
+    expect(previewToggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(previewToggle);
+    expect(screen.getByRole("button", { name: "隱藏預覽" })).toHaveAttribute("aria-expanded", "true");
 
     const body = screen.getByLabelText(/內文/) as HTMLTextAreaElement;
     body.setSelectionRange(0, 0);

@@ -14,9 +14,15 @@
 .itemName { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-weight: var(--font-weight-bold); }
 
 /* 區塊：編輯器 */
-.editorGrid { display: grid; gap: var(--space-4); }
+.editorGrid { display: grid; gap: var(--space-4); min-width: 0; }
+.editorCard,
+.previewCard { min-width: 0; }
+.editorHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.previewToggle { flex: 0 0 auto; }
 .body { font-family: inherit; line-height: var(--line-height); resize: vertical; }
-.vars { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.variablePanel { display: grid; gap: var(--space-2); padding-top: var(--space-3); border-top: var(--border-width) solid var(--color-border); }
+.variableHeader { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.vars { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); max-height: 7rem; overflow-y: auto; align-content: flex-start; }
 .var {
   padding: var(--space-1) var(--space-2);
   border: var(--border-width) solid var(--color-border);
@@ -28,6 +34,7 @@
 .var:hover { border-color: var(--color-accent); }
 .versions { font-size: var(--text-sm); color: var(--color-text-muted); }
 .versions ul { display: grid; gap: var(--space-1); margin-top: var(--space-2); }
+.previewCard { overflow-anchor: none; }
 
 /* 區塊：預覽（模擬一封信）· 用 pre-wrap 顯示純文字，不用 innerHTML */
 .mail {
@@ -41,10 +48,25 @@
 .mailSubject { font-weight: var(--font-weight-bold); overflow-wrap: anywhere; }
 .mailBody { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-sm); line-height: var(--line-height); }
 
+@media (max-width: 767px) {
+  .previewCard { display: none; }
+  .previewCard.previewOpen { display: grid; }
+  .body { min-height: 14rem; }
+}
+
 @media (min-width: 768px) {
   .item { grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
 }
 
 @media (min-width: 1024px) {
-  .editorGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .editorGrid {
+    height: calc(100dvh - 13rem);
+    min-height: 32rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    overflow-anchor: none;
+  }
+  .editorCard,
+  .previewCard { height: 100%; overflow-y: auto; align-content: start; }
+  .previewToggle { display: none; }
 }
