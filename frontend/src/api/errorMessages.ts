@@ -49,6 +49,8 @@ const MESSAGES: Record<string, string> = {
   MAIL_NOT_CONFIGURED: "系統尚未設定寄信金鑰，請聯絡管理員",
   MAIL_CONNECT_FAILED: "無法取得 Outlook 寄信權限，請確認管理員已同意 Mail.Send",
   CASE_NOT_FOUND: "找不到這件案件",
+  INVALID_EXPORT_COLUMN: "有不能匯出的欄位，請重新選擇顯示欄位",
+  INVALID_DATE_RANGE: "開始日期不能晚於結束日期",
   CASE_CLOSED: "這件案件已經結案，不能再回填",
   INVALID_CHANNEL: "請選擇聯絡管道",
   AMOUNT_ONLY_WHEN_WON: "成交金額只在結果是「成交」時填寫",
