@@ -216,6 +216,7 @@ v_kpi_summary = Table(
     Column("sent_7d", BigInteger),
     Column("sent_total", BigInteger),
     Column("replied_total", BigInteger),
+    Column("reply_rate", Numeric(6, 4)),
     info={"is_view": True},
 )
 

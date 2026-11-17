@@ -245,14 +245,18 @@ LEFT JOIN dim_priority  p  ON p.priority = cl.priority
 LEFT JOIN dim_industry  i  ON i.industry_id = COALESCE(c.industry_override_id, cl.industry_id)
 LEFT JOIN app_user      u  ON u.user_id = c.owner_id;
 
-CREATE VIEW v_kpi_summary AS                        -- 推薦清單頁上方的 KPI 卡
-SELECT
-  (SELECT count(*) FROM company WHERE status = 'pending_review')                 AS pending_review,
-  (SELECT count(*) FROM company)                                                 AS total_companies,
-  (SELECT count(*) FROM v_recommendation WHERE stars = 5)                        AS five_star,
-  (SELECT count(*) FROM email_message WHERE sent_at >= now() - interval '7 days') AS sent_7d,
-  (SELECT count(*) FROM email_message)                                           AS sent_total,
-  (SELECT count(DISTINCT message_id) FROM email_event WHERE event_type = 'replied') AS replied_total;
+CREATE VIEW v_kpi_summary AS                        -- 推薦清單頁上方的 KPI 卡（比例也在這裡算，0002 加入 reply_rate）
+SELECT k.*,
+       CASE WHEN k.sent_total >= 10 THEN round(k.replied_total::numeric / k.sent_total, 4) END AS reply_rate
+FROM (
+  SELECT
+    (SELECT count(*) FROM company WHERE status = 'pending_review')                 AS pending_review,
+    (SELECT count(*) FROM company)                                                 AS total_companies,
+    (SELECT count(*) FROM v_recommendation WHERE stars = 5)                        AS five_star,
+    (SELECT count(*) FROM email_message WHERE sent_at >= now() - interval '7 days') AS sent_7d,
+    (SELECT count(*) FROM email_message)                                           AS sent_total,
+    (SELECT count(DISTINCT message_id) FROM email_event WHERE event_type = 'replied') AS replied_total
+) k;
 
 CREATE VIEW v_funnel AS
 SELECT status, count(*) AS companies FROM company GROUP BY status;
