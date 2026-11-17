@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-17 |
 | 目前階段 | **M1 MVP（功能完成；只剩 M1-03 Docker 驗證）** |
-| 下一個任務 | 把 M2 拆成和 M1 一樣細的任務，從 Graph 寄信（sandbox）開始 |
+| 下一個任務 | M2-09 決定背景工作佇列方案（要使用者決定），接著 M2-10、M2-11 |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准應用程式權限（SPEC 11-4）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -79,16 +79,94 @@
 - [x] M1-38 用 50 家測試資料走完一輪：匯入 → 審核 → 匯出排除原因 — 2026-11-17（本機用原始 Excel 走過：49 家匯入、1 列缺統編被擋下；重複匯入 0 新增；資料只在本機資料庫，未進 repo）
 - [x] M1-39 375px / 1280px 瀏覽器檢查、鍵盤操作檢查 — 2026-11-17（批次通過、排除對話框、側欄都可以只用鍵盤完成）
 
-## M2 寄信（之後再拆細）
+## M2 寄信：模板、預覽佇列、Graph 寄送
 
-- [ ] M2-01 聯絡人 CRUD
-- [ ] M2-02 郵件模板管理（admin）
-- [ ] M2-03 建立 campaign＋`template_only` 草稿產生（F-MAIL-1、F-MAIL-2）
-- [ ] M2-04 寄送防呆 domain 規則＋測試（F-MAIL-7）
-- [ ] M2-05 預覽佇列頁（F-MAIL-4）
-- [ ] M2-06 只有核准的草稿可以寄＋測試（F-MAIL-5）
-- [ ] M2-07 Graph `sendMail`（`MAIL_MODE=sandbox` / `live`）、每日上限、排程（F-MAIL-6）
-- [ ] M2-08 計算改稿幅度 `edit_ratio`（F-MAIL-8）
+完成條件（SPEC 10）：一位業務從核准到寄出 10 封信，全部出現在他的 Outlook 寄件備份。
+原本的 M2-01～08 太大，依 CLAUDE.md 第 13 節拆成 a、b、c…；子任務全部完成才勾原本那一行。新發現的工作從 M2-09 往後編。
+
+### 先決定（會影響後面所有任務）
+- [ ] M2-09 ADR：背景工作佇列。arq 需要 Redis，但這台電腦的 Docker 起不來。三個選項：Windows 版 Redis（Memurai）、WSL 裡的 Redis、改用 PostgreSQL 當佇列（`SKIP LOCKED`）。**這是換技術棧，要使用者決定**
+- [ ] M2-10 ADR：Outlook 委派權杖。每位業務授權 `Mail.Send`、`Mail.Read`，後端加密存 refresh token，worker 用它代業務寄信（SPEC 7.5、9 安全）
+- [ ] M2-11 migration 0003（單獨 commit），同步 `schema.sql` 和 SPEC 8.1：
+  - `email_draft` 加上 `scheduled_at`、`send_attempts`、`last_error`
+  - `campaign.status` 加 CHECK
+  - 新增 `user_mail_credential`（加密權杖）
+
+### 聯絡人
+- [ ] M2-01 聯絡人 CRUD（拆成下列 a、b）
+  - [ ] M2-01a 後端 `POST /contacts`、`PATCH /contacts/{id}`、標記退訂、個資刪除（真的刪除，連帶刪除郵件內容並寫 `activity_log`）。來源必填、email 格式檢查、同一家公司不重複（SPEC 9 個資）
+  - [ ] M2-01b 前端：在公司詳情側欄新增、編輯、退訂、刪除聯絡人（刪除要再確認一次）
+
+### 模板
+- [ ] M2-02 郵件模板管理（拆成下列 a～c）
+  - [ ] M2-02a 後端 `/templates`（只有 admin）
+    - 修改時新增一個版本，舊版保留，已產生的草稿可以對照
+    - 變數只能用白名單：`{{company_name}}`、`{{contact_name}}`、`{{sender_name}}`…
+    - 存檔時檢查是否有退訂說明
+  - [ ] M2-02b 前端 `/admin/templates`：列表、編輯、用假資料即時預覽
+  - [ ] M2-02c 初版模板種子（內容等 SPEC 11-5，先放佔位文字）
+
+### 產生草稿
+- [ ] M2-03 建立 campaign 與 `template_only` 草稿產生（F-MAIL-1、F-MAIL-2、F-MAIL-3；拆成下列 a～e）
+  - [ ] M2-03a `domain` 模板渲染純函式：代入變數、跳脫 HTML、缺變數就報錯、強制附上退訂說明
+  - [ ] M2-03b `POST /campaigns`
+    - 只能選「已通過」而且自己能操作的公司，每家選一位聯絡人
+    - 回傳 `job_id`
+    - 公司狀態 `approved → drafted`
+  - [ ] M2-03c worker `generate_drafts`（`template_only`）
+    - 單封失敗不影響其他封
+    - `GET /campaigns/{id}` 回傳產生進度
+    - 一開始產生的內文存進 `ai_original`，給 F-MAIL-8 比對
+  - [ ] M2-03d 前端 `/campaigns/new`
+    - 從已通過名單選對象 → 選模板
+    - 生成模式只開放 `template_only`，AI 模式顯示「M3 開放」
+    - 顯示被防呆排除的公司和原因
+  - [ ] M2-03e 前端 `/campaigns` 列表；導覽列開放「邀請信」
+
+### 寄送防呆
+- [ ] M2-04 寄送防呆 domain 規則＋測試（F-MAIL-7；拆成下列 a、b）
+  - [ ] M2-04a `domain/send_guard`：排除已退訂、`do_not_contact`、被其他業務鎖定、14 天內寄過、沒有聯絡人的對象。回傳原因代碼，每條規則至少一個 test
+  - [ ] M2-04b 產生草稿時和真正寄出前都要檢查（寄出前再查一次）＋ API 測試
+
+### 預覽佇列
+- [ ] M2-05 預覽佇列頁（F-MAIL-4；拆成下列 a～c）
+  - [ ] M2-05a 後端：
+    - `GET /campaigns/{id}/drafts`
+    - `PATCH /drafts/{id}`（修改、核准、丟棄）
+    - `POST /drafts/{id}/regenerate`
+    - 全部核准（要帶確認參數）
+    - 丟棄後公司狀態退回 `approved`
+  - [ ] M2-05b 前端 `/campaigns/:id/review`：
+    - 左邊清單、右邊預覽，逐封修改
+    - 顯示產生進度
+    - 只用鍵盤就能逐封核准
+  - [ ] M2-05c 「全部核准」要再按一次確認；核准後公司狀態改成 `draft_approved`
+
+### 寄出
+- [ ] M2-06 只有核准的草稿可以寄＋測試（F-MAIL-5；拆成下列 a）
+  - [ ] M2-06a 寄送前在 domain 檢查：不是 `approved` 一律回 `DRAFT_NOT_APPROVED`。測試 `test_f_mail_5_*` 要涵蓋每一種非核准狀態
+- [ ] M2-07 Graph `sendMail`（`MAIL_MODE=sandbox` / `live`）、每日上限、排程（F-MAIL-6；拆成下列 a～e）
+  - [ ] M2-07a `services/mailer` 介面：
+    - `SandboxMailer` 只寫資料庫和 log（開發、測試用）
+    - 測試用的假 Graph
+    - 確認 log 不會印出信件全文
+  - [ ] M2-07b `GraphMailer`：
+    - 先建立草稿再送出，才拿得到 message id 和 conversation id
+    - 失敗時指數退避重試 3 次
+  - [ ] M2-07c 業務「連結 Outlook」授權流程：前端按鈕，後端加密存放權杖（依 M2-10）
+  - [ ] M2-07d `POST /campaigns/{id}/send`（可帶 `scheduled_at`）＋ worker `send_scheduled`：
+    - 每人每天上限、每分鐘限速，超過的排到隔天
+    - 寫入 `email_message` 和 `activity_log`
+    - 公司狀態改成 `sent`
+  - [ ] M2-07e 重試都失敗時，草稿標記 `failed`，在 campaign 頁通知寄件的業務
+
+### 收尾
+- [ ] M2-08 計算改稿幅度 `edit_ratio`（F-MAIL-8；拆成下列 a）
+  - [ ] M2-08a `domain` 計算函式（0 = 沒改，1 = 全部重寫），核准時寫入，加上測試
+- [ ] M2-12 KPI 卡「近 7 天已寄出」接上真實資料，在瀏覽器確認
+- [ ] M2-13 sandbox 走完一輪：10 家 → 產生 → 修改 → 核准 → 寄出，`email_message` 有 10 筆
+- [ ] M2-14 375px / 1280px 瀏覽器檢查；預覽佇列可以只用鍵盤核准
+- [ ] M2-15 驗收：真實 Outlook 寄 10 封到測試信箱，確認出現在寄件備份（等 SPEC 11-4 權限核准；只能寄到公司內部的測試信箱）
 
 ## M3 AI 與追蹤（之後再拆細）
 
