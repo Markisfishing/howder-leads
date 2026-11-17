@@ -369,6 +369,17 @@ v_kpi_summary = Table(
     info={"is_view": True},
 )
 
+v_case_reminder = Table(
+    "v_case_reminder",
+    Base.metadata,
+    Column("case_id", BigInteger),
+    Column("owner_id", BigInteger),
+    Column("company_id", BigInteger),
+    Column("kind", Text),
+    Column("since", DateTime(timezone=True)),
+    info={"is_view": True},
+)
+
 v_reject_reasons = Table(
     "v_reject_reasons",
     Base.metadata,
