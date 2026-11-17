@@ -356,6 +356,10 @@ export interface SalesCase {
 export interface CaseList {
   items: SalesCase[];
   counts: Record<CaseStatus, number>;
+  total?: number;
+  page?: number;
+  page_size?: number;
+  queue_counts?: Record<"todo" | "overdue" | "follow_up" | "all", number>;
 }
 
 export interface CaseTimelineItem {
