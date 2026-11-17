@@ -1,4 +1,7 @@
 from app.models.tables import (
+    CASE_CHANNELS,
+    CASE_RESULTS,
+    CASE_STATUSES,
     COMPANY_STATUSES,
     DRAFT_STATUSES,
     GEN_MODES,
@@ -7,6 +10,7 @@ from app.models.tables import (
     AppUser,
     Base,
     Campaign,
+    CaseUpdate,
     Classification,
     Company,
     Contact,
@@ -19,6 +23,7 @@ from app.models.tables import (
     Job,
     ModelRun,
     Review,
+    SalesCase,
     UserMailCredential,
     v_kpi_summary,
     v_recommendation,
@@ -26,6 +31,11 @@ from app.models.tables import (
 )
 
 __all__ = [
+    "CASE_CHANNELS",
+    "CASE_RESULTS",
+    "CASE_STATUSES",
+    "CaseUpdate",
+    "SalesCase",
     "COMPANY_STATUSES",
     "USER_ROLES",
     "ActivityLog",
