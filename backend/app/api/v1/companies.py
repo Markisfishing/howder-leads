@@ -1,11 +1,14 @@
 """推薦清單與公司（F-REC-1 ~ F-REC-6）。"""
 
+import csv
+import io
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import Select, asc, desc, func, or_, select
 from sqlalchemy.orm import Session
@@ -13,7 +16,8 @@ from sqlalchemy.orm import Session
 from app.api.deps import current_user
 from app.config import Settings, get_settings
 from app.db import get_db
-from app.domain.company_rules import DomainError
+from app.domain.company_rules import STATUS_LABELS, DomainError
+from app.domain.send_limits import TAIPEI
 from app.models import ActivityLog, AppUser, Classification, Contact, DimPriority, Review, v_recommendation
 from app.services import company_service as svc
 
@@ -154,8 +158,7 @@ def _filtered(stmt: Select[Any], user: AppUser, f: ListFilters) -> Select[Any]:
     return stmt
 
 
-@router.get("/companies", response_model=CompanyPage)
-def list_companies(
+def list_filters(
     stars: list[int] = Query(default=[]),
     status: list[str] = Query(default=[]),
     industry_id: int | None = None,
@@ -169,13 +172,9 @@ def list_companies(
     product_type: str | None = Query(default=None, max_length=100),
     tag: list[str] = Query(default=[]),
     min_stars: float | None = Query(default=None, ge=0, le=5),
-    sort: SortKey = "recommended",
-    page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=50, ge=1, le=200),
-    user: AppUser = Depends(current_user),
-    db: Session = Depends(get_db),
-) -> CompanyPage:
-    filters = ListFilters(
+) -> ListFilters:
+    """推薦清單與匯出共用的篩選參數（F-REC-2、F-REC-7、F-REC-8）。"""
+    return ListFilters(
         stars=stars,
         status=status,
         industry_id=industry_id,
@@ -190,17 +189,92 @@ def list_companies(
         tag=tuple(tag),
         min_stars=min_stars,
     )
+
+
+ORDER = {
+    # F-REC-1：先依適合度星等（小數），再依分數
+    "recommended": [V.fit_stars.desc().nulls_last(), desc(V.stars), V.score.desc().nulls_last(), asc(V.name)],
+    "name": [asc(V.name)],
+    "updated": [desc(V.updated_at)],
+}
+
+
+@router.get("/companies", response_model=CompanyPage)
+def list_companies(
+    filters: ListFilters = Depends(list_filters),
+    sort: SortKey = "recommended",
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+    user: AppUser = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> CompanyPage:
     total = db.scalar(_filtered(select(func.count()).select_from(v_recommendation), user, filters)) or 0
-    order = {
-        # F-REC-1：先依適合度星等（小數），再依分數
-        "recommended": [V.fit_stars.desc().nulls_last(), desc(V.stars), V.score.desc().nulls_last(), asc(V.name)],
-        "name": [asc(V.name)],
-        "updated": [desc(V.updated_at)],
-    }[sort]
-    stmt = _filtered(select(v_recommendation), user, filters).order_by(*order)
+    stmt = _filtered(select(v_recommendation), user, filters).order_by(*ORDER[sort])
     rows = db.execute(stmt.offset((page - 1) * page_size).limit(page_size)).mappings()
     return CompanyPage(
         items=[CompanyRow.model_validate(dict(r)) for r in rows], total=total, page=page, page_size=page_size
+    )
+
+
+# ---------- 匯出（M3-13a、F-REC-8）----------
+def _text(key: str) -> Callable[[Mapping[str, Any]], str]:
+    return lambda r: "" if r[key] is None else str(r[key])
+
+
+# 欄位 key → （表頭、取值）。前端「欄位自選」用同一組 key；不放聯絡人 email（個資只在系統裡看）
+EXPORT_COLUMNS: dict[str, tuple[str, Callable[[Mapping[str, Any]], str]]] = {
+    "tax_id": ("統編", _text("tax_id")),
+    "name": ("公司名稱", _text("name")),
+    "fit_stars": ("適合度星等", _text("fit_stars")),
+    "priority": ("開發優先級", _text("priority")),
+    "industry": ("產業", _text("industry")),
+    "product_type": ("產品類型", _text("product_type")),
+    "tags": ("命中標籤", lambda r: "、".join(r["tags"] or [])),
+    "likelihood": ("使用可能性", _text("likelihood")),
+    "reason": ("推薦理由", _text("reason")),
+    "status": ("狀態", lambda r: STATUS_LABELS.get(r["status"], r["status"])),
+    "owner_name": ("負責業務", _text("owner_name")),
+    "website_url": ("官網", _text("website_url")),
+    "url_status": ("網址狀態", _text("url_status")),
+    "country": ("國別", _text("country")),
+    "source": ("資料來源", _text("source")),
+    "customer_type": ("客戶屬性", _text("customer_type")),
+    "score": ("分數", _text("score")),
+    "updated_at": ("最後更新", lambda r: r["updated_at"].astimezone(TAIPEI).strftime("%Y-%m-%d %H:%M")),
+}
+DEFAULT_EXPORT = ["tax_id", "name", "fit_stars", "priority", "industry", "reason", "status", "owner_name"]
+EXPORT_LIMIT = 20000
+
+
+def export_csv(rows: Sequence[Mapping[str, Any]], columns: list[str]) -> str:
+    buf = io.StringIO()
+    buf.write("\ufeff")  # UTF-8 BOM：Excel 直接開不會亂碼
+    w = csv.writer(buf)
+    w.writerow([EXPORT_COLUMNS[c][0] for c in columns])
+    for r in rows:
+        w.writerow([EXPORT_COLUMNS[c][1](r) for c in columns])
+    return buf.getvalue()
+
+
+@router.get("/companies/export", response_class=Response)
+def export_companies(
+    filters: ListFilters = Depends(list_filters),
+    sort: SortKey = "recommended",
+    columns: list[str] = Query(default=[], max_length=len(EXPORT_COLUMNS)),
+    user: AppUser = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    """依目前篩選匯出 CSV；columns 是畫面上選的欄位（沒給就用預設欄位），順序照傳入的。"""
+    unknown = [c for c in columns if c not in EXPORT_COLUMNS]
+    if unknown:
+        raise DomainError("INVALID_EXPORT_COLUMN", f"不能匯出的欄位：{'、'.join(unknown)}", 422)
+    cols = list(dict.fromkeys(columns)) or DEFAULT_EXPORT
+    stmt = _filtered(select(v_recommendation), user, filters).order_by(*ORDER[sort]).limit(EXPORT_LIMIT)
+    rows = [dict(r) for r in db.execute(stmt).mappings()]
+    return Response(
+        content=export_csv(rows, cols).encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="companies.csv"'},
     )
 
 

@@ -69,3 +69,33 @@ def test_f_rec_7_dimensions_list_facets(client: TestClient, sales1: dict[str, st
     assert dims["countries"] == ["TW", "VN"]
     assert dims["sources"] == ["b2b", "expo"]
     assert dims["tags"] == ["PLC", "電箱"]
+
+
+# ---------- 匯出（M3-13a、F-REC-8）----------
+def _csv(client: TestClient, headers: dict[str, str], query: str = "") -> list[list[str]]:
+    import csv
+    import io
+
+    res = client.get(f"/api/v1/companies/export?{query}", headers=headers)
+    assert res.status_code == 200, res.text
+    assert res.headers["content-type"].startswith("text/csv")
+    assert res.content.startswith("\ufeff".encode())  # BOM：Excel 開得了
+    return list(csv.reader(io.StringIO(res.content.decode("utf-8-sig"))))
+
+
+def test_f_rec_8_export_follows_filters_and_default_columns(client: TestClient, sales1: dict[str, str]) -> None:
+    rows = _csv(client, sales1, "source=expo")
+    assert rows[0] == ["統編", "公司名稱", "適合度星等", "開發優先級", "產業", "推薦理由", "狀態", "負責業務"]
+    assert {r[1] for r in rows[1:]} == {"甲", "丁"}
+
+
+def test_f_rec_8_export_chosen_columns_in_order(client: TestClient, sales1: dict[str, str]) -> None:
+    rows = _csv(client, sales1, "columns=name&columns=tags&columns=source&tag=電箱")
+    assert rows[0] == ["公司名稱", "命中標籤", "資料來源"]
+    assert sorted(rows[1:]) == [["乙", "電箱", "b2b"], ["甲", "PLC、電箱", "expo"]]
+
+
+def test_f_rec_8_export_rejects_unknown_column(client: TestClient, sales1: dict[str, str]) -> None:
+    res = client.get("/api/v1/companies/export?columns=email", headers=sales1)
+    assert res.status_code == 422
+    assert res.json()["error"]["code"] == "INVALID_EXPORT_COLUMN"
