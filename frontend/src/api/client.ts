@@ -38,7 +38,7 @@ export function buildUrl(path: string, query?: Query): string {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   query?: Query;
   json?: unknown;
   form?: FormData;

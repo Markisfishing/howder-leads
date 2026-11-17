@@ -6,10 +6,13 @@ import type {
   Contact,
   ContactSource,
   Dimensions,
+  EmailTemplate,
   ImportBatch,
   ImportBatchDetail,
   Kpis,
   RejectReason,
+  RenderedMail,
+  TemplateVariable,
   User,
 } from "./types";
 import type { ListFilters } from "../lib/filters";
@@ -107,3 +110,21 @@ export const getImport = (id: number) => api<ImportBatchDetail>(`/imports/${id}`
 export const commitImport = (id: number) => api<ImportBatchDetail>(`/imports/${id}/commit`, { method: "POST" });
 export const cancelImport = (id: number) => api<ImportBatchDetail>(`/imports/${id}/cancel`, { method: "POST" });
 export const downloadReviewExport = () => apiBlob("/admin/reviews/export");
+
+// ---------- 郵件模板（M2-02）----------
+export interface TemplateBody {
+  name: string;
+  subject: string;
+  body_text: string;
+}
+export const listTemplates = () => api<EmailTemplate[]>("/templates");
+export const listTemplateVariables = () => api<TemplateVariable[]>("/templates/variables");
+export const templateVersions = (id: number) => api<EmailTemplate[]>(`/templates/${id}/versions`);
+export const createTemplate = (body: TemplateBody) =>
+  api<EmailTemplate>("/templates", { method: "POST", json: body });
+/** 修改會新增一個版本，舊版保留 */
+export const updateTemplate = (id: number, body: TemplateBody) =>
+  api<EmailTemplate>(`/templates/${id}`, { method: "PUT", json: body });
+export const archiveTemplate = (id: number) => api<EmailTemplate>(`/templates/${id}/archive`, { method: "POST" });
+export const previewTemplate = (body: Omit<TemplateBody, "name">) =>
+  api<RenderedMail>("/templates/preview", { method: "POST", json: body });

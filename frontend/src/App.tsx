@@ -5,6 +5,7 @@ import { useAuth } from "./auth/AuthProvider";
 import { AppLayout } from "./components/AppLayout";
 import { Empty, Loading } from "./components/StateView";
 import { AdminImportsPage } from "./pages/AdminImportsPage";
+import { AdminTemplatesPage } from "./pages/AdminTemplatesPage";
 import { CompanyPage } from "./pages/CompanyPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RecommendationsPage } from "./pages/RecommendationsPage";
@@ -30,6 +31,14 @@ export function App() {
           element={
             <RequireAdmin>
               <AdminImportsPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="admin/templates"
+          element={
+            <RequireAdmin>
+              <AdminTemplatesPage />
             </RequireAdmin>
           }
         />

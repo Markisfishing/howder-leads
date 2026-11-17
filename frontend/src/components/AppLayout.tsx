@@ -44,6 +44,13 @@ export function AppLayout() {
               </NavLink>
             </li>
           )}
+          {isAdmin && (
+            <li>
+              <NavLink to="/admin/templates" className={linkClass}>
+                郵件模板
+              </NavLink>
+            </li>
+          )}
         </ul>
         {user && (
           <div className={styles.user}>

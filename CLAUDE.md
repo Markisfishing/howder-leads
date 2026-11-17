@@ -84,6 +84,7 @@ python -m http.server 5510 --bind 127.0.0.1 --directory frontend
 # 後端（在 backend/ 底下；第一次先 `uv sync`，並把 .env.example 複製成 .env）
 uv run python -m scripts.dev_db          # 不用 Docker 的開發資料庫，印出 DATABASE_URL 填進 .env，保持執行
 uv run alembic upgrade head              # 套用 migration
+uv run python -m scripts.seed_templates  # 初版郵件模板（可重複執行）
 uv run uvicorn app.main:app --port 8000  # API：http://127.0.0.1:8000/api/v1
 uv run pytest                            # 測試（自己會開一個暫時的 Postgres，不碰開發資料庫）
 uv run ruff check . && uv run ruff format --check . && uv run mypy app

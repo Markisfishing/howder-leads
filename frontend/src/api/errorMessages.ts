@@ -20,6 +20,14 @@ const MESSAGES: Record<string, string> = {
   CONTACT_NOT_FOUND: "找不到這位聯絡人，可能已被刪除",
   CONTACT_UNSUBSCRIBED: "已退訂的聯絡人不能改 email",
   DELETE_REASON_REQUIRED: "刪除個資要填寫原因",
+  TEMPLATE_NOT_FOUND: "找不到這份模板",
+  TEMPLATE_NOT_ACTIVE: "只能修改目前使用中的版本",
+  TEMPLATE_NAME_REQUIRED: "請填寫模板名稱",
+  TEMPLATE_SUBJECT_REQUIRED: "主旨不能空白",
+  TEMPLATE_BODY_REQUIRED: "內文不能空白",
+  TEMPLATE_SUBJECT_MULTILINE: "主旨只能一行",
+  TEMPLATE_MISSING_UNSUBSCRIBE: "內文一定要有 {{unsubscribe}} 退訂說明",
+  TEMPLATE_TOO_LONG: "主旨或內文太長",
   IMPORT_FILE_TOO_LARGE: "檔案超過 10 MB",
   IMPORT_UNSUPPORTED_TYPE: "只支援 .csv 或 .xlsx 檔",
   IMPORT_DECODE_FAILED: "無法讀取檔案編碼，請存成 UTF-8 或 Big5 的 CSV",
@@ -28,7 +36,14 @@ const MESSAGES: Record<string, string> = {
 };
 
 // 這些錯誤的後端訊息比較具體（會列出哪幾家公司、哪一列），直接顯示後端訊息
-const PREFER_SERVER = new Set(["REVIEW_REJECTED", "INVALID_TRANSITION", "COMPANY_LOCKED"]);
+const PREFER_SERVER = new Set([
+  "REVIEW_REJECTED",
+  "INVALID_TRANSITION",
+  "COMPANY_LOCKED",
+  "TEMPLATE_UNKNOWN_VARIABLE",
+  "TEMPLATE_MISSING_VALUE",
+  "TEMPLATE_UNSUBSCRIBE_IN_SUBJECT",
+]);
 
 export function errorMessage(code: string, serverMessage: string): string {
   if (PREFER_SERVER.has(code) && serverMessage) return serverMessage;

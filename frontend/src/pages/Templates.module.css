@@ -1,0 +1,50 @@
+/* 郵件模板管理頁（/admin/templates）；先寫手機版 */
+
+/* 區塊：模板列表 */
+.listHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.list { display: grid; gap: var(--space-2); }
+.item {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+}
+.itemInfo { display: grid; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
+.itemName { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-weight: var(--font-weight-bold); }
+
+/* 區塊：編輯器 */
+.editorGrid { display: grid; gap: var(--space-4); }
+.body { font-family: inherit; line-height: var(--line-height); resize: vertical; }
+.vars { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.var {
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.var:hover { border-color: var(--color-accent); }
+.versions { font-size: var(--text-sm); color: var(--color-text-muted); }
+.versions ul { display: grid; gap: var(--space-1); margin-top: var(--space-2); }
+
+/* 區塊：預覽（模擬一封信）· 用 pre-wrap 顯示純文字，不用 innerHTML */
+.mail {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+.mailSubject { font-weight: var(--font-weight-bold); overflow-wrap: anywhere; }
+.mailBody { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-sm); line-height: var(--line-height); }
+
+@media (min-width: 768px) {
+  .item { grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+}
+
+@media (min-width: 1024px) {
+  .editorGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+}

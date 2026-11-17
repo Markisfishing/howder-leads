@@ -161,3 +161,27 @@ export interface ImportBatchDetail extends ImportBatch {
   rows: ImportRow[];
   errors: ImportError[];
 }
+
+// ---------- 郵件模板（M2-02）----------
+export interface EmailTemplate {
+  template_id: number;
+  family_id: number;
+  name: string;
+  version: number;
+  is_active: boolean;
+  subject: string;
+  body_text: string;
+  created_at: string;
+}
+
+export interface TemplateVariable {
+  name: string;
+  label: string;
+  required: boolean;
+}
+
+export interface RenderedMail {
+  subject: string;
+  body_text: string;
+  body_html: string;
+}

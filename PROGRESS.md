@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-17 |
 | 目前階段 | **M2 寄信（進行中）**；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | M2-02a 郵件模板後端 `/templates`（只有 admin） |
+| 下一個任務 | M2-04a 寄送防呆 domain，接著 M2-03b 建立 campaign |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -99,17 +99,17 @@
   - [x] M2-01b 前端：在公司詳情側欄新增、編輯、退訂、刪除聯絡人（刪除要再確認一次） — 2026-11-17（刪除要填原因並勾選「了解無法復原」，只有主管／管理員看得到）
 
 ### 模板
-- [ ] M2-02 郵件模板管理（拆成下列 a～c）
-  - [ ] M2-02a 後端 `/templates`（只有 admin）
+- [x] M2-02 郵件模板管理（拆成下列 a～c） — 2026-11-17
+  - [x] M2-02a 後端 `/templates`（只有 admin） — 2026-11-17（migration 0005 加 `family_id` 與純文字 `body_text`；讀取所有人可用，寫入限 admin）
     - 修改時新增一個版本，舊版保留，已產生的草稿可以對照
     - 變數只能用白名單：`{{company_name}}`、`{{contact_name}}`、`{{sender_name}}`…
     - 存檔時檢查是否有退訂說明
-  - [ ] M2-02b 前端 `/admin/templates`：列表、編輯、用假資料即時預覽
-  - [ ] M2-02c 初版模板種子（內容等 SPEC 11-5，先放佔位文字）
+  - [x] M2-02b 前端 `/admin/templates`：列表、編輯、用假資料即時預覽 — 2026-11-17
+  - [x] M2-02c 初版模板種子（內容等 SPEC 11-5，先放佔位文字） — 2026-11-17（`uv run python -m scripts.seed_templates`）
 
 ### 產生草稿
 - [ ] M2-03 建立 campaign 與 `template_only` 草稿產生（F-MAIL-1、F-MAIL-2、F-MAIL-3；拆成下列 a～e）
-  - [ ] M2-03a `domain` 模板渲染純函式：代入變數、跳脫 HTML、缺變數就報錯、強制附上退訂說明
+  - [x] M2-03a `domain` 模板渲染純函式：代入變數、跳脫 HTML、缺變數就報錯、強制附上退訂說明 — 2026-11-17（`domain/template_rules.py`）
   - [ ] M2-03b `POST /campaigns`
     - 只能選「已通過」而且自己能操作的公司，每家選一位聯絡人
     - 回傳 `job_id`

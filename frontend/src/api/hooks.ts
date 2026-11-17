@@ -12,6 +12,9 @@ export const keys = {
   dimensions: ["dimensions"] as const,
   imports: ["imports"] as const,
   importBatch: (id: number) => ["imports", id] as const,
+  templates: ["templates"] as const,
+  templateVersions: (id: number) => ["templates", id, "versions"] as const,
+  templateVariables: ["templateVariables"] as const,
 };
 
 export const useCompanies = (f: ListFilters) =>
@@ -72,5 +75,35 @@ export function useImportActions() {
     cancel: useMutation({ mutationFn: ep.cancelImport, onSuccess: refresh }),
     /** 從匯入紀錄重新打開還在預覽中的批次 */
     open: useMutation({ mutationFn: ep.getImport }),
+  };
+}
+
+// ---------- 郵件模板（M2-02）----------
+export const useTemplates = () => useQuery({ queryKey: keys.templates, queryFn: ep.listTemplates });
+export const useTemplateVariables = () =>
+  useQuery({ queryKey: keys.templateVariables, queryFn: ep.listTemplateVariables, staleTime: Infinity });
+export const useTemplateVersions = (id: number | null) =>
+  useQuery({ queryKey: keys.templateVersions(id ?? 0), queryFn: () => ep.templateVersions(id!), enabled: id !== null });
+
+/** 用假資料預覽；頁面先用 useDebounced 把輸入延遲，避免每打一個字就呼叫一次 */
+export const useTemplatePreview = (subject: string, bodyText: string) =>
+  useQuery({
+    queryKey: ["templatePreview", subject, bodyText],
+    queryFn: () => ep.previewTemplate({ subject, body_text: bodyText }),
+    enabled: subject.trim() !== "" && bodyText.trim() !== "",
+    retry: false,
+    placeholderData: keepPreviousData,
+  });
+
+export function useTemplateActions() {
+  const qc = useQueryClient();
+  const refresh = () => void qc.invalidateQueries({ queryKey: keys.templates });
+  return {
+    create: useMutation({ mutationFn: ep.createTemplate, onSuccess: refresh }),
+    update: useMutation({
+      mutationFn: ({ id, body }: { id: number; body: ep.TemplateBody }) => ep.updateTemplate(id, body),
+      onSuccess: refresh,
+    }),
+    archive: useMutation({ mutationFn: ep.archiveTemplate, onSuccess: refresh }),
   };
 }
