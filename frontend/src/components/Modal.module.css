@@ -1,0 +1,53 @@
+/* 對話框與側欄 */
+.overlay { position: fixed; inset: 0; background: var(--color-text); opacity: 0.35; z-index: 20; }
+.content {
+  position: fixed;
+  z-index: 21;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  max-height: 100vh;
+}
+.center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100vw - var(--space-4) * 2);
+  max-width: 32rem;
+  max-height: calc(100vh - var(--space-6) * 2);
+  border-radius: var(--radius);
+}
+.side { top: 0; right: 0; bottom: 0; width: 100vw; }
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+.title { font-size: var(--text-lg); line-height: var(--line-height-tight); }
+.close {
+  border: 0;
+  background: transparent;
+  font-size: var(--text-lg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius);
+}
+.close:hover { background: var(--color-surface-muted); }
+.desc { padding: var(--space-3) var(--space-4) 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+.body { padding: var(--space-4); overflow-y: auto; flex: 1; }
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .side { width: 36rem; }
+}

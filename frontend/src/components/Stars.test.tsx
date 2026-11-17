@@ -1,0 +1,16 @@
+import { render, screen } from "@testing-library/react";
+
+import { Stars } from "./Stars";
+
+describe("Stars（CLAUDE.md 7-7：星級旁一定附等級文字）", () => {
+  it("test_f_rec_1_stars_have_text_label：有等級文字與無障礙名稱", () => {
+    render(<Stars stars={5} priority="A" />);
+    expect(screen.getByRole("img")).toHaveAccessibleName(/5 星，A/);
+    expect(screen.getByText("A")).toBeInTheDocument();
+  });
+
+  it("test_f_rec_6_unrated_manual_company：手動加入沒評分的公司顯示「未評分」", () => {
+    render(<Stars stars={0} priority={null} />);
+    expect(screen.getByText("未評分")).toBeInTheDocument();
+  });
+});

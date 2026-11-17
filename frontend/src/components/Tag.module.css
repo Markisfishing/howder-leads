@@ -1,0 +1,13 @@
+/* 狀態標籤 */
+.tag {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+.success { background: var(--color-success-bg); color: var(--color-success); }
+.warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.danger  { background: var(--color-danger-bg);  color: var(--color-danger); }
+.info    { background: var(--color-info-bg);    color: var(--color-info); }
+.neutral { background: var(--color-surface-muted); color: var(--color-text-muted); }

@@ -37,9 +37,9 @@
 - [x] M1-06 SQLAlchemy models（company、classification、review、dim_*、activity_log、import_batch、model_run、app_user） — 2026-11-17
 - [x] M1-07 種子資料：`dim_industry` 18 類、`dim_priority` A–D — 2026-11-17
 - [x] M1-08 統一錯誤格式 `{error:{code,message}}` 和例外處理 — 2026-11-17
-- [ ] M1-09 建立前端專案骨架（Vite + React + TS strict、ESLint、Vitest）
-- [ ] M1-10 前端引入 `design-tokens.css`，建立 `global.css`
-- [ ] M1-11 前端 `src/api/` 基礎 client（錯誤碼對應中文訊息）
+- [x] M1-09 建立前端專案骨架（Vite + React + TS strict、ESLint、Vitest） — 2026-11-17
+- [x] M1-10 前端引入 `design-tokens.css`，建立 `global.css` — 2026-11-17
+- [x] M1-11 前端 `src/api/` 基礎 client（錯誤碼對應中文訊息） — 2026-11-17
 
 ### 登入與權限
 - [x] M1-12 Microsoft Entra ID OIDC 登入（後端驗證 token） — 2026-11-17（後端驗證完成；尚未用真實租用戶測試，待 SPEC 11-4 權限核准）
@@ -57,7 +57,7 @@
 - [ ] M1-22 前端 `/admin/imports` 上傳與預覽頁
 
 ### 狀態機與審核
-- [x] M1-23 `domain/state_machine.py`：合法轉換表＋單元測試（SPEC 3.1） — 2026-11-17
+- [x] M1-23 `domain/state_machine.py`：合法轉換表＋單元測試（SPEC 3.1） — 2026-11-17（實際檔名為 `domain/company_rules.py`，狀態機與認領規則放在同一檔）
 - [x] M1-24 狀態變更一律寫 `activity_log` — 2026-11-17
 - [x] M1-25 `POST /reviews` 批次審核，排除一定要有原因（F-REC-3） — 2026-11-17
 - [x] M1-26 認領與 30 天鎖定規則＋測試（SPEC 3.1） — 2026-11-17
