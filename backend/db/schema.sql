@@ -136,7 +136,9 @@ CREATE TABLE contact (
     name          TEXT,
     title         TEXT,
     email         TEXT NOT NULL,
-    source        TEXT NOT NULL,                     -- website | manual | business_card ...
+    source        TEXT NOT NULL
+                  CONSTRAINT ck_contact_source
+                  CHECK (source IN ('website','business_card','referral','exhibition','manual')),  -- 0004
     is_verified   BOOLEAN NOT NULL DEFAULT FALSE,
     unsubscribed  BOOLEAN NOT NULL DEFAULT FALSE,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
