@@ -185,3 +185,97 @@ export interface RenderedMail {
   body_text: string;
   body_html: string;
 }
+
+// ---------- 邀請信批次、草稿、寄出（M2-03～M2-07）----------
+export type CampaignStatus = "draft" | "generating" | "reviewing" | "scheduled" | "sending" | "done";
+export type DraftStatus = "generating" | "pending_review" | "approved" | "discarded" | "sent" | "failed";
+export type GenMode = "template_only" | "template_ai" | "full_ai";
+
+export interface CampaignProgress {
+  total: number;
+  generating: number;
+  pending_review: number;
+  approved: number;
+  scheduled: number;
+  sent: number;
+  failed: number;
+  discarded: number;
+}
+
+export interface Campaign {
+  campaign_id: number;
+  name: string;
+  status: CampaignStatus;
+  gen_mode: GenMode;
+  template_id: number | null;
+  template_name: string | null;
+  template_version: number | null;
+  owner_id: number;
+  owner_name: string | null;
+  scheduled_at: string | null;
+  created_at: string;
+  progress: CampaignProgress;
+}
+
+export interface CandidateContact {
+  contact_id: number;
+  name: string | null;
+  email: string;
+  unsubscribed: boolean;
+}
+
+export interface Candidate {
+  company_id: number;
+  name: string;
+  stars: number | null;
+  priority: string | null;
+  industry: string | null;
+  owner_name: string | null;
+  contacts: CandidateContact[];
+  default_contact_id: number | null;
+  reasons: string[];
+}
+
+export interface ExcludedCompany {
+  company_id: number;
+  name: string;
+  reasons: string[];
+}
+
+export interface CampaignCreated {
+  campaign: Campaign;
+  job_id: number;
+  excluded: ExcludedCompany[];
+}
+
+export interface Draft {
+  draft_id: number;
+  campaign_id: number;
+  company_id: number;
+  company_name: string;
+  contact_id: number;
+  contact_name: string | null;
+  contact_email: string;
+  subject: string;
+  body_text: string;
+  status: DraftStatus;
+  edit_ratio: string | number | null;
+  scheduled_at: string | null;
+  send_attempts: number;
+  last_error: string | null;
+  approved_at: string | null;
+}
+
+export interface SendResult {
+  scheduled: number;
+  blocked: { draft_id: number; company_name: string; reasons: string[] }[];
+  campaign: Campaign;
+}
+
+export interface MailConnection {
+  mail_mode: "sandbox" | "live";
+  status: "not_required" | "not_connected" | "connected" | "needs_reconnect";
+  connected_at: string | null;
+  scopes: string[];
+  resumed: number;
+}

@@ -25,7 +25,7 @@ export function KpiCards() {
       <article className={styles.kpi}>
         <p className={styles.kpiLabel}>近 7 天已寄出</p>
         <p className={styles.kpiValue}>{v(data?.sent_7d)}</p>
-        <p className={styles.kpiHint}>寄信功能 M2 開放</p>
+        <p className={styles.kpiHint}>依實際寄出時間計算</p>
       </article>
       <article className={styles.kpi}>
         <p className={styles.kpiLabel}>回覆率</p>

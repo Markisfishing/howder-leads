@@ -2,6 +2,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import * as ep from "./endpoints";
+import type { Campaign } from "./types";
 import type { ListFilters } from "../lib/filters";
 
 export const keys = {
@@ -15,6 +16,12 @@ export const keys = {
   templates: ["templates"] as const,
   templateVersions: (id: number) => ["templates", id, "versions"] as const,
   templateVariables: ["templateVariables"] as const,
+  campaigns: ["campaigns"] as const,
+  campaign: (id: number) => ["campaigns", id] as const,
+  drafts: (id: number) => ["campaigns", id, "drafts"] as const,
+  candidates: ["candidates"] as const,
+  exclusionReasons: ["exclusionReasons"] as const,
+  mailConnection: ["mailConnection"] as const,
 };
 
 export const useCompanies = (f: ListFilters) =>
@@ -105,5 +112,64 @@ export function useTemplateActions() {
       onSuccess: refresh,
     }),
     archive: useMutation({ mutationFn: ep.archiveTemplate, onSuccess: refresh }),
+  };
+}
+
+// ---------- 邀請信批次、草稿、寄出（M2-03～M2-07）----------
+/** 產生中或排程寄送中，每 2 秒更新一次進度（F-MAIL-3） */
+export const isBusy = (c: Campaign | undefined) =>
+  !!c && (c.status === "generating" || c.status === "scheduled" || c.status === "sending");
+
+export const useCampaigns = () => useQuery({ queryKey: keys.campaigns, queryFn: ep.listCampaigns });
+export const useCampaign = (id: number) =>
+  useQuery({
+    queryKey: keys.campaign(id),
+    queryFn: () => ep.getCampaign(id),
+    refetchInterval: (q) => (isBusy(q.state.data) ? 2000 : false),
+  });
+export const useDrafts = (id: number, poll: boolean) =>
+  useQuery({ queryKey: keys.drafts(id), queryFn: () => ep.listDrafts(id), refetchInterval: poll ? 2000 : false });
+export const useCandidates = () => useQuery({ queryKey: keys.candidates, queryFn: ep.listCandidates });
+export const useExclusionReasons = () =>
+  useQuery({ queryKey: keys.exclusionReasons, queryFn: ep.getExclusionReasons, staleTime: Infinity });
+export const useMailConnection = () => useQuery({ queryKey: keys.mailConnection, queryFn: ep.getMailConnection });
+
+/** 會改到批次、草稿、公司狀態的操作：成功後相關資料都重新抓 */
+function useMailMutation<TArgs, TResult>(fn: (args: TArgs) => Promise<TResult>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.campaigns });
+      void qc.invalidateQueries({ queryKey: keys.candidates });
+      void qc.invalidateQueries({ queryKey: ["companies"] });
+      void qc.invalidateQueries({ queryKey: ["company"] });
+      void qc.invalidateQueries({ queryKey: keys.kpis });
+    },
+  });
+}
+
+export const useCreateCampaign = () => useMailMutation(ep.createCampaign);
+export const useApproveAll = () => useMailMutation(ep.approveAll);
+export const useSendCampaign = () =>
+  useMailMutation(({ id, scheduledAt }: { id: number; scheduledAt?: string }) => ep.sendCampaign(id, scheduledAt));
+export const usePatchDraft = () =>
+  useMailMutation(({ id, body }: { id: number; body: { subject?: string; body_text?: string } }) =>
+    ep.patchDraft(id, body),
+  );
+export const useApproveDraft = () => useMailMutation(ep.approveDraft);
+export const useUnapproveDraft = () => useMailMutation(ep.unapproveDraft);
+export const useDiscardDraft = () => useMailMutation(ep.discardDraft);
+export const useRegenerateDraft = () => useMailMutation(ep.regenerateDraft);
+
+export function useMailConnectionActions() {
+  const qc = useQueryClient();
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: keys.mailConnection });
+    void qc.invalidateQueries({ queryKey: keys.campaigns });
+  };
+  return {
+    connect: useMutation({ mutationFn: ep.connectMail, onSuccess: refresh }),
+    disconnect: useMutation({ mutationFn: ep.disconnectMail, onSuccess: refresh }),
   };
 }

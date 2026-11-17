@@ -28,9 +28,9 @@ export function AppLayout() {
             </NavLink>
           </li>
           <li>
-            <span className={`${styles.link} ${styles.disabled}`} aria-disabled="true" title="M2 開放">
-              邀請信<small>即將推出</small>
-            </span>
+            <NavLink to="/campaigns" className={linkClass}>
+              邀請信
+            </NavLink>
           </li>
           <li>
             <span className={`${styles.link} ${styles.disabled}`} aria-disabled="true" title="M4 開放">

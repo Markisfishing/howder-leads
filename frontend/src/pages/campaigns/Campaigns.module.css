@@ -1,0 +1,110 @@
+/* 邀請信頁（/campaigns、/campaigns/new、/campaigns/:id）；先寫手機版 */
+
+/* 區塊：頁首右側按鈕列 */
+.headRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.tags { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+
+/* 區塊：Outlook 連結提示 */
+.banner {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--color-info-bg);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+.bannerWarn { background: var(--color-warning-bg); }
+
+/* 區塊：批次列表 */
+.list { display: grid; gap: var(--space-2); }
+.item {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.item:hover { border-color: var(--color-accent); }
+.itemName { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-weight: var(--font-weight-bold); }
+.progressText { font-size: var(--text-sm); color: var(--color-text-muted); }
+
+/* 區塊：建立批次的候選公司 */
+.candidates { display: grid; gap: var(--space-2); }
+.candidate {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2) var(--space-3);
+  align-items: start;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+}
+.candidateOff { background: var(--color-surface-muted); }
+.candidateInfo { display: grid; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
+.candidateName { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-weight: var(--font-weight-bold); }
+.contactSelect { grid-column: 2; }
+.check { width: var(--space-4); height: var(--space-4); margin-top: var(--space-1); accent-color: var(--color-accent); }
+.radioRow { display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: var(--text-sm); }
+.radio { display: flex; align-items: center; gap: var(--space-1); }
+.stickyBar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+/* 區塊：預覽佇列（左清單、右編輯）· 手機上下排 */
+.queue { display: grid; gap: var(--space-4); }
+.draftList { display: grid; gap: var(--space-1); align-content: start; max-height: 40vh; overflow-y: auto; }
+.draftBtn {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.draftBtn:hover { border-color: var(--color-accent); }
+.draftBtn[aria-current="true"] { border-color: var(--color-accent); background: var(--color-accent-soft); }
+.draftCompany { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1); font-weight: var(--font-weight-bold); font-size: var(--text-sm); }
+.draftTo { font-size: var(--text-sm); color: var(--color-text-muted); }
+.body { font-family: inherit; line-height: var(--line-height); resize: vertical; }
+.error {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+.mailBody { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-sm); line-height: var(--line-height); }
+.kbd { font-family: var(--font-mono); font-size: var(--text-sm); }
+.blockedList { display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+
+@media (min-width: 768px) {
+  .item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .candidate { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); }
+  .contactSelect { grid-column: 3; }
+}
+
+@media (min-width: 1024px) {
+  .queue { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: start; }
+  .draftList { max-height: 70vh; }
+}

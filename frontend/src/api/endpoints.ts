@@ -1,17 +1,24 @@
 // 每個後端端點一個函式。頁面透過 src/api/hooks.ts 的 React Query hook 使用。
 import { api, apiBlob } from "./client";
 import type {
+  Campaign,
+  CampaignCreated,
+  Candidate,
   CompanyDetail,
   CompanyPage,
   Contact,
   ContactSource,
   Dimensions,
+  Draft,
+  GenMode,
   EmailTemplate,
   ImportBatch,
   ImportBatchDetail,
   Kpis,
+  MailConnection,
   RejectReason,
   RenderedMail,
+  SendResult,
   TemplateVariable,
   User,
 } from "./types";
@@ -128,3 +135,35 @@ export const updateTemplate = (id: number, body: TemplateBody) =>
 export const archiveTemplate = (id: number) => api<EmailTemplate>(`/templates/${id}/archive`, { method: "POST" });
 export const previewTemplate = (body: Omit<TemplateBody, "name">) =>
   api<RenderedMail>("/templates/preview", { method: "POST", json: body });
+
+// ---------- 邀請信批次、草稿、寄出（M2-03～M2-07）----------
+export const listCampaigns = () => api<Campaign[]>("/campaigns");
+export const getCampaign = (id: number) => api<Campaign>(`/campaigns/${id}`);
+export const listCandidates = () => api<Candidate[]>("/campaigns/candidates");
+export const getExclusionReasons = () => api<Record<string, string>>("/campaigns/exclusion-reasons");
+
+export interface CampaignCreate {
+  name: string;
+  template_id: number;
+  gen_mode: GenMode;
+  targets: { company_id: number; contact_id: number | null }[];
+}
+export const createCampaign = (body: CampaignCreate) =>
+  api<CampaignCreated>("/campaigns", { method: "POST", json: body });
+export const listDrafts = (campaignId: number) => api<Draft[]>(`/campaigns/${campaignId}/drafts`);
+/** 全部核准一定要帶 confirm: true（F-MAIL-4） */
+export const approveAll = (campaignId: number) =>
+  api<Campaign>(`/campaigns/${campaignId}/approve-all`, { method: "POST", json: { confirm: true } });
+export const sendCampaign = (campaignId: number, scheduledAt?: string) =>
+  api<SendResult>(`/campaigns/${campaignId}/send`, { method: "POST", json: { scheduled_at: scheduledAt ?? null } });
+
+export const patchDraft = (id: number, body: { subject?: string; body_text?: string }) =>
+  api<Draft>(`/drafts/${id}`, { method: "PATCH", json: body });
+export const approveDraft = (id: number) => api<Draft>(`/drafts/${id}/approve`, { method: "POST" });
+export const unapproveDraft = (id: number) => api<Draft>(`/drafts/${id}/unapprove`, { method: "POST" });
+export const discardDraft = (id: number) => api<Draft>(`/drafts/${id}/discard`, { method: "POST" });
+export const regenerateDraft = (id: number) => api<{ job_id: number }>(`/drafts/${id}/regenerate`, { method: "POST" });
+
+export const getMailConnection = () => api<MailConnection>("/me/mail-connection");
+export const connectMail = () => api<MailConnection>("/me/mail-connection", { method: "POST" });
+export const disconnectMail = () => api<void>("/me/mail-connection", { method: "DELETE" });
