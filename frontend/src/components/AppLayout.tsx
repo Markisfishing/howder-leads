@@ -28,7 +28,7 @@ export function AppLayout() {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/" end className={linkClass}>
+            <NavLink to="/recommendations" className={linkClass}>
               推薦清單
             </NavLink>
           </li>

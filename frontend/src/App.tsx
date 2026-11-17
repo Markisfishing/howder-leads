@@ -29,7 +29,8 @@ export function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route index element={<RecommendationsPage />} />
+        <Route index element={<Navigate to="/recommendations" replace />} />
+        <Route path="recommendations" element={<RecommendationsPage initialView="review" />} />
         <Route path="companies/:id" element={<CompanyPage />} />
         <Route path="campaigns" element={<CampaignsPage />} />
         <Route path="campaigns/new" element={<CampaignNewPage />} />
@@ -53,7 +54,7 @@ export function App() {
             </RequireAdmin>
           }
         />
-        <Route path="home" element={<Navigate to="/" replace />} />
+        <Route path="home" element={<Navigate to="/recommendations" replace />} />
         <Route path="*" element={<Empty title="找不到這個頁面" />} />
       </Route>
     </Routes>
