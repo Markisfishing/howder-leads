@@ -51,6 +51,12 @@ export const companyQuery = (f: ListFilters) => ({
   sort: f.sort,
 });
 
+/** 依目前篩選匯出 CSV；columns 照畫面上選的欄位（M3-13a、M3-13b）。畫面的「推薦度」= 星等＋優先級兩欄 */
+export const exportColumns = (columns: string[]) =>
+  columns.flatMap((c) => (c === "fit_stars" ? ["fit_stars", "priority"] : [c]));
+export const downloadCompanies = (f: ListFilters, columns: string[]) =>
+  apiBlob("/companies/export", { ...companyQuery(f), columns: exportColumns(columns) });
+
 export const listCompanies = (f: ListFilters) =>
   api<CompanyPage>("/companies", { query: { ...companyQuery(f), page: f.page, page_size: f.pageSize } });
 
