@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>推薦清單｜厚達電子 業務推薦系統</title>
+  <link rel="stylesheet" href="../src/styles/design-tokens.css">
+  <link rel="stylesheet" href="recommendations.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- 區塊：側邊導覽 · 用途：切換推薦清單、寄信、績效、管理頁（寬螢幕在左側，手機在上方）· 不需要可整段刪掉 -->
+    <nav class="sidenav" aria-label="主選單">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true">厚</span>
+        <span class="brand__text">厚達電子<small>業務推薦系統</small></span>
+      </div>
+      <ul class="sidenav__list">
+        <li><a class="sidenav__link is-active" href="#" aria-current="page">推薦清單</a></li>
+        <li><a class="sidenav__link" href="#">邀請信</a></li>
+        <li><a class="sidenav__link" href="#">績效</a></li>
+        <li><a class="sidenav__link" href="#">管理</a></li>
+      </ul>
+    </nav>
+
+    <main class="main">
+
+      <!-- 區塊：頁首 · 用途：頁面標題、資料更新時間、主要動作按鈕 · 不需要可整段刪掉 -->
+      <header class="page-head">
+        <div>
+          <h1 class="page-head__title">推薦清單</h1>
+          <p class="page-head__meta">資料批次 2026-11-01 · 模型版本 run #1 · 共 50 家</p>
+        </div>
+        <div class="page-head__actions">
+          <button class="btn btn--ghost" type="button">匯入名單</button>
+          <button class="btn btn--primary" type="button">為已通過的公司產生邀請信</button>
+        </div>
+      </header>
+
+      <!-- 區塊：KPI 卡 · 用途：業務一進來先看到今天要處理多少 · 不需要可整段刪掉 -->
+      <section class="kpis" aria-label="重點指標">
+        <article class="kpi">
+          <p class="kpi__label">待審核</p>
+          <p class="kpi__value">47</p>
+          <p class="kpi__hint">已審 3 / 50</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi__label">5 星推薦</p>
+          <p class="kpi__value">12</p>
+          <p class="kpi__hint">使用可能性高</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi__label">本週已寄出</p>
+          <p class="kpi__value">1</p>
+          <p class="kpi__hint">每日上限 50 封</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi__label">回覆率</p>
+          <p class="kpi__value">—</p>
+          <p class="kpi__hint">寄出滿 10 封後顯示</p>
+        </article>
+      </section>
+
+      <!-- 區塊：篩選列 · 用途：依星級、產業、狀態縮小名單 · 不需要可整段刪掉 -->
+      <section class="filters" aria-label="篩選">
+        <label class="field">
+          <span class="field__label">搜尋</span>
+          <input class="field__input" type="search" placeholder="公司名稱或統編">
+        </label>
+        <label class="field">
+          <span class="field__label">星級</span>
+          <select class="field__input">
+            <option>全部</option>
+            <option>★★★★★ 第一優先</option>
+            <option>★★★★ 可開發</option>
+            <option>★★ 觀察／策略</option>
+            <option>★ 暫不優先</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">產業</span>
+          <select class="field__input">
+            <option>全部產業</option>
+            <option>工業自動化與機械設備</option>
+            <option>電子連接器、線材與EMS</option>
+            <option>馬達、變壓器與電力設備</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">狀態</span>
+          <select class="field__input">
+            <option>全部狀態</option>
+            <option>待審</option>
+            <option>已通過</option>
+            <option>已寄出</option>
+            <option>已排除</option>
+          </select>
+        </label>
+      </section>
+
+      <!-- 區塊：推薦清單 · 用途：依星級排序列出每家公司與推薦理由，勾選後批次審核（手機為卡片、寬螢幕為表格）· 不需要可整段刪掉 -->
+      <section class="list" aria-label="推薦公司">
+        <div class="list__head" aria-hidden="true">
+          <span></span>
+          <span>推薦度</span>
+          <span>公司／推薦理由</span>
+          <span>使用可能性</span>
+          <span>狀態</span>
+        </div>
+
+        <article class="row is-selected">
+          <input class="row__check" type="checkbox" checked aria-label="選取 嘉怡包裝設備">
+          <div class="row__stars stars" aria-label="5 星，A 第一優先"><span class="stars__on">★★★★★</span><span class="stars__grade">A</span></div>
+          <div class="row__company">
+            <p class="row__name">嘉怡包裝設備股份有限公司</p>
+            <p class="row__meta">工業自動化與機械設備 · <a href="https://www.joinpack.com.tw/">joinpack.com.tw</a></p>
+          </div>
+          <p class="row__reason">整機包含馬達、感測器、PLC 與控制箱，端子台屬常見配線元件</p>
+          <span class="row__likely tag tag--success">高</span>
+          <span class="row__status tag tag--neutral">待審</span>
+        </article>
+
+        <article class="row is-selected">
+          <input class="row__check" type="checkbox" checked aria-label="選取 國興機電">
+          <div class="row__stars stars" aria-label="5 星，A 第一優先"><span class="stars__on">★★★★★</span><span class="stars__grade">A</span></div>
+          <div class="row__company">
+            <p class="row__name">國興機電股份有限公司</p>
+            <p class="row__meta">馬達、變壓器與電力設備 · <a href="https://www.jepson-power-tool-koshin.com/">jepson-power-tool-koshin.com</a></p>
+          </div>
+          <p class="row__reason">具電線配線器材與電力設備屬性，整機電氣連接需求高</p>
+          <span class="row__likely tag tag--success">高</span>
+          <span class="row__status tag tag--neutral">待審</span>
+        </article>
+
+        <article class="row">
+          <input class="row__check" type="checkbox" aria-label="選取 佑冠光電科技">
+          <div class="row__stars stars" aria-label="5 星，A 第一優先"><span class="stars__on">★★★★★</span><span class="stars__grade">A</span></div>
+          <div class="row__company">
+            <p class="row__name">佑冠光電科技股份有限公司</p>
+            <p class="row__meta">電子連接器、線材與EMS · <a href="https://tw.yiouguanoptotech.com.tw/">yiouguanoptotech.com.tw</a></p>
+          </div>
+          <p class="row__reason">線束、工業控制面板配線與自動化設備配線，與厚達產品高度吻合</p>
+          <span class="row__likely tag tag--success">高</span>
+          <span class="row__status tag tag--info">已寄出</span>
+        </article>
+
+        <article class="row">
+          <input class="row__check" type="checkbox" aria-label="選取 勤正電子">
+          <div class="row__stars stars" aria-label="4 星，B 可開發"><span class="stars__on">★★★★</span><span class="stars__off">★</span><span class="stars__grade">B</span></div>
+          <div class="row__company">
+            <p class="row__name">勤正電子股份有限公司</p>
+            <p class="row__meta">電子連接器、線材與EMS · <a href="http://www.ginzheng.com/">ginzheng.com</a></p>
+          </div>
+          <p class="row__reason">EMS 有連接器與配線需求，但端子台是否進 BOM 要看代工案型</p>
+          <span class="row__likely tag tag--warning">中</span>
+          <span class="row__status tag tag--success">已通過</span>
+        </article>
+
+        <article class="row">
+          <input class="row__check" type="checkbox" aria-label="選取 明聰興工廠">
+          <div class="row__stars stars" aria-label="4 星，B 可開發"><span class="stars__on">★★★★</span><span class="stars__off">★</span><span class="stars__grade">B</span></div>
+          <div class="row__company">
+            <p class="row__name">明聰興工廠股份有限公司</p>
+            <p class="row__meta">工業自動化與機械設備 · <a href="https://mcs70635961.wixsite.com/mcsf">wixsite.com/mcsf</a></p>
+          </div>
+          <p class="row__reason">泵浦若含控制箱、馬達接線會用端子台；需確認是否供整機電控</p>
+          <span class="row__likely tag tag--warning">中</span>
+          <span class="row__status tag tag--neutral">待審</span>
+        </article>
+
+        <article class="row">
+          <input class="row__check" type="checkbox" aria-label="選取 元凱機械">
+          <div class="row__stars stars" aria-label="4 星，B 可開發"><span class="stars__on">★★★★</span><span class="stars__off">★</span><span class="stars__grade">B</span></div>
+          <div class="row__company">
+            <p class="row__name">元凱機械股份有限公司</p>
+            <p class="row__meta">工業自動化與機械設備 · <a href="https://www.yk.com.tw/">yk.com.tw</a></p>
+          </div>
+          <p class="row__reason">農機／搬運機部分機型有電控與線束，但端子台用量依機型而定</p>
+          <span class="row__likely tag tag--warning">中</span>
+          <span class="row__status tag tag--neutral">待審</span>
+        </article>
+
+        <article class="row">
+          <input class="row__check" type="checkbox" aria-label="選取 曦立光電">
+          <div class="row__stars stars" aria-label="2 星，C 觀察／策略"><span class="stars__on">★★</span><span class="stars__off">★★★</span><span class="stars__grade">C</span></div>
+          <div class="row__company">
+            <p class="row__name">曦立光電股份有限公司</p>
+            <p class="row__meta">照明、LED與顯示設備 · <a href="https://civueopto.com/">civueopto.com</a></p>
+          </div>
+          <p class="row__reason">光電產品可能有電源與控制連接，但需確認是元件還是整機</p>
+          <span class="row__likely tag tag--warning">中</span>
+          <span class="row__status tag tag--neutral">待審</span>
+        </article>
+
+        <article class="row">
+          <input class="row__check" type="checkbox" aria-label="選取 智鼎電子">
+          <div class="row__stars stars" aria-label="2 星，C 觀察／策略"><span class="stars__on">★★</span><span class="stars__off">★★★</span><span class="stars__grade">C</span></div>
+          <div class="row__company">
+            <p class="row__name">智鼎電子股份有限公司</p>
+            <p class="row__meta">電腦、伺服器與資訊設備 · <span class="muted">無官網</span></p>
+          </div>
+          <p class="row__reason">若為整機或工控設備有機會；若只做板卡則端子台需求較低</p>
+          <span class="row__likely tag tag--warning">中</span>
+          <span class="row__status tag tag--neutral">待審</span>
+        </article>
+
+        <article class="row">
+          <input class="row__check" type="checkbox" aria-label="選取 志華機械">
+          <div class="row__stars stars" aria-label="1 星，D 暫不優先"><span class="stars__on">★</span><span class="stars__off">★★★★</span><span class="stars__grade">D</span></div>
+          <div class="row__company">
+            <p class="row__name">志華機械股份有限公司</p>
+            <p class="row__meta">金屬、模具與塑膠零件製造 · <a href="https://zh-tw.chi-hua.com.tw/">chi-hua.com.tw</a></p>
+          </div>
+          <p class="row__reason">主要為工作母機滑軌，本身偏機械零件而非整機電控</p>
+          <span class="row__likely tag tag--neutral">低</span>
+          <span class="row__status tag tag--danger">已排除：無需求</span>
+        </article>
+      </section>
+
+      <!-- 區塊：星級說明 · 用途：讓業務知道星級和 A–D 怎麼對應 · 不需要可整段刪掉 -->
+      <section class="legend" aria-label="星級說明">
+        <h2 class="legend__title">星級怎麼來的</h2>
+        <dl class="legend__list">
+          <div><dt><span class="stars__on">★★★★★</span> A 第一優先</dt><dd>整機控制、配電、線束或設備配線，端子台使用機率高</dd></div>
+          <div><dt><span class="stars__on">★★★★</span> B 可開發</dt><dd>可能使用，但要確認產品是否含控制箱／電控／線束</dd></div>
+          <div><dt><span class="stars__on">★★</span> C 觀察／策略</dt><dd>需求不明確需再確認，或屬於 OEM／合作對象</dd></div>
+          <div><dt><span class="stars__on">★</span> D 暫不優先</dt><dd>產品偏材料、純零件、加工，端子台非主要 BOM</dd></div>
+        </dl>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- 區塊：批次動作列 · 用途：勾選公司後固定在畫面底部，一次通過或排除 · 不需要可整段刪掉 -->
+  <div class="bulkbar" role="region" aria-label="批次動作">
+    <p class="bulkbar__count">已選 <strong>2</strong> 家</p>
+    <div class="bulkbar__actions">
+      <button class="btn btn--ghost" type="button">排除…</button>
+      <button class="btn btn--primary" type="button">通過</button>
+    </div>
+  </div>
+</body>
+</html>
