@@ -87,7 +87,7 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 | ID | 需求 | 驗收條件 |
 |---|---|---|
 | F-IMP-1 | 上傳 CSV / XLSX | 支援 UTF-8 和 Big5 編碼，檔案上限 10 MB |
-| F-IMP-2 | 匯入前先預覽 | 顯示「新增 X、更新 Y、錯誤 Z」和每一筆錯誤的原因；要按「確認匯入」才會寫入 |
+| F-IMP-2 | 匯入前先預覽 | 顯示「新增 X、更新 Y、錯誤 Z」和每一筆錯誤的原因；要按「確認匯入」才會寫入。畫面匯入時有錯誤的列會略過、其餘照常寫入；API 匯入（F-IMP-5）有任何錯誤就整批拒絕 |
 | F-IMP-3 | 用統編去重 | 同一份檔案匯入兩次，`company` 的筆數不會增加 |
 | F-IMP-4 | 檢查欄位 | 統編必須是 8 碼數字；產業和優先級必須是維度表裡有的值，否則列入錯誤 |
 | F-IMP-5 | API 匯入 | `POST /api/v1/imports/api` 可以收 JSON，之後 MLE 的 function 可以直接寫入，不用再經過 CSV |
@@ -235,7 +235,7 @@ backend/app/
 | POST | `/campaigns/{id}/send` | 寄出全部已核准的草稿（可帶 `scheduled_at`） |
 | POST | `/webhooks/graph` | Graph 推送通知（回覆、退信） |
 | GET | `/metrics/kpis` | 推薦清單頁的 KPI 卡（讀 `v_kpi_summary`） |
-| GET | `/metrics/{funnel|win-rate|templates|reps}` | 績效資料（M4） |
+| GET | `/metrics/{funnel\|win-rate\|templates\|reps}` | 績效資料（M4） |
 | GET | `/dimensions` | 下拉選單用：產業、優先級、排除原因、狀態、業務名單 |
 | GET | `/admin/reviews/export` | 審核紀錄 CSV（含當時模型判斷），給 MLE 用 |
 | GET | `/feedback/export?run_id=` | 匯出給 MLE 的資料 |
