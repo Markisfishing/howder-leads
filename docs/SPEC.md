@@ -139,8 +139,7 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
             ┌───────────────────── 公司內網 / 雲端 VM（Docker Compose）─────────────────────┐
  瀏覽器 ───►│ Nginx (HTTPS) ─┬─► Frontend：靜態檔案 (React build)                            │
             │                └─► Backend API：FastAPI (uvicorn)  ──► PostgreSQL 16           │
-            │                          │                         ──► Redis（佇列、快取）     │
-            │                          └─► Worker：arq（非同步工作）                          │
+            │                          └─► Worker（從 PostgreSQL 佇列領工作）                 │
             │                                ├─ 產生草稿 ──► Claude API                       │
             │                                ├─ 寄信 / 讀回覆 ──► Microsoft Graph             │
             │                                └─ 匯入解析、排程寄送                            │
@@ -150,7 +149,7 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 
 選這套技術的理由：
 - **Python 後端：** MLE 的 function 是 Python，匯入解析也要用 pandas，用同一種語言可以共用程式碼。
-- **非同步 Worker：** 產生 50 封信、寄信都很花時間，放在背景執行，網頁不會卡住。
+- **非同步 Worker：** 產生 50 封信、寄信都很花時間，放在背景執行，網頁不會卡住。佇列直接放在 PostgreSQL（`SKIP LOCKED`），不另外架 Redis（ADR 0003）。
 - **Docker Compose：** 部署在公司內網一台主機上就能跑，不需要 Kubernetes。
 
 ---
@@ -194,7 +193,7 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 ## 7. 後端
 
 ### 7.1 技術
-FastAPI、Pydantic v2、SQLAlchemy 2 和 Alembic（資料庫 migration）、arq 加 Redis（背景工作）、pandas（匯入解析）、`msal`（Microsoft 登入和 Graph 權杖）、Anthropic SDK（產生郵件）。
+FastAPI、Pydantic v2、SQLAlchemy 2 和 Alembic（資料庫 migration）、PostgreSQL 佇列（背景工作，ADR 0003）、pandas（匯入解析）、`msal`（Microsoft 登入和 Graph 權杖）、Anthropic SDK（產生郵件）。
 
 ### 7.2 模組切分
 ```
@@ -206,7 +205,7 @@ backend/app/
     generator.py  依生成模式組 prompt → 呼叫 Claude → 回填草稿
     mailer.py     Graph 寄信、訂閱收件匣、處理 webhook
     metrics.py    讀取 SQL view，不在 Python 裡重算 KPI
-  workers/       arq 背景工作：generate_drafts, send_scheduled, sync_replies
+  workers/       背景工作（PostgreSQL 佇列）：generate_drafts, send_scheduled, sync_replies
   models/        SQLAlchemy ORM（和 backend/db/schema.sql 一致）
 ```
 
