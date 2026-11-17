@@ -116,9 +116,9 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 | F-MAIL-1 | 建立 campaign | 從「已通過」的名單中勾選對象，再選模板和生成模式 |
 | F-MAIL-2 | 三種生成模式 | `template_only`：只代入變數。`template_ai`：模板中的 `{{ai_paragraph}}` 由 AI 撰寫。`full_ai`：整封由 AI 撰寫 |
 | F-MAIL-3 | 批次非同步產生 | 50 封草稿 3 分鐘內產生完；畫面顯示進度；單封失敗不影響其他封 |
-| F-MAIL-4 | 預覽佇列 | 左邊是清單，右邊是預覽；可以逐封修改、重新生成、刪除、核准，也可以「全部核准」（要再按一次確認） |
+| F-MAIL-4 | 預覽佇列 | 左邊是清單，右邊是預覽；可以逐封修改、重新生成、刪除、核准，也可以「全部核准」（要再按一次確認）。草稿全部處理完（沒有待審核的）時，批次狀態變成「待寄出」（`ready`），按寄出後才是「已排程」 |
 | F-MAIL-5 | 只有核准的才寄 | API 拒絕寄送任何不是 `approved` 狀態的草稿 |
-| F-MAIL-6 | 寄送 | 透過 Microsoft Graph `sendMail` 從業務本人的信箱寄出；支援排程；每人每天上限 N 封（預設 50 封，可以設定） |
+| F-MAIL-6 | 寄送 | 透過 Microsoft Graph `sendMail` 從業務本人的信箱寄出；支援排程；每人每天上限 N 封（預設 50 封，可以設定）。只在台灣時間 `SEND_DAY_START_HOUR`（預設 9 點）到 `SEND_DAY_END_HOUR`（預設 18 點）之間寄；超過下班時間的排到隔天開始時間 |
 | F-MAIL-7 | 防呆 | 已退訂、`do_not_contact`、被其他業務鎖定、或 14 天內已經寄過的對象，產生草稿時就自動排除，並告訴業務原因 |
 | F-MAIL-8 | 記錄改稿幅度 | 核准時計算 `edit_ratio`，也就是業務改了 AI 原稿的比例 |
 
@@ -131,7 +131,7 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 | F-CASE-2 | 人工回填 | 回填一筆紀錄：管道（email／line／wechat／phone／visit／other）、聯絡人、結果（已回覆／洽談中／成交／失敗／無回應）、備註、下次追蹤日、成交金額（成交時選填）。每筆都留在案件時間軸，並帶動公司狀態（`replied`／`meeting`／`won`／`lost`） |
 | F-CASE-3 | 逾期催辦 | 每天自動檢查：寄出 7 天沒有任何回填 →「逾期未回報」；超過「下次追蹤日」→「該追蹤了」；寄出 14 天沒回覆 → 標記「無回應」並建議電話或拜訪。提醒出現在業務的待辦清單，直到回填或結案 |
 | F-CASE-4 | 案件列表 | 依狀態、負責業務、寄信日、只看逾期篩選；上方顯示各狀態件數；右側是時間軸和回填表單；可以只用鍵盤完成回填；可匯出 CSV |
-| F-CASE-5 | 退訂 | 客戶用任何管道表示不要再聯絡時，業務在案件或聯絡人上標記；聯絡人改成 `unsubscribed`，公司改成 `do_not_contact` |
+| F-CASE-5 | 退訂 | 客戶用任何管道表示不要再聯絡時，業務在案件或聯絡人上標記，**只有該聯絡人**改成 `unsubscribed`。公司所有聯絡人都退訂，或客戶明講整家公司都不要聯絡（標記時勾選「整家公司不再聯絡」）時，公司才改成 `do_not_contact`、案件結案為失敗。取消退訂只限主管／管理員，必填原因並寫 `activity_log`（2026-11-18 決定） |
 
 | ID | 需求 | 驗收條件 |
 |---|---|---|
@@ -257,7 +257,8 @@ backend/app/
 | POST | `/companies` | 手動加入公司 |
 | POST | `/reviews` | 批次審核 `{company_ids[], decision, reject_reason?, note?, corrected_industry_id?}`；整批成功才寫入 |
 | POST | `/contacts` / PATCH `/contacts/{id}` | 管理聯絡人（來源必填、email 格式檢查、同公司不重複） |
-| POST | `/contacts/{id}/unsubscribe` | 標記退訂，公司同時改成 `do_not_contact`（F-CASE-5） |
+| POST | `/contacts/{id}/unsubscribe` | 標記退訂（F-CASE-5）；帶 `whole_company: true` 或公司已沒有其他可聯絡的人時，公司才改成 `do_not_contact` |
+| POST | `/contacts/{id}/resubscribe` | 取消退訂（主管／管理員，body 帶 `reason`），寫 `activity_log` |
 | DELETE | `/contacts/{id}` | 個資刪除（主管／管理員，body 帶 `reason`）：連帶刪除草稿與寄出信件，寫 `activity_log` |
 | POST | `/imports` | 管理員上傳 CSV / XLSX → 回傳預覽（`status = previewed`） |
 | POST | `/imports/api?commit=` | MLE function 用 JSON 匯入（`X-API-Key`）；`commit=true` 直接寫入，有錯誤就整批拒絕 |
@@ -282,7 +283,7 @@ backend/app/
 | GET | `/cases/{id}` | 案件詳情與時間軸 |
 | POST | `/cases` | 批次「加入追蹤」`{company_ids[]}`（只限已通過的公司，整批檢查；沒人負責時順便認領） |
 | POST | `/cases/{id}/updates` | 人工回填一筆紀錄 |
-| POST | `/cases/{id}/unsubscribe` | 客戶要求退訂：聯絡人退訂、公司改 `do_not_contact`、案件結案為失敗（F-CASE-5） |
+| POST | `/cases/{id}/unsubscribe` | 客戶要求退訂：聯絡人退訂；整家公司不要聯絡（`whole_company`）或已沒有其他聯絡人時，公司改 `do_not_contact`、案件結案為失敗（F-CASE-5） |
 | GET | `/reminders` | 目前使用者的待辦提醒件數（讀 `v_case_reminder`）＋新名單待審核 |
 | GET | `/metrics/overview?from=&to=&industry=&product_type=&owner=` | 總覽：KPI、漏斗（含 MLE 附的前段數字）、各來源回覆率、待辦件數（讀 `v_case_fact`、`v_company_fact`）。業務只看自己的案件，`owner` 只有主管能指定；名單數是共用名單池；日期以寄出日（台灣時間）計算 |
 | GET | `/companies/export?…&columns=` | 依目前篩選條件匯出 CSV（UTF-8 BOM）；`columns` 指定欄位與順序（和畫面的欄位自選同一組 key），沒給用預設欄位；不含聯絡人 email |
@@ -413,3 +414,5 @@ company 1─* activity_log
 7. 適合度星等的算法（會議說法：產業 × 產品標籤 × 開發優先級）由 MLE 決定並寫進 CSV；系統只負責顯示。
 8. 催辦提醒的管道：第一版只出現在平台的待辦清單；要不要另外每天寄一封摘要信給業務？
 9. 推薦名單的最小單位：大類產業，還是更細的產品層級（會議提出，尚未定案）。
+10. 地端 LLM 的 GPU 主機：待公司 IT 確認。確認前 M4 先用 `FakeLlmClient` 開發（2026-11-18）。
+11. 寄信時要不要自動認領公司（目前只有「認領」和「加入追蹤」會），請業務主管決定（M3-14 發現）。
