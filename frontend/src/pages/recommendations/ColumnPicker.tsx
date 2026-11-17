@@ -24,7 +24,7 @@ export function ColumnPicker({ open, columns, onChange, onClose }: Props) {
   return (
     <Modal open={open} onOpenChange={(o) => !o && onClose()} title="顯示欄位">
       <p className={styles.meta} aria-live="polite">
-        已選 {columns.length} / {MAX_COLUMNS} 欄{full && "（已達上限，先取消一欄才能再加）"}。匯出 CSV 也會用這些欄位。
+        已選 {columns.length} / {MAX_COLUMNS} 欄{full && "（已達上限，先取消一欄才能再加）"}。這些欄位會顯示在完整清單。
       </p>
       <fieldset className={styles.columnGrid}>
         <legend className="visually-hidden">要顯示的欄位</legend>

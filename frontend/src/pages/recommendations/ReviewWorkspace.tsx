@@ -6,7 +6,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { Button } from "../../components/Button";
 import { Stars } from "../../components/Stars";
 import { Tag } from "../../components/Tag";
-import { LIKELIHOOD_TONE, hostname } from "../../lib/labels";
+import { hostname } from "../../lib/labels";
 import styles from "./ReviewWorkspace.module.css";
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
   onReject: (company: CompanyRow) => void;
   onSnooze: (company: CompanyRow) => void;
   onOpenDetails: (company: CompanyRow) => void;
+  snoozedCount: number;
   busy?: boolean;
 }
 
@@ -29,6 +30,7 @@ export function ReviewWorkspace({
   onReject,
   onSnooze,
   onOpenDetails,
+  snoozedCount,
   busy = false,
 }: Props) {
   const { user } = useAuth();
@@ -91,14 +93,17 @@ export function ReviewWorkspace({
       <aside className={styles.queue} aria-label="工作佇列">
         <div className={styles.queueHead}>
           <span className={styles.queueTitle}>工作佇列</span>
-          <span className={styles.queueCount}>{total}</span>
         </div>
         <button type="button" className={`${styles.queueItem} ${styles.queueActive}`} aria-current="true">
           <span className={styles.queueDot} aria-hidden="true">●</span>
           <span>待審</span>
           <strong>{total}</strong>
         </button>
-        <p className={styles.queueHint}>按 J / K 快速切換</p>
+        <div className={styles.queueItem}>
+          <span className={styles.queueDotMuted} aria-hidden="true">○</span>
+          <span>稍後</span>
+          <strong>{snoozedCount}</strong>
+        </div>
       </aside>
 
       <div className={styles.reviewPane}>
@@ -122,6 +127,10 @@ export function ReviewWorkspace({
           >
             下一筆 →
           </button>
+          <details className={styles.shortcutMenu}>
+            <summary aria-label="鍵盤快捷鍵">?</summary>
+            <div>J / K 上一筆／下一筆 · A 通過 · R 排除 · S 稍後 · Space 查看依據</div>
+          </details>
         </header>
 
         <article className={styles.card} aria-labelledby="review-company-title">
@@ -140,9 +149,6 @@ export function ReviewWorkspace({
                 <span className={styles.muted}>無官網</span>
               )}
             </div>
-            <Tag tone={LIKELIHOOD_TONE[company.likelihood ?? ""] ?? "neutral"}>
-              {company.likelihood ? `使用可能性：${company.likelihood}` : "使用可能性未評估"}
-            </Tag>
           </div>
 
           <section className={styles.reason} aria-labelledby="review-reason-title">
@@ -181,6 +187,10 @@ export function ReviewWorkspace({
                   <dt>網址狀態</dt>
                   <dd>{company.url_status === "valid" ? "有效" : company.url_status === "invalid" ? "無效" : "未檢查"}</dd>
                 </div>
+                <div>
+                  <dt>使用可能性</dt>
+                  <dd>{company.likelihood ?? "未評估"}</dd>
+                </div>
                 <div className={styles.fullWidth}>
                   <dt>完整推薦理由</dt>
                   <dd>{company.reason ?? "未提供"}</dd>
@@ -215,7 +225,6 @@ export function ReviewWorkspace({
             通過並下一筆 <kbd>A</kbd>
           </Button>
         </footer>
-        <p className={styles.shortcutHint}>J / K 上一筆・下一筆 Space 查看依據</p>
       </div>
     </section>
   );

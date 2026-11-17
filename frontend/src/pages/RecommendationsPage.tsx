@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
-import { downloadCompanies } from "../api/endpoints";
 import { useAddTracking, useCompanies, useDimensions, useKpis, useReview } from "../api/hooks";
 import type { CompanyRow } from "../api/types";
-import { useAuth } from "../auth/AuthProvider";
 import { Button } from "../components/Button";
 import { Modal } from "../components/Modal";
 import { Empty, ErrorState, InlineError, Loading } from "../components/StateView";
 import { type ColumnKey, loadColumns, saveColumns } from "../lib/columns";
-import { saveBlob } from "../lib/download";
 import { DEFAULT_FILTERS, type ListFilters, parseFilters, toSearchParams, updateFilters } from "../lib/filters";
+import { STATUS_LABELS } from "../lib/labels";
 import { AddCompanyDialog } from "./recommendations/AddCompanyDialog";
 import { ColumnPicker } from "./recommendations/ColumnPicker";
 import { CompanyDetailPanel } from "./recommendations/CompanyDetailPanel";
@@ -37,8 +35,6 @@ const SAVED_VIEWS: { label: string; filters: Partial<ListFilters> }[] = [
 
 /** 推薦名單：/recommendations 是單筆審核工作台，完整清單保留批次作業與欄位設定。 */
 export function RecommendationsPage({ initialView = "list" }: Props) {
-  const { isAdmin } = useAuth();
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [view, setView] = useState<ViewMode>(initialView);
   const filters = useMemo(() => parseFilters(params), [params]);
@@ -66,8 +62,6 @@ export function RecommendationsPage({ initialView = "list" }: Props) {
   const [addOpen, setAddOpen] = useState(false);
   const [columns, setColumnsState] = useState<ColumnKey[]>(loadColumns);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [exportError, setExportError] = useState<unknown>(null);
-  const [exporting, setExporting] = useState(false);
   const [notice, setNoticeState] = useState({ text: "", seq: 0 });
   const noticeRef = useRef<HTMLParagraphElement>(null);
   const rows = useMemo(() => data?.items ?? [], [data?.items]);
@@ -136,14 +130,6 @@ export function RecommendationsPage({ initialView = "list" }: Props) {
       onSuccess: (cases) => { setNotice(`已加入追蹤 ${cases.length} 家，請到「案件」回填聯絡結果`); setSelected(new Set()); },
     });
   };
-  const doExport = async () => {
-    setExportError(null);
-    setExporting(true);
-    try { saveBlob(await downloadCompanies(filters, columns), "companies"); }
-    catch (err) { setExportError(err); }
-    finally { setExporting(false); }
-  };
-
   const activeFilterCount = [
     filters.q, filters.stars.length, filters.industryId, filters.owner, filters.hasWebsite, filters.competitor,
     filters.country, filters.source, filters.urlStatus, filters.productType, filters.tag, filters.minStars, filters.status.length,
@@ -151,12 +137,19 @@ export function RecommendationsPage({ initialView = "list" }: Props) {
   const industryName = dimensions?.industries.find((item) => item.industry_id === filters.industryId)?.name;
   const ownerName = filters.owner === "me" ? "我負責" : filters.owner === "none" ? "未指派" : dimensions?.users.find((item) => String(item.user_id) === filters.owner)?.display_name;
   const filterChips = [
+    ...(filters.q ? [{ label: `搜尋：${filters.q}`, patch: { q: "" } }] : []),
     ...(filters.stars.length ? [{ label: `${filters.stars.join("、")} 星`, patch: { stars: [] } }] : []),
+    ...(filters.minStars !== null ? [{ label: `${filters.minStars} 星以上`, patch: { minStars: null } }] : []),
     ...(industryName ? [{ label: industryName, patch: { industryId: null } }] : []),
     ...(ownerName ? [{ label: ownerName, patch: { owner: null } }] : []),
     ...(filters.source ? [{ label: `來源：${filters.source}`, patch: { source: null } }] : []),
     ...(filters.country ? [{ label: filters.country, patch: { country: null } }] : []),
-    ...(filters.status.length ? [{ label: filters.status.map((status) => status === "pending_review" ? "待審" : status).join("、"), patch: { status: [] } }] : []),
+    ...(filters.status.length ? [{ label: filters.status.map((status) => STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? status).join("、"), patch: { status: [] } }] : []),
+    ...(filters.hasWebsite !== null ? [{ label: filters.hasWebsite ? "有官網" : "無官網", patch: { hasWebsite: null } }] : []),
+    ...(filters.competitor !== null ? [{ label: filters.competitor ? "競合" : "排除競合", patch: { competitor: null } }] : []),
+    ...(filters.urlStatus ? [{ label: `網址：${filters.urlStatus}`, patch: { urlStatus: null } }] : []),
+    ...(filters.productType ? [{ label: `產品：${filters.productType}`, patch: { productType: "" } }] : []),
+    ...(filters.tag ? [{ label: `標籤：${filters.tag}`, patch: { tag: null } }] : []),
   ];
   const applySavedView = (saved: Partial<ListFilters>) => {
     setView("list");
@@ -175,15 +168,12 @@ export function RecommendationsPage({ initialView = "list" }: Props) {
               <button type="button" className={view === "list" ? styles.modeActive : styles.modeButton} onClick={() => setView("list")}>完整清單</button>
             </div>
           </div>
-          <p className={styles.meta}>{view === "review" ? "一次判斷一家公司，完成今日待審名單" : "比較、分派與批次處理推薦公司"}</p>
         </div>
         <div className={styles.headActions}>
           <Button onClick={() => setFilterOpen(true)}>篩選{activeFilterCount > 0 && ` ${activeFilterCount}`}</Button>
           {view === "list" && <>
             <Button onClick={() => setPickerOpen(true)}>欄位設定</Button>
-            <Button busy={exporting} onClick={() => void doExport()}>匯出 CSV</Button>
             <Button onClick={() => setAddOpen(true)}>＋手動加入</Button>
-            {isAdmin && <Button variant="primary" onClick={() => navigate("/admin/imports")}>匯入名單</Button>}
           </>}
         </div>
       </header>
@@ -192,25 +182,23 @@ export function RecommendationsPage({ initialView = "list" }: Props) {
         {SAVED_VIEWS.map((saved) => <button key={saved.label} type="button" className={styles.savedView} onClick={() => applySavedView(saved.filters)}>{saved.label}</button>)}
       </nav>}
 
-      <div className={styles.filterSummary}>
-        <span className={styles.filterSummaryLabel}>{view === "review" ? "生效條件" : `顯示 ${data?.total ?? "…"} 筆`}</span>
-        {view === "review" && filters.status.length === 0 && <span className={styles.filterChip}>待審</span>}
-        {filterChips.map((chip) => <button key={chip.label} type="button" className={styles.filterChip} onClick={() => onFilterChange(chip.patch)}>{chip.label} ×</button>)}
-        {filterChips.length === 0 && view === "list" && <span className={styles.filterEmpty}>未套用額外篩選</span>}
-      </div>
+      {(filterChips.length > 0 || (view === "review" && filters.status.length === 0 && activeFilterCount > 0)) && (
+        <div className={styles.filterSummary}>
+          {view === "review" && filters.status.length === 0 && <span className={styles.filterChip}>待審 ×</span>}
+          {filterChips.map((chip) => <button key={chip.label} type="button" className={styles.filterChip} onClick={() => onFilterChange(chip.patch)}>{chip.label} ×</button>)}
+        </div>
+      )}
 
-      <InlineError error={exportError} />
       <div aria-live="polite">{notice.text && <p ref={noticeRef} tabIndex={-1} className={styles.notice}>{notice.text}</p>}</div>
 
       {view === "review" ? <>
         <div className={styles.reviewProgress}>
           <span>今日進度</span>
           <strong>{kpis ? `${Math.max(0, (data?.total ?? kpis.pending_review) - reviewRows.length)} / ${data?.total ?? kpis.pending_review}` : "…"}</strong>
-          <span className={styles.progressHint}>待審 {reviewRows.length} · 稍後 {snoozedIds.size}</span>
         </div>
-        {isLoading ? <Loading /> : error ? <ErrorState error={error} onRetry={() => void refetch()} /> : <ReviewWorkspace key={reviewRows[activeReviewIndex]?.company_id ?? "empty"} rows={reviewRows} currentIndex={activeReviewIndex} onIndexChange={setReviewIndex} onApprove={approveCompany} onReject={openReject} onSnooze={snoozeCompany} onOpenDetails={(company) => openCompany(company.company_id)} busy={review.isPending} />}
+        {isLoading ? <Loading /> : error ? <ErrorState error={error} onRetry={() => void refetch()} /> : <ReviewWorkspace key={reviewRows[activeReviewIndex]?.company_id ?? "empty"} rows={reviewRows} currentIndex={activeReviewIndex} onIndexChange={setReviewIndex} onApprove={approveCompany} onReject={openReject} onSnooze={snoozeCompany} onOpenDetails={(company) => openCompany(company.company_id)} snoozedCount={snoozedIds.size} busy={review.isPending} />}
       </> : <>
-        {isLoading ? <Loading /> : error ? <ErrorState error={error} onRetry={() => void refetch()} /> : rows.length === 0 ? <Empty title="沒有符合條件的公司">{activeFilterCount > 0 ? "試著放寬篩選條件。" : "還沒有匯入名單，請管理員到「名單匯入」上傳。"}</Empty> : <>
+        {isLoading ? <Loading /> : error ? <ErrorState error={error} onRetry={() => void refetch()} /> : rows.length === 0 ? <Empty title="沒有符合條件的公司">{activeFilterCount > 0 ? "試著放寬篩選條件。" : "還沒有匯入名單，請管理員到「名單管理」上傳。"}</Empty> : <>
           <CompanyList rows={rows} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onOpen={openCompany} columns={columns} />
           <nav className={styles.pager} aria-label="分頁"><span className={styles.pagerInfo}>共 {data?.total ?? 0} 家，第 {filters.page} / {totalPages} 頁{isFetching && "（更新中…）"}</span><span className={styles.pagerButtons}><Button size="sm" disabled={filters.page <= 1} onClick={() => onFilterChange({ page: filters.page - 1 })}>上一頁</Button><Button size="sm" disabled={filters.page >= totalPages} onClick={() => onFilterChange({ page: filters.page + 1 })}>下一頁</Button></span></nav>
         </>}

@@ -9,7 +9,6 @@
 }
 .queueHead { display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-2) var(--space-2); }
 .queueTitle { font-weight: var(--font-weight-bold); }
-.queueCount { color: var(--color-text-muted); font-size: var(--text-sm); }
 .queueItem {
   display: flex;
   align-items: center;
@@ -26,12 +25,16 @@
 .queueActive { background: var(--color-surface); color: var(--color-accent-hover); font-weight: var(--font-weight-bold); }
 .queueItem strong { margin-left: auto; }
 .queueDot { color: var(--color-accent); font-size: var(--text-sm); }
-.queueHint { padding: 0 var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm); }
+.queueDotMuted { color: var(--color-text-muted); font-size: var(--text-sm); }
 .reviewPane { display: grid; gap: var(--space-4); min-width: 0; }
 .reviewNav { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .navButton { border: 0; background: transparent; color: var(--color-accent); cursor: pointer; padding: var(--space-2); }
 .navButton:disabled { color: var(--color-text-muted); cursor: not-allowed; }
 .position { font-size: var(--text-sm); color: var(--color-text-muted); }
+.shortcutMenu { position: relative; margin-left: auto; }
+.shortcutMenu summary { display: grid; place-items: center; width: var(--space-5); height: var(--space-5); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-muted); cursor: pointer; list-style: none; }
+.shortcutMenu summary::-webkit-details-marker { display: none; }
+.shortcutMenu div { position: absolute; z-index: 1; top: calc(100% + var(--space-2)); right: 0; width: max-content; max-width: 18rem; padding: var(--space-2) var(--space-3); border: var(--border-width) solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); box-shadow: var(--shadow-card); color: var(--color-text-muted); font-size: var(--text-sm); }
 .card { display: grid; gap: var(--space-5); background: var(--color-surface); border: var(--border-width) solid var(--color-border); border-radius: var(--radius); padding: var(--space-4); box-shadow: var(--shadow-card); }
 .companyHead { display: flex; justify-content: space-between; gap: var(--space-4); align-items: start; }
 .companyIdentity { display: grid; gap: var(--space-2); min-width: 0; }
@@ -52,7 +55,6 @@
 .ownerRow { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; padding-top: var(--space-4); border-top: var(--border-width) solid var(--color-border); color: var(--color-text-muted); font-size: var(--text-sm); }
 .actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); }
 .actions kbd { color: currentColor; font-size: var(--text-sm); font-weight: normal; }
-.shortcutHint { text-align: right; color: var(--color-text-muted); font-size: var(--text-sm); }
 .empty { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-6) var(--space-4); text-align: center; background: var(--color-surface); border: var(--border-width) solid var(--color-border); border-radius: var(--radius); }
 .empty h2 { font-size: var(--text-lg); }
 .empty p { color: var(--color-text-muted); }
