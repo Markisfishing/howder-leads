@@ -9,14 +9,14 @@ import { Tag } from "../components/Tag";
 import { formatDateTime } from "../lib/labels";
 import styles from "./Page.module.css";
 
-const ACTION_LABELS = { create: "新增", update: "更新", unchanged: "沒變" } as const;
+const ACTION_LABELS = { create: "新增", update: "更新", unchanged: "沒變", skip: "略過（網址無效）" } as const;
 const BATCH_STATUS = {
   previewed: { label: "預覽中", tone: "warning" },
   committed: { label: "已匯入", tone: "success" },
   cancelled: { label: "已取消", tone: "neutral" },
 } as const;
 
-/** 名單匯入（SPEC 6.2 /admin/imports · F-IMP-1~6）：上傳 → 預覽差異 → 確認匯入；也可下載審核結果給 MLE */
+/** 名單匯入（SPEC 6.2 /admin/imports · F-IMP-1~6、M3-06b）：上傳 → 預覽差異 → 確認匯入；也可下載審核結果給 MLE */
 export function AdminImportsPage() {
   const { upload, commit, cancel, open } = useImportActions();
   const history = useImports();
@@ -73,7 +73,10 @@ export function AdminImportsPage() {
     <>
       <header className={styles.head}>
         <h1 className={styles.title}>名單匯入</h1>
-        <p className={styles.meta}>上傳 MLE 產出的 CSV 或 Excel，先預覽差異，確認後才會寫入。同一統編不會重複新增。</p>
+        <p className={styles.meta}>
+          上傳 MLE 產出的 CSV 或 Excel，先預覽差異，確認後才會寫入。同一統編不會重複新增。欄位格式見
+          docs/samples/import_v1_sample.csv（CSV 欄位規格 v1）。
+        </p>
       </header>
 
       <div aria-live="polite">{notice && <p className={styles.hint}>{notice}</p>}</div>
@@ -197,6 +200,7 @@ function PreviewCard({
           ["新增", b.rows_created],
           ["更新", b.rows_updated],
           ["沒變", b.rows_unchanged],
+          ["略過", b.rows_skipped],
           ["錯誤", b.rows_error],
         ].map(([label, value]) => (
           <div key={label} className={styles.count}>
@@ -205,6 +209,33 @@ function PreviewCard({
           </div>
         ))}
       </div>
+
+      {/* 區塊：MLE 附上的漏斗前段數字（只顯示，不重算） */}
+      {b.funnel && Object.keys(b.funnel).length > 0 && (
+        <>
+          <h3 className={styles.label}>漏斗前段（MLE 提供）</h3>
+          <div className={styles.counts}>
+            {Object.entries(b.funnel).map(([label, value]) => (
+              <div key={label} className={styles.count}>
+                <p className={styles.countLabel}>{label}</p>
+                <p className={styles.countValue}>{value.toLocaleString("zh-TW")}</p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* 區塊：不擋匯入的提示（看不懂的欄位、沒有資料來源欄） */}
+      {b.warnings.length > 0 && (
+        <ul className={styles.hint} aria-label="匯入提示">
+          {b.warnings.map((w) => (
+            <li key={w.field}>提示：{w.message}</li>
+          ))}
+        </ul>
+      )}
+      {b.rows_skipped > 0 && (
+        <p className={styles.hint}>有 {b.rows_skipped} 列網址狀態是 invalid，不會進名單（SPEC 8.4）。</p>
+      )}
 
       {hasErrors && (
         <>
@@ -244,6 +275,8 @@ function PreviewCard({
                 <th>統編</th>
                 <th>公司</th>
                 <th>等級</th>
+                <th>星等</th>
+                <th>來源</th>
                 <th>變更欄位</th>
               </tr>
             </thead>
@@ -255,6 +288,8 @@ function PreviewCard({
                   <td className="mono">{r.tax_id}</td>
                   <td>{r.name}</td>
                   <td>{r.priority}</td>
+                  <td>{r.fit_stars?.toFixed(1) ?? "—"}</td>
+                  <td>{r.source ?? "未標示"}</td>
                   <td>{r.changed_fields?.join("、") ?? ""}</td>
                 </tr>
               ))}

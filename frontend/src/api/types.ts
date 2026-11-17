@@ -132,7 +132,12 @@ export interface ImportRow {
   likelihood: string | null;
   is_competitor: boolean;
   website_url: string | null;
-  action: "create" | "update" | "unchanged";
+  // CSV 欄位規格 v1（SPEC 8.4）；舊批次的資料列沒有這些欄位
+  country?: string;
+  url_status?: "valid" | "invalid" | "unchecked";
+  source?: string | null;
+  fit_stars?: number | null;
+  action: "create" | "update" | "unchanged" | "skip";
   changed_fields?: string[];
 }
 
@@ -155,11 +160,14 @@ export interface ImportBatch {
   rows_unchanged: number;
   rows_error: number;
   created_at: string;
+  funnel: Record<string, number> | null;
 }
 
 export interface ImportBatchDetail extends ImportBatch {
+  rows_skipped: number;
   rows: ImportRow[];
   errors: ImportError[];
+  warnings: ImportError[];
 }
 
 // ---------- 郵件模板（M2-02）----------

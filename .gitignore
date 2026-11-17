@@ -8,6 +8,7 @@
 *.xls
 *.csv
 !**/fixtures/*.csv
+!docs/samples/*.csv
 
 # Python
 __pycache__/
