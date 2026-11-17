@@ -16,8 +16,9 @@ from app.api.deps import current_user
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.domain import case_rules
+from app.domain.company_rules import DomainError
 from app.models import AppUser, Company, Contact, SalesCase
-from app.services import case_service, reminder_service
+from app.services import case_service, contact_service, reminder_service
 
 router = APIRouter()
 
@@ -236,6 +237,28 @@ def add_tracking(
 @router.get("/cases/{case_id}", response_model=CaseDetail)
 def get_case(case_id: int, user: AppUser = Depends(current_user), db: Session = Depends(get_db)) -> CaseDetail:
     return _detail(db, case_service.get_case(db, user, case_id))
+
+
+class UnsubscribeBody(BaseModel):
+    contact_id: int | None = None  # 沒填就用案件的聯絡人
+
+
+@router.post("/cases/{case_id}/unsubscribe", response_model=CaseDetail)
+def unsubscribe(
+    case_id: int,
+    body: UnsubscribeBody | None = None,
+    user: AppUser = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> CaseDetail:
+    """客戶要求退訂（M3-04a、F-CASE-5）：聯絡人退訂、公司不再聯絡、案件結案為失敗。"""
+    case = case_service.get_case(db, user, case_id)
+    contact_id = (body.contact_id if body else None) or case.contact_id
+    contact = db.get(Contact, contact_id) if contact_id else None
+    if contact is None or contact.company_id != case.company_id:
+        raise DomainError("NO_CONTACT", "請選擇要求退訂的聯絡人", 422)
+    contact_service.unsubscribe(db, user, contact, f"案件 {case.case_no} 客戶要求退訂")
+    db.refresh(case)
+    return _detail(db, case)
 
 
 @router.post("/cases/{case_id}/updates", response_model=CaseDetail, status_code=201)

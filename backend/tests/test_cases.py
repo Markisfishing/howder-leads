@@ -176,3 +176,26 @@ def test_f_case_3_next_daily_run_is_6am_taipei() -> None:
     assert reminder_service.next_daily_run(now) == datetime(2026, 11, 18, 22, 0, tzinfo=UTC)
     early = datetime(2026, 11, 17, 21, 0, tzinfo=UTC)  # 台灣 05:00 → 今天 06:00
     assert reminder_service.next_daily_run(early) == datetime(2026, 11, 17, 22, 0, tzinfo=UTC)
+
+
+# ---------- 退訂（M3-04a、F-CASE-5）----------
+def test_m3_04a_unsubscribe_from_case_closes_it(world: World) -> None:
+    [company] = _send(world)
+    case_id = _cases(world)["items"][0]["case_id"]
+    res = world.client.post(f"/api/v1/cases/{case_id}/unsubscribe", json={}, headers=world.sales1)
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["status"] == "lost" and body["closed_at"]
+    assert "客戶要求退訂，不再聯絡" in [u["note"] for u in body["timeline"]]
+    assert body["contacts"][0]["unsubscribed"] is True
+    assert world.status(company) == "do_not_contact"
+    rem = {r["kind"]: r["count"] for r in world.client.get("/api/v1/reminders", headers=world.sales1).json()}
+    assert rem["overdue_report"] == 0
+
+
+def test_m3_04a_unsubscribe_via_contact_api_also_closes_case(world: World) -> None:
+    [company] = _send(world)
+    case = _cases(world)["items"][0]
+    world.client.post(f"/api/v1/contacts/{case['contact_id']}/unsubscribe", json={}, headers=world.sales2)
+    assert _cases(world)["items"][0]["status"] == "lost"
+    assert world.client.post(f"/api/v1/cases/{case['case_id']}/unsubscribe", headers=world.sales2).status_code == 404
