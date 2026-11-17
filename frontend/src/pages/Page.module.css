@@ -23,6 +23,9 @@
 /* 區塊：表單 */
 .form { display: grid; gap: var(--space-3); }
 .field { display: grid; gap: var(--space-1); min-width: 0; }
+.sectionTabs { display: flex; flex-wrap: wrap; gap: var(--space-1); border-bottom: var(--border-width) solid var(--color-border); }
+.sectionTab { padding: var(--space-2) var(--space-3); border: 0; border-bottom: var(--space-1) solid transparent; background: transparent; color: var(--color-text-muted); cursor: pointer; font: inherit; }
+.sectionTab[aria-pressed="true"] { border-bottom-color: var(--color-accent); color: var(--color-accent); font-weight: var(--font-weight-bold); }
 .label { font-size: var(--text-sm); color: var(--color-text-muted); }
 .input {
   width: 100%;
@@ -52,6 +55,15 @@
 }
 .table th { background: var(--color-surface-muted); color: var(--color-text-muted); font-weight: var(--font-weight-bold); white-space: nowrap; }
 .nowrap { white-space: nowrap; }
+
+@media (max-width: 767px) {
+  .mobileTable, .mobileTable tbody, .mobileTable tr, .mobileTable td { display: block; }
+  .mobileTable thead { position: absolute; width: var(--border-width); height: var(--border-width); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .mobileTable tr { padding: var(--space-3) 0; border-top: var(--border-width) solid var(--color-border); }
+  .mobileTable tbody tr:first-child { border-top: 0; }
+  .mobileTable td { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: var(--space-2); padding: var(--space-1) 0; border: 0; }
+  .mobileTable td::before { content: attr(data-label); color: var(--color-text-muted); font-size: var(--text-sm); }
+}
 
 @media (min-width: 768px) {
   .card { padding: var(--space-5); }
