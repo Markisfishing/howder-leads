@@ -312,9 +312,10 @@ PostgreSQL 16，完整的 DDL 在 [`backend/db/schema.sql`](../backend/db/schema
 | 模型 | `model_run`、`classification` | 每次模型 run 都保留一份分類結果，`is_current` 標示目前生效的那一份 |
 | 回饋 | `review`、`gold_label` | 業務審核（排除一定要有原因）；盲標的標準答案 |
 | 聯絡 | `contact` | 聯絡人和退訂狀態 |
-| 郵件 | `email_template`、`campaign`、`email_draft`、`email_message`、`email_event` | 模板 → 批次 → 草稿（含 AI 原稿）→ 實際寄出 → 事件 |
+| 郵件 | `email_template`、`campaign`、`email_draft`、`email_message`、`email_event` | 模板 → 批次 → 草稿（含 AI 原稿；排程時間、寄送嘗試次數、最後錯誤）→ 實際寄出 → 事件 |
 | 成果 | `opportunity`、`activity_log` | 商機階段和金額；所有變更的稽核紀錄。**M3 規劃：** `opportunity` 改名擴充成 `sales_case`（案件），回填紀錄放在 `case_update` |
-| 背景工作 | `job` | **M2 規劃：** PostgreSQL 佇列（ADR 0003） |
+| 背景工作 | `job` | PostgreSQL 佇列（ADR 0003）：`kind`、`status`、`run_after`（排程與重試）、`attempts`；新增時 `NOTIFY job_queued` |
+| 寄信權杖 | `user_mail_credential` | 每位業務一筆 Fernet 加密的 MSAL 權杖快取與連結狀態（ADR 0005） |
 | 指標 | `v_recommendation`、`v_kpi_summary`、`v_funnel`、`v_win_rate_by_priority`、`v_reject_reasons` | **KPI 只在這些 view 定義一次** |
 
 ### 8.2 ER 關係（簡化）

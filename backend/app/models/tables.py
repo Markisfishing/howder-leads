@@ -23,7 +23,7 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import ENUM, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, BYTEA, ENUM, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 USER_ROLES = ("sales", "manager", "admin")
@@ -177,6 +177,41 @@ class ActivityLog(Base):
     to_value: Mapped[str | None] = mapped_column(Text)
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class UserMailCredential(Base):
+    """業務的 Outlook 寄信權杖（ADR 0005）。token_cache 是加密後的位元組，任何地方都不可以印出來。"""
+
+    __tablename__ = "user_mail_credential"
+    user_id: Mapped[int] = mapped_column(ForeignKey("app_user.user_id"), primary_key=True)
+    token_cache: Mapped[bytes] = mapped_column(BYTEA)
+    scopes: Mapped[list[str]] = mapped_column(ARRAY(Text))
+    status: Mapped[str] = mapped_column(Text, default="connected")
+    connected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(Text)
+
+    def __repr__(self) -> str:  # 避免 debug 時把權杖印出來
+        return f"UserMailCredential(user_id={self.user_id}, status={self.status!r})"
+
+
+class Job(Base):
+    """背景工作（ADR 0003）。worker 用 SELECT … FOR UPDATE SKIP LOCKED 領取。"""
+
+    __tablename__ = "job"
+    job_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    kind: Mapped[str] = mapped_column(Text)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    status: Mapped[str] = mapped_column(Text, default="queued")
+    run_after: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=3)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    locked_by: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.user_id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 # ---------- 指標層 view（唯讀）----------

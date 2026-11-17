@@ -24,6 +24,8 @@ PG_DIR = Path(os.environ.get("HOWDER_TEST_PGDATA", Path(tempfile.gettempdir()) /
 
 # 這些表每個測試後都清空；dim_* 是 migration 種子資料，保留
 _DATA_TABLES = [
+    "job",
+    "user_mail_credential",
     "activity_log",
     "opportunity",
     "email_event",

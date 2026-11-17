@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-17 |
 | 目前階段 | **M1 MVP（功能完成；只剩 M1-03 Docker 驗證）** |
-| 下一個任務 | M2-11 migration 0003：`job`、`user_mail_credential`、寄送欄位 |
+| 下一個任務 | M2-01a 聯絡人 API（寄信前一定要有聯絡人） |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -87,7 +87,7 @@
 ### 先決定（會影響後面所有任務）
 - [x] M2-09 ADR：背景工作佇列 — 2026-11-17（使用者決定改用 PostgreSQL 佇列，見 `docs/adr/0003`；CLAUDE.md、SPEC、docker-compose 已同步拿掉 Redis）
 - [x] M2-10 ADR：Outlook 委派權杖。每位業務只授權 `Mail.Send`（ADR 0004 決定不申請 `Mail.Read`），後端加密存 refresh token，worker 用它代業務寄信（SPEC 7.5、9 安全） — 2026-11-17（見 `docs/adr/0005`：On-Behalf-Of＋Fernet 加密，一位業務一筆）
-- [ ] M2-11 migration 0003（單獨 commit），同步 `schema.sql` 和 SPEC 8.1：
+- [x] M2-11 migration 0003（單獨 commit），同步 `schema.sql` 和 SPEC 8.1： — 2026-11-17（另加 `NOTIFY job_queued` 觸發器與每日上限用的索引；13 個 `test_m2_11_*` 含 SKIP LOCKED、NOTIFY、退回再升級）
   - `email_draft` 加上 `scheduled_at`、`send_attempts`、`last_error`
   - `campaign.status` 加 CHECK
   - 新增 `user_mail_credential`（欄位依 ADR 0005）
