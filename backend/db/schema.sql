@@ -41,6 +41,9 @@ CREATE TABLE import_batch (
     rows_created  INT NOT NULL DEFAULT 0,
     rows_updated  INT NOT NULL DEFAULT 0,
     rows_error    INT NOT NULL DEFAULT 0,
+    rows_unchanged INT NOT NULL DEFAULT 0,
+    model_name    TEXT,                              -- 確認匯入時建立 model_run 用
+    payload       JSONB,                             -- 預覽時解析好的資料列，確認匯入時才寫入正式表
     error_report  JSONB,
     imported_by   BIGINT REFERENCES app_user(user_id),
     status        TEXT NOT NULL DEFAULT 'previewed', -- previewed | committed | cancelled
@@ -60,6 +63,7 @@ CREATE TABLE company (
     registered_products  TEXT,                       -- 工廠登記產品
     website_url          TEXT,
     website_verified     BOOLEAN NOT NULL DEFAULT FALSE,
+    industry_override_id SMALLINT REFERENCES dim_industry(industry_id), -- 業務修正的產業（優先於模型結果）
     status               company_status NOT NULL DEFAULT 'pending_review',
     owner_id             BIGINT REFERENCES app_user(user_id),  -- 負責業務（鎖定用）
     owner_locked_until   TIMESTAMPTZ,
@@ -227,14 +231,28 @@ CREATE TABLE activity_log (                         -- 稽核 + 業務備註，�
 CREATE INDEX idx_log_company ON activity_log(company_id, created_at DESC);
 
 -- ---------- 指標層：KPI 只在這裡定義一次 ----------
-CREATE VIEW v_recommendation AS
-SELECT c.company_id, c.tax_id, c.name, c.website_url, c.status, c.owner_id,
-       cl.priority, p.stars, cl.score, cl.likelihood, cl.is_competitor,
+CREATE VIEW v_recommendation AS                     -- 推薦清單：產業以業務修正為優先
+SELECT c.company_id, c.tax_id, c.name, c.website_url, c.website_verified,
+       c.status, c.owner_id, u.display_name AS owner_name, c.owner_locked_until,
+       c.added_manually, c.updated_at,
+       cl.run_id, cl.priority, COALESCE(p.stars, 0) AS stars, cl.score,
+       cl.likelihood, COALESCE(cl.is_competitor, FALSE) AS is_competitor,
+       COALESCE(c.industry_override_id, cl.industry_id) AS industry_id,
        i.name AS industry, cl.customer_type, cl.reason
 FROM company c
 LEFT JOIN classification cl ON cl.company_id = c.company_id AND cl.is_current
 LEFT JOIN dim_priority  p  ON p.priority = cl.priority
-LEFT JOIN dim_industry  i  ON i.industry_id = cl.industry_id;
+LEFT JOIN dim_industry  i  ON i.industry_id = COALESCE(c.industry_override_id, cl.industry_id)
+LEFT JOIN app_user      u  ON u.user_id = c.owner_id;
+
+CREATE VIEW v_kpi_summary AS                        -- 推薦清單頁上方的 KPI 卡
+SELECT
+  (SELECT count(*) FROM company WHERE status = 'pending_review')                 AS pending_review,
+  (SELECT count(*) FROM company)                                                 AS total_companies,
+  (SELECT count(*) FROM v_recommendation WHERE stars = 5)                        AS five_star,
+  (SELECT count(*) FROM email_message WHERE sent_at >= now() - interval '7 days') AS sent_7d,
+  (SELECT count(*) FROM email_message)                                           AS sent_total,
+  (SELECT count(DISTINCT message_id) FROM email_event WHERE event_type = 'replied') AS replied_total;
 
 CREATE VIEW v_funnel AS
 SELECT status, count(*) AS companies FROM company GROUP BY status;
@@ -261,3 +279,24 @@ INSERT INTO dim_priority VALUES
  ('B','可開發','可能使用，但要確認產品是否含控制箱/電控/線束','可開發',4),
  ('C','觀察／策略','需求不明確需再確認；或本身做連接器/端子台，以 OEM/合作角度接觸','觀察／策略',2),
  ('D','暫不優先','產品偏材料、純零件、加工，端子台非主要 BOM','暫不優先',1);
+
+INSERT INTO dim_industry (name, is_prospect) VALUES
+ ('工業自動化與機械設備', TRUE),
+ ('電源、能源與充電設備', TRUE),
+ ('配電盤與電機控制', TRUE),
+ ('測試、量測與分析儀器', TRUE),
+ ('消防、廣播與音響設備', TRUE),
+ ('智慧建築、保全與門禁', TRUE),
+ ('交通、車用與軌道設備', TRUE),
+ ('空調、通風與家電控制', TRUE),
+ ('醫療與牙科設備', TRUE),
+ ('照明、LED與顯示設備', TRUE),
+ ('通訊、RFID與物聯網', TRUE),
+ ('電腦、伺服器與資訊設備', TRUE),
+ ('半導體、PCB與電子製造設備', TRUE),
+ ('馬達、變壓器與電力設備', TRUE),
+ ('電子連接器、線材與EMS', TRUE),
+ ('金屬、模具與塑膠零件製造', TRUE),
+ ('電子零件通路與貿易', TRUE),
+ ('其他商用與消費設備', TRUE),
+ ('不是潛在客戶（不屬於任何一類）', FALSE);
