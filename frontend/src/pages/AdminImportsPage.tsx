@@ -25,12 +25,13 @@ export function AdminImportsPage() {
   const [preview, setPreview] = useState<ImportBatchDetail | null>(null);
   const [notice, setNotice] = useState("");
   const [exportError, setExportError] = useState<unknown>(null);
+  const [section, setSection] = useState<"import" | "history" | "export">("import");
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!file) return;
     setNotice("");
-    upload.mutate({ file, modelName: modelName.trim() || undefined }, { onSuccess: setPreview });
+    upload.mutate({ file, modelName: modelName.trim() || undefined }, { onSuccess: (batch) => { setPreview(batch); setSection("import"); } });
   };
 
   const doCommit = () => {
@@ -81,8 +82,14 @@ export function AdminImportsPage() {
 
       <div aria-live="polite">{notice && <p className={styles.hint}>{notice}</p>}</div>
 
+      <nav className={styles.sectionTabs} aria-label="名單管理功能">
+        <button type="button" aria-pressed={section === "import"} className={styles.sectionTab} onClick={() => setSection("import")}>匯入名單</button>
+        <button type="button" aria-pressed={section === "history"} className={styles.sectionTab} onClick={() => setSection("history")}>匯入紀錄</button>
+        <button type="button" aria-pressed={section === "export"} className={styles.sectionTab} onClick={() => setSection("export")}>匯出審核結果</button>
+      </nav>
+
       {/* 區塊：上傳 */}
-      <section className={styles.card}>
+      {section === "import" && <section className={styles.card}>
         <h2 className={styles.cardTitle}>上傳檔案</h2>
         <form className={styles.form} onSubmit={submit}>
           <label className={styles.field}>
@@ -103,24 +110,24 @@ export function AdminImportsPage() {
           </Button>
         </form>
         <InlineError error={upload.error} />
-      </section>
+      </section>}
 
       {/* 區塊：預覽 */}
-      {preview && <PreviewCard batch={preview} onCommit={doCommit} onCancel={doCancel} />}
+      {section === "import" && preview && <PreviewCard batch={preview} onCommit={doCommit} onCancel={doCancel} />}
       <InlineError error={commit.error ?? cancel.error ?? open.error} />
 
       {/* 區塊：審核結果匯出（給 MLE 調模型） */}
-      <section className={styles.card}>
+      {section === "export" && <section className={styles.card}>
         <h2 className={styles.cardTitle}>審核結果匯出</h2>
         <p className={styles.hint}>下載所有審核紀錄（含排除原因與產業修正），交給 MLE 調整模型。</p>
         <div className={styles.actions}>
           <Button onClick={() => void doExport()}>下載 CSV</Button>
         </div>
         <InlineError error={exportError} />
-      </section>
+      </section>}
 
       {/* 區塊：匯入紀錄 */}
-      <section className={styles.card}>
+      {section === "history" && <section className={styles.card}>
         <h2 className={styles.cardTitle}>匯入紀錄</h2>
         {history.isLoading ? (
           <Loading />
@@ -130,7 +137,7 @@ export function AdminImportsPage() {
           <Empty title="還沒有匯入紀錄" />
         ) : (
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.mobileTable}`}>
               <thead>
                 <tr>
                   <th>時間</th>
@@ -148,16 +155,16 @@ export function AdminImportsPage() {
               <tbody>
                 {history.data.map((b) => (
                   <tr key={b.batch_id}>
-                    <td className={styles.nowrap}>{formatDateTime(b.created_at)}</td>
-                    <td>{b.file_name ?? b.source}</td>
-                    <td>
+                    <td data-label="時間" className={styles.nowrap}>{formatDateTime(b.created_at)}</td>
+                    <td data-label="檔案">{b.file_name ?? b.source}</td>
+                    <td data-label="狀態">
                       <Tag tone={BATCH_STATUS[b.status].tone}>{BATCH_STATUS[b.status].label}</Tag>
                     </td>
-                    <td>{b.rows_created}</td>
-                    <td>{b.rows_updated}</td>
-                    <td>{b.rows_error}</td>
-                    <td>{b.run_id ? `#${b.run_id}${b.model_name ? ` ${b.model_name}` : ""}` : "—"}</td>
-                    <td>
+                    <td data-label="新增">{b.rows_created}</td>
+                    <td data-label="更新">{b.rows_updated}</td>
+                    <td data-label="錯誤">{b.rows_error}</td>
+                    <td data-label="模型版本">{b.run_id ? `#${b.run_id}${b.model_name ? ` ${b.model_name}` : ""}` : "—"}</td>
+                    <td data-label="動作">
                       {b.status === "previewed" && (
                         <Button
                           size="sm"
@@ -174,7 +181,7 @@ export function AdminImportsPage() {
             </table>
           </div>
         )}
-      </section>
+      </section>}
     </>
   );
 }
@@ -243,7 +250,7 @@ function PreviewCard({
             有 {b.errors.length} 列有錯誤，確認匯入時會略過這些列；要匯入它們，請修正檔案後重新上傳。
           </p>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.mobileTable}`}>
               <thead>
                 <tr>
                   <th>列</th>
@@ -254,9 +261,9 @@ function PreviewCard({
               <tbody>
                 {b.errors.map((e, i) => (
                   <tr key={i}>
-                    <td>{e.row}</td>
-                    <td>{e.field}</td>
-                    <td>{e.message}</td>
+                    <td data-label="列">{e.row}</td>
+                    <td data-label="欄位">{e.field}</td>
+                    <td data-label="問題">{e.message}</td>
                   </tr>
                 ))}
               </tbody>
@@ -267,7 +274,7 @@ function PreviewCard({
 
       {b.rows.length > 0 && (
         <div className={styles.tableWrap}>
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.mobileTable}`}>
             <thead>
               <tr>
                 <th>列</th>
@@ -283,14 +290,14 @@ function PreviewCard({
             <tbody>
               {b.rows.map((r) => (
                 <tr key={r.row}>
-                  <td>{r.row}</td>
-                  <td className={styles.nowrap}>{ACTION_LABELS[r.action]}</td>
-                  <td className="mono">{r.tax_id}</td>
-                  <td>{r.name}</td>
-                  <td>{r.priority}</td>
-                  <td>{r.fit_stars?.toFixed(1) ?? "—"}</td>
-                  <td>{r.source ?? "未標示"}</td>
-                  <td>{r.changed_fields?.join("、") ?? ""}</td>
+                  <td data-label="列">{r.row}</td>
+                  <td data-label="動作" className={styles.nowrap}>{ACTION_LABELS[r.action]}</td>
+                  <td data-label="統編" className="mono">{r.tax_id}</td>
+                  <td data-label="公司">{r.name}</td>
+                  <td data-label="等級">{r.priority}</td>
+                  <td data-label="星等">{r.fit_stars?.toFixed(1) ?? "—"}</td>
+                  <td data-label="來源">{r.source ?? "未標示"}</td>
+                  <td data-label="變更欄位">{r.changed_fields?.join("、") ?? ""}</td>
                 </tr>
               ))}
             </tbody>
