@@ -13,7 +13,7 @@ export function CompanyPage() {
     <>
       <header className={styles.head}>
         <p className={styles.back}>
-          <Link to="/">← 回推薦清單</Link>
+          <Link to="/recommendations">← 回推薦清單</Link>
         </p>
         <h1 className={styles.title}>公司詳情</h1>
       </header>

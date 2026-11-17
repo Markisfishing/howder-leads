@@ -37,7 +37,7 @@ export const REMINDER_LINKS: Record<string, string> = {
   overdue_report: "/cases?overdue=1&status=sent",
   follow_up_due: "/cases?overdue=1",
   no_response: "/cases?status=no_response",
-  pending_review: "/?status=pending_review",
+  pending_review: "/recommendations?status=pending_review",
 };
 
 /** 總覽（SPEC 6.2 /overview · M3-12b、F-DASH-1～4）。數字都由後端 view 算好，這裡只顯示 */
