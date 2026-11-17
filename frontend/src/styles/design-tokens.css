@@ -39,6 +39,9 @@
 
   /* 陰影：只給浮起來的卡片用一層很淡的，不用來做裝飾 */
   --shadow-card: 0 1px 2px rgba(46, 42, 39, 0.06), 0 1px 3px rgba(46, 42, 39, 0.04);
+  --motion-fast: 160ms;
+  --motion-standard: 220ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* ---------- 字級 ----------
      先四級，不夠再加。base 不小於 16px：業務常要讀判斷理由，太小眼睛累 */

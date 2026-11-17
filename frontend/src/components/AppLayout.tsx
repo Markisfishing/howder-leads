@@ -76,6 +76,7 @@ export function AppLayout() {
         {user && (
           <details className={styles.account}>
             <summary className={styles.accountSummary}>
+              <span className={styles.accountAvatar} aria-hidden="true">{user.display_name.trim().slice(0, 1) || "U"}</span>
               <span className={styles.userName}>
                 {user.display_name}
                 <small>{ROLE_LABELS[user.role]}</small>
