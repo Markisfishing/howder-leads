@@ -10,10 +10,20 @@ export interface ListFilters {
   hasWebsite: boolean | null;
   competitor: boolean | null;
   q: string;
+  // M3-06c：CSV v1 欄位
+  country: string | null;
+  source: string | null; // "none" = 未標示來源
+  urlStatus: UrlStatus | null;
+  productType: string;
+  tag: string | null;
+  minStars: number | null;
   sort: SortKey;
   page: number;
   pageSize: number;
 }
+
+export type UrlStatus = "valid" | "invalid" | "unchecked";
+const URL_STATUSES: UrlStatus[] = ["valid", "invalid", "unchecked"];
 
 export const DEFAULT_FILTERS: ListFilters = {
   stars: [],
@@ -23,6 +33,12 @@ export const DEFAULT_FILTERS: ListFilters = {
   hasWebsite: null,
   competitor: null,
   q: "",
+  country: null,
+  source: null,
+  urlStatus: null,
+  productType: "",
+  tag: null,
+  minStars: null,
   sort: "recommended",
   page: 1,
   pageSize: 50,
@@ -44,6 +60,10 @@ function toPositiveInt(v: string | null, fallback: number): number {
 export function parseFilters(params: URLSearchParams): ListFilters {
   const sort = params.get("sort") as SortKey | null;
   const industry = Number(params.get("industry"));
+  const urlStatus = params.get("url") as UrlStatus | null;
+  const minStarsRaw = params.get("min_stars");
+  const minStars = minStarsRaw === null ? NaN : Number(minStarsRaw);
+  const country = params.get("country")?.toUpperCase() ?? "";
   return {
     stars: params
       .getAll("stars")
@@ -55,6 +75,12 @@ export function parseFilters(params: URLSearchParams): ListFilters {
     hasWebsite: toBool(params.get("website")),
     competitor: toBool(params.get("competitor")),
     q: params.get("q") ?? "",
+    country: /^[A-Z]{2}$/.test(country) ? country : null,
+    source: params.get("source") || null,
+    urlStatus: urlStatus && URL_STATUSES.includes(urlStatus) ? urlStatus : null,
+    productType: params.get("product") ?? "",
+    tag: params.get("tag") || null,
+    minStars: Number.isFinite(minStars) && minStars >= 0 && minStars <= 5 ? minStars : null,
     sort: sort && SORTS.includes(sort) ? sort : "recommended",
     page: toPositiveInt(params.get("page"), 1),
     pageSize: Math.min(toPositiveInt(params.get("size"), DEFAULT_FILTERS.pageSize), 200),
@@ -70,6 +96,12 @@ export function toSearchParams(f: ListFilters): URLSearchParams {
   if (f.hasWebsite !== null) p.set("website", String(f.hasWebsite));
   if (f.competitor !== null) p.set("competitor", String(f.competitor));
   if (f.q) p.set("q", f.q);
+  if (f.country) p.set("country", f.country);
+  if (f.source) p.set("source", f.source);
+  if (f.urlStatus) p.set("url", f.urlStatus);
+  if (f.productType) p.set("product", f.productType);
+  if (f.tag) p.set("tag", f.tag);
+  if (f.minStars !== null) p.set("min_stars", String(f.minStars));
   if (f.sort !== "recommended") p.set("sort", f.sort);
   if (f.page !== 1) p.set("page", String(f.page));
   if (f.pageSize !== DEFAULT_FILTERS.pageSize) p.set("size", String(f.pageSize));

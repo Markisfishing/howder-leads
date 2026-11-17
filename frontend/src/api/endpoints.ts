@@ -31,21 +31,26 @@ import type { ListFilters } from "../lib/filters";
 
 export const getMe = () => api<User>("/me");
 
+/** 推薦清單篩選 → API 參數（清單與匯出共用，M3-06c、M3-13a） */
+export const companyQuery = (f: ListFilters) => ({
+  stars: f.stars,
+  status: f.status,
+  industry_id: f.industryId,
+  owner: f.owner,
+  has_website: f.hasWebsite,
+  competitor: f.competitor,
+  q: f.q,
+  country: f.country,
+  source: f.source,
+  url_status: f.urlStatus,
+  product_type: f.productType,
+  tag: f.tag,
+  min_stars: f.minStars,
+  sort: f.sort,
+});
+
 export const listCompanies = (f: ListFilters) =>
-  api<CompanyPage>("/companies", {
-    query: {
-      stars: f.stars,
-      status: f.status,
-      industry_id: f.industryId,
-      owner: f.owner,
-      has_website: f.hasWebsite,
-      competitor: f.competitor,
-      q: f.q,
-      sort: f.sort,
-      page: f.page,
-      page_size: f.pageSize,
-    },
-  });
+  api<CompanyPage>("/companies", { query: { ...companyQuery(f), page: f.page, page_size: f.pageSize } });
 
 export const getCompany = (id: number) => api<CompanyDetail>(`/companies/${id}`);
 

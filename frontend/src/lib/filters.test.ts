@@ -37,3 +37,26 @@ describe("F-REC-2 篩選條件反映在網址上", () => {
     expect(updateFilters(onPage3, { page: 4 }).page).toBe(4);
   });
 });
+
+describe("M3-06c CSV v1 篩選 ⇄ 網址", () => {
+  it("test_f_rec_7_v1_filters_round_trip：國別、來源、網址狀態、產品、標籤、星等下限都進網址", () => {
+    const f = {
+      ...DEFAULT_FILTERS,
+      country: "VN",
+      source: "none",
+      urlStatus: "valid" as const,
+      productType: "控制盤",
+      tag: "電箱",
+      minStars: 4.5,
+    };
+    const sp = toSearchParams(f);
+    expect(sp.toString()).toContain("min_stars=4.5");
+    expect(parseFilters(sp)).toEqual(f);
+  });
+
+  it("test_f_rec_7_invalid_v1_params_ignored：不合法的值忽略", () => {
+    const f = parseFilters(new URLSearchParams("country=Taiwan&url=broken&min_stars=9"));
+    expect([f.country, f.urlStatus, f.minStars]).toEqual([null, null, null]);
+    expect(parseFilters(new URLSearchParams("country=vn")).country).toBe("VN");
+  });
+});

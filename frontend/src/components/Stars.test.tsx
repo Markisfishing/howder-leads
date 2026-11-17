@@ -13,4 +13,11 @@ describe("Stars（CLAUDE.md 7-7：星級旁一定附等級文字）", () => {
     render(<Stars stars={0} priority={null} />);
     expect(screen.getByText("未評分")).toBeInTheDocument();
   });
+
+  it("test_f_rec_1_decimal_fit_stars：小數星等顯示數字，星星四捨五入", () => {
+    render(<Stars stars={5} priority="A" fitStars="4.5" />);
+    expect(screen.getByRole("img")).toHaveAccessibleName(/4\.5 星，A/);
+    expect(screen.getByText("4.5")).toBeInTheDocument();
+    expect(screen.getByText("★★★★★")).toBeInTheDocument(); // 4.5 四捨五入成 5 顆
+  });
 });

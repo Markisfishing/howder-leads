@@ -42,6 +42,13 @@ class CompanyRow(BaseModel):
     customer_type: str | None
     reason: str | None
     updated_at: datetime
+    # CSV 欄位規格 v1（M3-06c、F-REC-7）；fit_stars 沒給時 view 已經用優先級星等補上
+    country: str
+    url_status: str
+    source: str | None
+    fit_stars: Decimal | None
+    product_type: str | None
+    tags: list[str]
 
 
 class CompanyPage(BaseModel):
@@ -94,11 +101,37 @@ class ListFilters:
     has_website: bool | None
     competitor: bool | None
     q: str | None
+    # M3-06c：CSV v1 欄位的篩選
+    country: tuple[str, ...] = ()
+    source: tuple[str, ...] = ()
+    url_status: tuple[str, ...] = ()
+    product_type: str | None = None
+    tag: tuple[str, ...] = ()
+    min_stars: float | None = None
+
+
+NO_SOURCE = "none"  # source=none 篩選「未標示來源」
 
 
 def _filtered(stmt: Select[Any], user: AppUser, f: ListFilters) -> Select[Any]:
     stars, status, industry_id, owner = f.stars, f.status, f.industry_id, f.owner
     has_website, competitor, q = f.has_website, f.competitor, f.q
+    if f.country:
+        stmt = stmt.where(V.country.in_(f.country))
+    if f.source:
+        named = [s for s in f.source if s != NO_SOURCE]
+        conds = [V.source.in_(named)] if named else []
+        if NO_SOURCE in f.source:
+            conds.append(V.source.is_(None))
+        stmt = stmt.where(or_(*conds))
+    if f.url_status:
+        stmt = stmt.where(V.url_status.in_(f.url_status))
+    if f.product_type:
+        stmt = stmt.where(V.product_type.ilike(f"%{f.product_type.strip()}%"))
+    if f.tag:
+        stmt = stmt.where(V.tags.overlap(list(f.tag)))  # 命中任一個標籤
+    if f.min_stars is not None:
+        stmt = stmt.where(V.fit_stars >= f.min_stars)
     if stars:
         stmt = stmt.where(V.stars.in_(stars))
     if status:
@@ -130,6 +163,12 @@ def list_companies(
     has_website: bool | None = None,
     competitor: bool | None = None,
     q: str | None = Query(default=None, max_length=100),
+    country: list[str] = Query(default=[]),
+    source: list[str] = Query(default=[]),
+    url_status: list[str] = Query(default=[]),
+    product_type: str | None = Query(default=None, max_length=100),
+    tag: list[str] = Query(default=[]),
+    min_stars: float | None = Query(default=None, ge=0, le=5),
     sort: SortKey = "recommended",
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),
@@ -144,10 +183,17 @@ def list_companies(
         has_website=has_website,
         competitor=competitor,
         q=q,
+        country=tuple(c.upper() for c in country),
+        source=tuple(source),
+        url_status=tuple(url_status),
+        product_type=product_type,
+        tag=tuple(tag),
+        min_stars=min_stars,
     )
     total = db.scalar(_filtered(select(func.count()).select_from(v_recommendation), user, filters)) or 0
     order = {
-        "recommended": [desc(V.stars), V.score.desc().nulls_last(), asc(V.name)],
+        # F-REC-1：先依適合度星等（小數），再依分數
+        "recommended": [V.fit_stars.desc().nulls_last(), desc(V.stars), V.score.desc().nulls_last(), asc(V.name)],
         "name": [asc(V.name)],
         "updated": [desc(V.updated_at)],
     }[sort]
