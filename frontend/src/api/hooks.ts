@@ -47,6 +47,15 @@ export const useCreateCompany = () => useCompanyMutation(ep.createCompany);
 export const useClaim = () => useCompanyMutation(ep.claimCompany);
 export const useRelease = () => useCompanyMutation(ep.releaseCompany);
 
+// 聯絡人改動也會影響公司（退訂會變成「不再聯絡」），所以一樣重新抓清單、詳情、KPI
+export const useCreateContact = () => useCompanyMutation(ep.createContact);
+export const usePatchContact = () =>
+  useCompanyMutation(({ id, body }: { id: number; body: ep.ContactPatch }) => ep.patchContact(id, body));
+export const useUnsubscribeContact = () =>
+  useCompanyMutation(({ id, note }: { id: number; note?: string }) => ep.unsubscribeContact(id, note));
+export const useDeleteContact = () =>
+  useCompanyMutation(({ id, reason }: { id: number; reason: string }) => ep.deleteContact(id, reason));
+
 export function useImportActions() {
   const qc = useQueryClient();
   const refresh = () => {

@@ -1,5 +1,5 @@
 // 程式代碼 → UI 中文（CLAUDE.md 第 2 節的專有名詞）
-import type { CompanyStatus, RejectReason } from "../api/types";
+import type { CompanyStatus, ContactSource, RejectReason } from "../api/types";
 
 export const STATUS_LABELS: Record<CompanyStatus, string> = {
   imported: "已匯入",
@@ -62,7 +62,39 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   update_industry: "修正產業",
   note: "備註",
   manual_add: "手動加入",
+  contact_add: "新增聯絡人",
+  contact_update: "修改聯絡人",
+  contact_unsubscribe: "聯絡人退訂",
+  contact_delete: "刪除聯絡人個資",
 };
+
+export const CONTACT_SOURCE_LABELS: Record<ContactSource, string> = {
+  website: "公司官網",
+  business_card: "名片",
+  referral: "別人介紹",
+  exhibition: "展覽",
+  manual: "其他（手動輸入）",
+};
+
+const CONTACT_FIELD_LABELS: Record<string, string> = {
+  email: "email",
+  source: "來源",
+  name: "姓名",
+  title: "職稱",
+  is_verified: "確認狀態",
+};
+
+/** 往來紀錄的備註：聯絡人的紀錄後端只存代碼（不存個資），這裡翻成中文 */
+export function activityNote(action: string, note: string | null): string | null {
+  if (!note) return null;
+  if (action === "contact_add") return `來源：${CONTACT_SOURCE_LABELS[note as ContactSource] ?? note}`;
+  if (action === "contact_update")
+    return `改了${note
+      .split(",")
+      .map((f) => CONTACT_FIELD_LABELS[f] ?? f)
+      .join("、")}`;
+  return note;
+}
 
 export function formatDate(iso: string | null): string {
   if (!iso) return "—";

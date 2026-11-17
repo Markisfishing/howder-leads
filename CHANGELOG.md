@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-11-17｜M2-10、M2-11、M2-01 聯絡人管理
+
+**改了哪些檔案**
+- `docs/adr/0005-outlook-delegated-token.md`：Outlook 寄信權杖用 On-Behalf-Of，Fernet 加密存放（M2-10）
+- `backend/migrations/versions/0003_job_queue_and_mail_credential.py`：`job` 佇列、`user_mail_credential`、草稿寄送欄位、`campaign.status` CHECK（M2-11）
+- `backend/migrations/versions/0004_contact_source_check.py`：聯絡人來源 CHECK（M2-01a）
+- `backend/app/domain/contact_rules.py`：email 正規化與格式、來源白名單、刪除原因
+- `backend/app/services/contact_service.py`、`backend/app/api/v1/contacts.py`：`POST /contacts`、`PATCH /contacts/{id}`、`POST /contacts/{id}/unsubscribe`、`DELETE /contacts/{id}`
+- `backend/tests/test_contacts.py`、`test_schema_0003.py`、`test_schema_0004.py`
+- `frontend/src/pages/recommendations/ContactsSection.tsx`、`ContactDialog.tsx`、`ContactConfirmDialog.tsx`、`Contacts.module.css`：側欄管理聯絡人（M2-01b）
+- `frontend/src/api/*`：聯絡人 endpoints／hooks／錯誤訊息；`api()` 支援 204
+- `frontend/src/lib/labels.ts`：聯絡人來源與往來紀錄中文
+- `docs/SPEC.md`：8.1 資料表、7 API 一覽同步
+
+**解決了什麼問題**
+- 寄信前一定要有聯絡人：現在可以在側欄新增、編輯，來源必填，同一家公司 email 不重複（大小寫視為同一個）。
+- 退訂（F-CASE-5）：聯絡人改成已退訂，公司同時改成「不再聯絡」；不受認領鎖定限制，任何業務收到都能標記。
+- 個資刪除（SPEC 9）：真的刪除聯絡人與寄給他的草稿、信件、事件；`activity_log` 只記原因和刪了幾封，不留姓名或 email。
+
+**做了哪些決定**
+- 聯絡人來源固定五種：公司官網、名片、別人介紹、展覽、其他（手動輸入）。
+- 個資刪除只有主管／管理員能做，而且一定要填原因；前端再加一個「我了解無法復原」勾選。
+- 一位聯絡人退訂就把整家公司改成 `do_not_contact`（依 SPEC F-CASE-5）；公司已成交（won）時只標記聯絡人。
+- 已退訂的聯絡人不能改 email，也沒有「取消退訂」的入口。
+- 郵件表還沒有 ORM，刪除個資時直接用 SQL；M2-02 之後加 ORM 再改寫。
+
+**還沒處理的問題**
+- 「取消退訂」要不要做、由誰做（已記在 PROGRESS 的「開發中發現」）。
+- 一位聯絡人退訂就封鎖整家公司，對大公司（多個窗口）可能太嚴，請業務主管確認。
+- M1-03 Docker 驗證仍卡在 Docker Desktop。
+
+**下一步**
+- M2-02a 郵件模板後端 `/templates`。
+
+---
+
 ## 2026-11-17｜M2 拆細、佇列改 PostgreSQL、依會議調整規格
 
 **改了哪些檔案**

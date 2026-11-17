@@ -77,6 +77,7 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const res = await send(path, options);
+  if (res.status === 204) return undefined as T; // 刪除成功沒有內容
   return (await res.json()) as T;
 }
 

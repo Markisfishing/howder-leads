@@ -37,6 +37,11 @@ describe("api client", () => {
     expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({ "X-Dev-User": "sales1@example.com" });
   });
 
+  it("test_m2_01b_no_content_response：刪除成功（204）不解析 JSON", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 204 })));
+    await expect(api("/contacts/1", { method: "DELETE", json: { reason: "客戶要求" } })).resolves.toBeUndefined();
+  });
+
   it("test_network_error：連不到伺服器時給中文訊息", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("failed"))));
     await expect(api("/me")).rejects.toMatchObject({ code: "NETWORK_ERROR" });
