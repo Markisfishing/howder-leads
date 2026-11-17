@@ -16,7 +16,7 @@ const BATCH_STATUS = {
   cancelled: { label: "已取消", tone: "neutral" },
 } as const;
 
-/** 名單匯入（SPEC 6.2 /admin/imports · F-IMP-1~6、M3-06b）：上傳 → 預覽差異 → 確認匯入；也可下載審核結果給 MLE */
+/** 名單管理（SPEC 6.2 /admin/imports · F-IMP-1~6、M3-06b）：上傳 → 預覽差異 → 確認匯入；也可下載審核結果給 MLE */
 export function AdminImportsPage() {
   const { upload, commit, cancel, open } = useImportActions();
   const history = useImports();
@@ -72,7 +72,7 @@ export function AdminImportsPage() {
   return (
     <>
       <header className={styles.head}>
-        <h1 className={styles.title}>名單匯入</h1>
+        <h1 className={styles.title}>名單管理</h1>
         <p className={styles.meta}>
           上傳 MLE 產出的 CSV 或 Excel，先預覽差異，確認後才會寫入。同一統編不會重複新增。欄位格式見
           docs/samples/import_v1_sample.csv（CSV 欄位規格 v1）。
