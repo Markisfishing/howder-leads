@@ -79,6 +79,8 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 - `do_not_contact` 是終點，之後任何 campaign 都不能把這家公司選進去。
 - 業務按下「認領」之後，這家公司會被鎖定 30 天（`owner_locked_until`），其他業務不能寄信給它。
 - `sent` 之後的狀態（`replied`、`meeting`、`won`、`lost`）由案件回填帶動（4.4），業務不直接改公司狀態。
+- 「加入追蹤」（F-REC-9）的公司沒有寄信，停在 `approved`；回填時可以直接 `approved → replied` 或 `approved → lost`。
+- 回填跳級時（例如已寄出直接回填成交），公司依序走過中間狀態（`sent → replied → meeting → won`），每一步都寫 `activity_log`；案件狀態對應：已回覆 → `replied`、洽談中 → `meeting`、成交 → `won`、失敗 → `lost`，無回應不改公司狀態。
 
 ---
 

@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-18 |
 | 目前階段 | **M3 案件追蹤（進行中）**；M2 完成（sandbox），只剩 M2-15 真實 Outlook 驗收；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | M3-08a 案件 domain 規則 |
+| 下一個任務 | M3-09a 開案 service |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -195,8 +195,8 @@
     - 同一家公司同時只能有一件未結案的案件（部分唯一索引）
     - `case_update`：管道（email／line／wechat／phone／visit／other／system）、聯絡人、結果（replied／negotiating／won／lost／no_response／sent）、備註、下次追蹤日、金額
     - ORM、`schema.sql`、SPEC 8.1 同步
-- [ ] M3-08 `domain` 案件規則：狀態轉換、回填帶動公司狀態、逾期判斷（7 天、下次追蹤日、14 天）＋單元測試（拆成下列 a）
-  - [ ] M3-08a `domain/case_rules.py`：
+- [x] M3-08 `domain` 案件規則：狀態轉換、回填帶動公司狀態、逾期判斷（7 天、下次追蹤日、14 天）＋單元測試（拆成下列 a）
+  - [x] M3-08a `domain/case_rules.py`： — 2026-11-18（待辦條件放在 view，domain 只放天數與「標成無回應」判斷）
     - 案件狀態機（sent／tracking → replied → negotiating → won／lost；無回應 `no_response` 可以再回填）
     - 回填結果對應公司狀態，跳級時依序走過中間狀態（例如 sent 直接回填成交 → replied → meeting → won）
     - 「加入追蹤」的公司是 `approved`，公司狀態機加上 `approved → replied／lost`（SPEC 3.1 同步）
