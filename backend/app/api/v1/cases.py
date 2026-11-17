@@ -7,7 +7,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -53,6 +53,10 @@ class CaseOut(BaseModel):
 class CaseList(BaseModel):
     items: list[CaseOut]
     counts: dict[str, int]
+    total: int
+    page: int
+    page_size: int
+    queue_counts: dict[str, int]
 
 
 class UpdateOut(BaseModel):
@@ -173,9 +177,31 @@ def _filter(
     sent_to: date | None,
     overdue: bool,
     status: str | None = None,
+    search: str | None = None,
+    queue: str | None = None,
+    page: int = 1,
+    page_size: int = 30,
 ) -> case_service.CaseFilter:
-    ids = frozenset(reminder_service.case_ids_with_reminders(db, user)) if overdue else None
-    return case_service.CaseFilter(status=status, owner_id=owner, sent_from=sent_from, sent_to=sent_to, case_ids=ids)
+    ids: frozenset[int] | None = None
+    reminders_only = overdue and queue not in {"overdue", "follow_up"}
+    if queue == "todo":
+        ids = frozenset(reminder_service.case_ids_with_reminders(db, user))
+    elif overdue or queue == "overdue":
+        ids = frozenset(reminder_service.case_ids_with_reminders(db, user, {"overdue_report"}))
+    elif queue == "follow_up":
+        ids = frozenset(reminder_service.case_ids_with_reminders(db, user, {"follow_up_due", "no_response"}))
+    return case_service.CaseFilter(
+        status=status,
+        owner_id=owner,
+        sent_from=sent_from,
+        sent_to=sent_to,
+        search=search.strip() or None if search else None,
+        queue=queue,
+        case_ids=ids,
+        reminders_only=reminders_only,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get("/cases", response_model=CaseList)
@@ -185,11 +211,31 @@ def list_cases(
     sent_from: date | None = None,
     sent_to: date | None = None,
     overdue: bool = False,
+    q: str | None = Query(default=None, max_length=100),
+    queue: str | None = Query(default=None, pattern="^(todo|overdue|follow_up|all)$"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=30, ge=1, le=100),
     user: AppUser = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> CaseList:
-    cases, counts = case_service.list_cases(db, user, _filter(db, user, owner, sent_from, sent_to, overdue, status))
-    return CaseList(items=_rows(db, cases, _now()), counts=counts)
+    f = _filter(db, user, owner, sent_from, sent_to, overdue, status, q, queue, page, page_size)
+    cases, counts, total = case_service.list_cases(db, user, f)
+    base = _filter(db, user, owner, sent_from, sent_to, False, None, q, None, 1, 1)
+    all_total = case_service.count_cases(db, user, base)
+    todo = _filter(db, user, owner, sent_from, sent_to, False, None, q, "todo", 1, 1)
+    todo_total = case_service.count_cases(db, user, todo)
+    overdue_filter = _filter(db, user, owner, sent_from, sent_to, False, None, q, "overdue", 1, 1)
+    overdue_total = case_service.count_cases(db, user, overdue_filter)
+    follow_filter = _filter(db, user, owner, sent_from, sent_to, False, None, q, "follow_up", 1, 1)
+    follow_total = case_service.count_cases(db, user, follow_filter)
+    return CaseList(
+        items=_rows(db, cases, _now()),
+        counts=counts,
+        total=total,
+        page=page,
+        page_size=page_size,
+        queue_counts={"todo": todo_total, "overdue": overdue_total, "follow_up": follow_total, "all": all_total},
+    )
 
 
 @router.get("/cases/export")
@@ -199,10 +245,13 @@ def export_cases(
     sent_from: date | None = None,
     sent_to: date | None = None,
     overdue: bool = False,
+    q: str | None = Query(default=None, max_length=100),
+    queue: str | None = Query(default=None, pattern="^(todo|overdue|follow_up|all)$"),
     user: AppUser = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> Response:
-    cases, _ = case_service.list_cases(db, user, _filter(db, user, owner, sent_from, sent_to, overdue, status))
+    f = _filter(db, user, owner, sent_from, sent_to, overdue, status, q, queue, 1, 10000)
+    cases, _, _ = case_service.list_cases(db, user, f)
     rows = [
         {
             "case_no": r.case_no,

@@ -41,8 +41,11 @@ def _scope(user: AppUser):  # type: ignore[no-untyped-def]
     return q
 
 
-def case_ids_with_reminders(db: Session, user: AppUser) -> set[int]:
-    return {r[0] for r in db.execute(_scope(user))}
+def case_ids_with_reminders(db: Session, user: AppUser, kinds: set[str] | None = None) -> set[int]:
+    q = _scope(user)
+    if kinds:
+        q = q.where(R.kind.in_(kinds))
+    return {r[0] for r in db.execute(q)}
 
 
 def summary(db: Session, user: AppUser) -> dict[str, int]:
