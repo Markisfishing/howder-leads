@@ -204,7 +204,7 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 | `/companies/:id` | 公司詳情（可以直接連結） | 全部 |
 | `/campaigns` | 我的 campaign 列表 | 全部 |
 | `/campaigns/new` | 建立 campaign：選對象 → 選模板和生成模式 | 全部 |
-| `/campaigns/:id/review` | 預覽佇列（產生進度、逐封審核） | 全部 |
+| `/campaigns/:id` | 預覽佇列（產生進度、逐封審核、寄出） | 全部 |
 | `/overview` | 總覽：KPI、名單漏斗、各來源回覆率、待辦提醒 | 全部（主管可看全團隊） |
 | `/cases` | 案件追蹤：案件列表、時間軸、人工回填 | 全部（業務看自己的，主管看全部） |
 | `/cases/:id` | 案件詳情（可以直接連結） | 全部 |
@@ -262,12 +262,19 @@ backend/app/
 | GET | `/imports`、`/imports/{id}` | 匯入紀錄與預覽內容 |
 | POST | `/imports/{id}/cancel` | 取消預覽中的批次 |
 | POST | `/imports/{id}/commit` | 確認匯入 |
-| GET/POST/PATCH | `/templates` | 模板管理（admin） |
-| POST | `/campaigns` | 建立 campaign，並開始產生草稿（回傳 `job_id`） |
-| GET | `/campaigns/{id}/drafts?status=` | 預覽佇列 |
-| PATCH | `/drafts/{id}` | 修改內容、核准或丟棄 |
-| POST | `/drafts/{id}/regenerate` | 重新生成這一封 |
-| POST | `/campaigns/{id}/send` | 寄出全部已核准的草稿（可帶 `scheduled_at`） |
+| GET | `/templates`、`/templates/{id}`、`/templates/variables` | 使用中的模板與變數白名單（全部角色可讀） |
+| POST/PUT | `/templates`、`/templates/{id}` | 新增模板；修改會新增一個版本（admin） |
+| POST | `/templates/{id}/archive`、`/templates/preview` | 停用模板、用假資料預覽（admin） |
+| GET | `/templates/{id}/versions` | 同一份模板的所有版本（admin） |
+| GET | `/campaigns`、`/campaigns/{id}` | 我的批次（主管看全部），含各狀態草稿數 |
+| GET | `/campaigns/candidates` | 可以選進批次的「已通過」公司、聯絡人、不能寄的原因 |
+| POST | `/campaigns` | 建立 campaign，並開始產生草稿（回傳 `job_id` 與被防呆排除的公司） |
+| GET | `/campaigns/{id}/drafts` | 預覽佇列 |
+| PATCH | `/drafts/{id}` | 修改主旨、內文（只有待審核或失敗的草稿） |
+| POST | `/drafts/{id}/approve`、`/unapprove`、`/discard` | 核准（計算 `edit_ratio`）、取消核准、丟棄 |
+| POST | `/drafts/{id}/regenerate` | 重新生成這一封（回傳 `job_id`） |
+| POST | `/campaigns/{id}/approve-all` | 全部核准，body 要帶 `confirm: true` |
+| POST | `/campaigns/{id}/send` | 寄出全部已核准的草稿（可帶 `scheduled_at`；只有批次的負責業務本人可以寄） |
 | GET/POST/DELETE | `/me/mail-connection` | 查看、連結、中斷自己的 Outlook 寄信權限（只回傳狀態，不回傳權杖） |
 | GET | `/cases?status=&owner=&sent_from=&overdue=` | 案件列表與各狀態件數 |
 | GET | `/cases/{id}` | 案件詳情與時間軸 |
