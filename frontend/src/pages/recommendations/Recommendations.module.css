@@ -1,0 +1,180 @@
+/* 推薦清單頁。顏色、字級、間距一律用 design-tokens.css 的變數；先寫手機版 */
+
+/* 區塊：頁首 */
+.head { display: grid; gap: var(--space-3); }
+.title { font-size: var(--text-xl); line-height: var(--line-height-tight); }
+.meta { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-1); }
+.headActions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* 區塊：KPI 卡 · 手機兩欄，寬螢幕四欄 */
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.kpi {
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+}
+.kpiLabel { font-size: var(--text-sm); color: var(--color-text-muted); }
+.kpiValue {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: var(--space-1) 0;
+}
+.kpiHint { font-size: var(--text-sm); color: var(--color-text-muted); }
+
+/* 區塊：篩選列 · 手機兩欄，寬螢幕四欄 */
+.filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+.field { display: grid; gap: var(--space-1); min-width: 0; align-content: start; }
+.fieldWide { grid-column: 1 / -1; }
+.fieldLabel { font-size: var(--text-sm); color: var(--color-text-muted); }
+.input {
+  font-size: var(--text-sm);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* 區塊：推薦清單 · 手機是卡片，768px 以上變成表格橫列 */
+.list { display: grid; gap: var(--space-3); }
+.listHead { display: none; }
+.check { width: var(--space-4); height: var(--space-4); margin: 0; accent-color: var(--color-accent); }
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "check stars  status"
+    "check company company"
+    "check reason reason"
+    "check likely likely";
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
+  align-items: center;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+.selected { background: var(--color-accent-soft); border-color: var(--color-accent); }
+.rowCheck { grid-area: check; align-self: start; margin-top: var(--space-1); }
+.rowStars { grid-area: stars; }
+.rowStatus { grid-area: status; justify-self: end; display: grid; justify-items: end; gap: var(--space-1); }
+.rowCompany { grid-area: company; min-width: 0; }
+.rowName {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font-weight: var(--font-weight-bold);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.rowName:hover { color: var(--color-accent-hover); }
+.rowMeta { font-size: var(--text-sm); color: var(--color-text-muted); overflow-wrap: anywhere; }
+.rowReason { grid-area: reason; font-size: var(--text-sm); }
+.rowLikely { grid-area: likely; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.owner { font-size: var(--text-sm); color: var(--color-text-muted); }
+.mobileOnly { display: inline; }
+
+/* 區塊：分頁 */
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.pagerInfo { font-size: var(--text-sm); color: var(--color-text-muted); }
+.pagerButtons { display: flex; gap: var(--space-2); }
+
+/* 區塊：批次動作列 · 有勾選才出現，固定在底部 */
+.bulkbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-top: var(--border-width) solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+.bulkCount { font-size: var(--text-sm); }
+.bulkActions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* 區塊：操作結果通知（螢幕閱讀器也會唸） */
+.notice {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  font-size: var(--text-sm);
+}
+
+/* 區塊：對話框內的表單 */
+.form { display: grid; gap: var(--space-3); }
+.reasons { display: grid; gap: var(--space-2); margin: 0 0 var(--space-3); padding: 0; border: 0; }
+.radio { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; }
+.radio input { accent-color: var(--color-accent); }
+
+/* ================= 768px 以上（平板直放）================= */
+@media (min-width: 768px) {
+  .head { grid-template-columns: 1fr auto; align-items: end; }
+  .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .filters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fieldWide { grid-column: span 2; }
+
+  /* 清單改成表格：勾選｜推薦度｜公司（理由在下一行）｜可能性｜狀態 */
+  .list {
+    gap: 0;
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .listHead, .row {
+    grid-template-columns: var(--space-5) 7.5rem minmax(0, 1fr) 6rem 9rem;
+    column-gap: var(--space-4);
+  }
+  .listHead {
+    display: grid;
+    align-items: center;
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-surface-muted);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-bold);
+  }
+  .row {
+    grid-template-areas:
+      "check stars company likely status"
+      "check stars reason  likely status";
+    row-gap: var(--space-1);
+    border: 0;
+    border-top: var(--border-width) solid var(--color-border);
+    border-radius: 0;
+    padding: var(--space-3) var(--space-4);
+  }
+  .row:hover { background: var(--color-surface-muted); }
+  .selected, .selected:hover { background: var(--color-accent-soft); }
+  .rowCheck { align-self: center; margin-top: 0; }
+  .rowReason { color: var(--color-text-muted); }
+  .rowStatus { justify-self: start; justify-items: start; }
+  .mobileOnly { display: none; }
+}
+
+/* ================= 1024px 以上：導覽移到左側，批次列讓開導覽寬度 ================= */
+@media (min-width: 1024px) {
+  .bulkbar { left: var(--sidebar-width); }
+}
