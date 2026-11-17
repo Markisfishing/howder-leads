@@ -4,12 +4,13 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import current_user, require_admin
 from app.db import get_db
 from app.domain import template_rules
-from app.models import AppUser, EmailTemplate
+from app.models import AppUser, Campaign, EmailTemplate
 from app.services import template_service as svc
 
 router = APIRouter()
@@ -24,9 +25,10 @@ class TemplateOut(BaseModel):
     subject: str
     body_text: str
     created_at: datetime
+    usage_count: int = 0
 
     @classmethod
-    def of(cls, t: EmailTemplate) -> "TemplateOut":
+    def of(cls, t: EmailTemplate, usage_count: int = 0) -> "TemplateOut":
         return cls(
             template_id=t.template_id,
             family_id=t.family_id or t.template_id,
@@ -36,6 +38,7 @@ class TemplateOut(BaseModel):
             subject=t.subject,
             body_text=t.body_text,
             created_at=t.created_at,
+            usage_count=usage_count,
         )
 
 
@@ -64,7 +67,15 @@ class Variable(BaseModel):
 
 @router.get("/templates", response_model=list[TemplateOut])
 def list_templates(_: AppUser = Depends(current_user), db: Session = Depends(get_db)) -> list[TemplateOut]:
-    return [TemplateOut.of(t) for t in svc.list_active(db)]
+    templates = svc.list_active(db)
+    usage = dict(
+        db.execute(
+            select(Campaign.template_id, func.count())
+            .where(Campaign.template_id.is_not(None))
+            .group_by(Campaign.template_id)
+        ).all()
+    )
+    return [TemplateOut.of(t, usage.get(t.template_id, 0)) for t in templates]
 
 
 @router.get("/templates/variables", response_model=list[Variable])

@@ -12,6 +12,10 @@ import t from "./Templates.module.css";
 
 const NEW_BODY = "{{contact_name}} 您好：\n\n\n\n{{sender_name}}\n厚達電子 業務部\n\n{{unsubscribe}}";
 
+function displayTemplateName(name: string): string {
+  return name.replace("（佔位文字，待 SPEC 11-5 確認）", "").trim() || name;
+}
+
 type Editing = { kind: "new" } | { kind: "edit"; template: EmailTemplate } | null;
 
 /** 郵件模板管理（SPEC 6.2 /admin/templates · M2-02b）：列表、編輯（存檔會新增版本）、用假資料即時預覽 */
@@ -19,14 +23,13 @@ export function AdminTemplatesPage() {
   const { data, isLoading, error, refetch } = useTemplates();
   const [editing, setEditing] = useState<Editing>(null);
   const [notice, setNotice] = useState("");
+  const [search, setSearch] = useState("");
 
   return (
     <>
       <header className={styles.head}>
         <h1 className={styles.title}>郵件模板</h1>
-        <p className={styles.meta}>
-          邀請信的固定內容。修改後會存成新版本，已經產生的草稿仍然對照舊版本。內文一定要有退訂說明。
-        </p>
+        <p className={styles.meta}>修改後會存成新版本，已產生的草稿不受影響。</p>
       </header>
       <div aria-live="polite">{notice && <p className={styles.hint}>{notice}</p>}</div>
 
@@ -48,6 +51,7 @@ export function AdminTemplatesPage() {
               新增模板
             </Button>
           </div>
+          <label className={t.searchField}><span className="visually-hidden">搜尋模板名稱</span><span aria-hidden="true">⌕</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜尋模板名稱" /></label>
           {isLoading ? (
             <Loading />
           ) : error ? (
@@ -55,7 +59,7 @@ export function AdminTemplatesPage() {
           ) : !data || data.length === 0 ? (
             <Empty title="還沒有模板">按「新增模板」建立第一份，或請管理員執行初版模板種子。</Empty>
           ) : (
-            <TemplateList templates={data} onEdit={(tpl) => setEditing({ kind: "edit", template: tpl })} onNotice={setNotice} />
+            <TemplateList templates={data.filter((tpl) => tpl.name.toLowerCase().includes(search.trim().toLowerCase()))} onEdit={(tpl) => setEditing({ kind: "edit", template: tpl })} onNotice={setNotice} />
           )}
         </section>
       )}
@@ -81,10 +85,10 @@ function TemplateList({
           <li key={tpl.template_id} className={t.item}>
             <div className={t.itemInfo}>
               <p className={t.itemName}>
-                {tpl.name} <Tag tone="info">第 {tpl.version} 版</Tag>
+                {displayTemplateName(tpl.name)} <Tag tone="info">第 {tpl.version} 版</Tag>
               </p>
               <p className={styles.hint}>主旨：{tpl.subject}</p>
-              <p className={styles.hint}>更新於 {formatDateTime(tpl.created_at)}</p>
+              <p className={t.itemMeta}><Tag tone="success">使用中</Tag><span>更新於 {formatDateTime(tpl.created_at)}</span><span>使用中的批次 {tpl.usage_count ?? 0}</span></p>
             </div>
             <div className={styles.actions}>
               <Button size="sm" onClick={() => onEdit(tpl)}>
@@ -100,7 +104,7 @@ function TemplateList({
                       archive.mutate(tpl.template_id, {
                         onSuccess: () => {
                           setConfirmId(null);
-                          onNotice(`已停用「${tpl.name}」`);
+                          onNotice(`已停用「${displayTemplateName(tpl.name)}」`);
                         },
                       })
                     }
@@ -111,11 +115,7 @@ function TemplateList({
                     取消
                   </Button>
                 </>
-              ) : (
-                <Button size="sm" onClick={() => setConfirmId(tpl.template_id)}>
-                  停用…
-                </Button>
-              )}
+              ) : <details className={t.itemMenu}><summary className={t.menuTrigger} aria-label={`更多操作 ${displayTemplateName(tpl.name)}`}>⋯</summary><div className={t.menuPanel}><button type="button" onClick={() => setConfirmId(tpl.template_id)}>停用</button></div></details>}
             </div>
           </li>
         ))}
@@ -137,7 +137,7 @@ function TemplateEditor({
   const { create, update } = useTemplateActions();
   const { data: variables } = useTemplateVariables();
   const versions = useTemplateVersions(template?.template_id ?? null);
-  const [name, setName] = useState(template?.name ?? "");
+  const [name, setName] = useState(template ? displayTemplateName(template.name) : "");
   const [subject, setSubject] = useState(template?.subject ?? "");
   const [body, setBody] = useState(template?.body_text ?? NEW_BODY);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -176,7 +176,7 @@ function TemplateEditor({
       <section className={`${styles.card} ${t.editorCard}`} aria-labelledby="tpl-edit-title">
         <div className={t.editorHeader}>
           <h2 id="tpl-edit-title" className={styles.cardTitle}>
-            {template ? `編輯「${template.name}」` : "新增模板"}
+            {template ? `編輯「${displayTemplateName(template.name)}」` : "新增模板"}
           </h2>
           <Button
             size="sm"
