@@ -37,11 +37,14 @@ class BatchSummary(BaseModel):
     rows_unchanged: int
     rows_error: int
     created_at: datetime
+    funnel: dict[str, int] | None = None
 
 
 class BatchDetail(BatchSummary):
+    rows_skipped: int  # 網址 invalid、不進名單的列（SPEC 8.4）
     rows: list[dict[str, Any]]
     errors: list[dict[str, Any]]
+    warnings: list[dict[str, Any]]  # 不擋匯入的提示：看不懂的欄位、沒有資料來源欄
 
 
 class ApiImportRow(BaseModel):
@@ -55,17 +58,40 @@ class ApiImportRow(BaseModel):
     priority: str
     score: float | None = None
     reason: str | None = None
+    # CSV 欄位規格 v1（SPEC 8.4）
+    country: str | None = None
+    url_status: str | None = None
+    product_type: str | None = None
+    tags: list[str] | str | None = None
+    fit_stars: float | None = None
+    source: str | None = None
 
 
 class ApiImportBody(BaseModel):
     model_name: str = Field(min_length=1, max_length=200)
     rows: list[ApiImportRow] = Field(min_length=1, max_length=20000)
+    # 漏斗前段數字（資料庫總數、產業篩選後、網址有效、產品命中…），系統只顯示、不重算
+    funnel: dict[str, int] | None = Field(default=None, max_length=20)
 
 
 def _detail(batch: ImportBatch) -> BatchDetail:
     summary = BatchSummary.model_validate(batch).model_dump()
-    rows = (batch.payload or [])[: importer.PREVIEW_ROW_LIMIT]
-    return BatchDetail(**summary, rows=rows, errors=batch.error_report or [])
+    payload = batch.payload or []
+    report = batch.error_report or []
+    return BatchDetail(
+        **summary,
+        rows_skipped=sum(r.get("action") == "skip" for r in payload),
+        rows=payload[: importer.PREVIEW_ROW_LIMIT],
+        errors=[e for e in report if e.get("level") != "warning"],
+        warnings=[{k: v for k, v in e.items() if k != "level"} for e in report if e.get("level") == "warning"],
+    )
+
+
+def _api_record(row: ApiImportRow) -> dict[str, Any]:
+    rec = row.model_dump()
+    if isinstance(rec["tags"], list):
+        rec["tags"] = "、".join(rec["tags"])
+    return rec
 
 
 def _get_batch(db: Session, batch_id: int) -> ImportBatch:
@@ -83,9 +109,14 @@ async def upload_import(
     db: Session = Depends(get_db),
 ) -> BatchDetail:
     content = await file.read(importer.MAX_FILE_BYTES + 1)
-    df = importer.read_table(content, file.filename or "")
-    records: list[dict[str, Any]] = [{str(k): v for k, v in r.items()} for r in df.to_dict("records")]
-    parsed = importer.normalize(records, importer.industry_lookup(db))
+    table = importer.read_table(content, file.filename or "")
+    records: list[dict[str, Any]] = [{str(k): v for k, v in r.items()} for r in table.df.to_dict("records")]
+    parsed = importer.normalize(
+        records,
+        importer.industry_lookup(db),
+        unknown_columns=table.unknown_columns,
+        has_source_column="source" in table.df.columns,
+    )
     batch = importer.create_batch(
         db,
         parsed,
@@ -107,9 +138,11 @@ def api_import(
 ) -> BatchDetail:
     if not settings.import_api_key or not x_api_key or not secrets.compare_digest(x_api_key, settings.import_api_key):
         raise AppError("INVALID_API_KEY", "API key 不正確", 401)
-    records = [r.model_dump() for r in body.rows]
+    records = [_api_record(r) for r in body.rows]
     parsed = importer.normalize(records, importer.industry_lookup(db))
-    batch = importer.create_batch(db, parsed, file_name=None, source="api", model_name=body.model_name, user=None)
+    batch = importer.create_batch(
+        db, parsed, file_name=None, source="api", model_name=body.model_name, user=None, funnel=body.funnel
+    )
     if commit:
         if parsed.errors:
             raise AppError("IMPORT_HAS_ERRORS", "資料有錯誤，未寫入；請修正後重送", 422, parsed.errors)
