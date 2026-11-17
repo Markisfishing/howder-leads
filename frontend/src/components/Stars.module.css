@@ -1,0 +1,11 @@
+/* 星級 */
+.stars { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; letter-spacing: 0.05em; }
+.on { color: var(--color-star); }
+.off { color: var(--color-star-empty); }
+.grade {
+  margin-left: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+}
+.none { font-size: var(--text-sm); color: var(--color-text-muted); }
