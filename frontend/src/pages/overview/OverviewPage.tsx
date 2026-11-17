@@ -6,7 +6,7 @@ import type { Overview, OverviewQuery } from "../../api/types";
 import { useAuth } from "../../auth/AuthProvider";
 import { Empty, ErrorState, Loading } from "../../components/StateView";
 import { Tag } from "../../components/Tag";
-import { formatTwd } from "../../lib/labels";
+import { formatTwd, funnelEntries } from "../../lib/labels";
 import styles from "../Page.module.css";
 import o from "./Overview.module.css";
 
@@ -178,7 +178,7 @@ function OverviewBody({ data }: { data: Overview }) {
           {data.mle_funnel && Object.keys(data.mle_funnel).length > 0 && (
             <p className={styles.hint}>
               MLE 前段：
-              {Object.entries(data.mle_funnel)
+              {funnelEntries(data.mle_funnel)
                 .map(([label, n]) => `${label} ${n.toLocaleString("zh-TW")}`)
                 .join(" → ")}
             </p>

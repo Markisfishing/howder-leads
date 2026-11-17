@@ -25,7 +25,7 @@ const data: Overview = {
     { key: "replied", label: "回覆", count: 4, rate: "0.2500" },
     { key: "won", label: "成交", count: 1, rate: "0.2500" },
   ],
-  mle_funnel: { 資料庫總數: 39000, 產品命中: 900 },
+  mle_funnel: { 產品命中: 900, 資料庫總數: 39000 }, // JSONB 回來的順序不固定
   by_source: [
     { source: "expo", sent: 12, replied: 4, reply_rate: "0.3333", insufficient: false },
     { source: "b2b", sent: 3, replied: 0, reply_rate: null, insufficient: true },

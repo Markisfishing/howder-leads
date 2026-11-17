@@ -6,7 +6,7 @@ import type { ImportBatchDetail } from "../api/types";
 import { Button } from "../components/Button";
 import { Empty, ErrorState, InlineError, Loading } from "../components/StateView";
 import { Tag } from "../components/Tag";
-import { formatDateTime } from "../lib/labels";
+import { formatDateTime, funnelEntries } from "../lib/labels";
 import styles from "./Page.module.css";
 
 const ACTION_LABELS = { create: "新增", update: "更新", unchanged: "沒變", skip: "略過（網址無效）" } as const;
@@ -215,7 +215,7 @@ function PreviewCard({
         <>
           <h3 className={styles.label}>漏斗前段（MLE 提供）</h3>
           <div className={styles.counts}>
-            {Object.entries(b.funnel).map(([label, value]) => (
+            {funnelEntries(b.funnel).map(([label, value]) => (
               <div key={label} className={styles.count}>
                 <p className={styles.countLabel}>{label}</p>
                 <p className={styles.countValue}>{value.toLocaleString("zh-TW")}</p>
