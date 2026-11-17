@@ -106,3 +106,7 @@ def as_user(client: TestClient) -> Callable[[str], dict[str, str]]:
         return headers
 
     return _headers
+
+
+# 寄信流程的測試情境（test_campaigns.World）也給案件測試用
+from tests.test_campaigns import world  # noqa: E402, F401

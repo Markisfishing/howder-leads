@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-18 |
 | 目前階段 | **M3 案件追蹤（進行中）**；M2 完成（sandbox），只剩 M2-15 真實 Outlook 驗收；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | M3-09a 開案 service |
+| 下一個任務 | M3-11a 前端案件列表 |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -201,17 +201,17 @@
     - 回填結果對應公司狀態，跳級時依序走過中間狀態（例如 sent 直接回填成交 → replied → meeting → won）
     - 「加入追蹤」的公司是 `approved`，公司狀態機加上 `approved → replied／lost`（SPEC 3.1 同步）
     - 待辦判斷：寄出 7 天沒有回填、超過下次追蹤日、寄出 14 天沒回覆
-- [ ] M3-09 案件 API：寄出時自動開案（F-CASE-1）、`POST /cases` 加入追蹤（F-REC-9）、`POST /cases/{id}/updates` 回填（F-CASE-2）、列表與詳情（拆成下列 a、b）
-  - [ ] M3-09a `services/case_service`：worker 寄出成功時開案（已有未結案案件就在時間軸加一筆「寄出」）；`POST /cases` 批次加入追蹤（整批檢查權限與鎖定）＋測試
-  - [ ] M3-09b `GET /cases`（狀態、負責業務、寄信日、只看逾期；各狀態件數）、`GET /cases/{id}`（時間軸）、`POST /cases/{id}/updates` 回填（帶動公司狀態、寫 `activity_log`）、`GET /cases/export` CSV＋權限測試（業務只看自己的）
-- [ ] M3-10 worker 每日催辦（`job` 排程）＋ `GET /reminders`（F-CASE-3；拆成下列 a、b）
+- [x] M3-09 案件 API：寄出時自動開案（F-CASE-1）、`POST /cases` 加入追蹤（F-REC-9）、`POST /cases/{id}/updates` 回填（F-CASE-2）、列表與詳情（拆成下列 a、b）
+  - [x] M3-09a `services/case_service`：worker 寄出成功時開案（已有未結案案件就在時間軸加一筆「寄出」）；`POST /cases` 批次加入追蹤（整批檢查權限與鎖定）＋測試 — 2026-11-18
+  - [x] M3-09b `GET /cases`（狀態、負責業務、寄信日、只看逾期；各狀態件數）、`GET /cases/{id}`（時間軸）、`POST /cases/{id}/updates` 回填（帶動公司狀態、寫 `activity_log`）、`GET /cases/export` CSV＋權限測試（業務只看自己的） — 2026-11-18（和 M3-09a 同一個 commit：API 與 service 一起測）
+- [x] M3-10 worker 每日催辦（`job` 排程）＋ `GET /reminders`（F-CASE-3；拆成下列 a、b）
   - [x] M3-10a migration 0007（單獨 commit）：view `v_case_reminder`（逾期未回報、該追蹤了、無回應建議拜訪），提醒條件只在 view 定義一次 — 2026-11-18
-  - [ ] M3-10b worker `case_daily`：每天把寄出 14 天沒回覆的案件標成 `no_response`（時間軸記一筆 system），做完排下一次；worker 啟動時確保有一筆排程；`GET /reminders`＋測試
+  - [x] M3-10b worker `case_daily`：每天把寄出 14 天沒回覆的案件標成 `no_response`（時間軸記一筆 system），做完排下一次；worker 啟動時確保有一筆排程；`GET /reminders`＋測試 — 2026-11-18（另外新增 migration 0008 讓 `job.kind` 接受 `case_daily`）
 - [ ] M3-11 前端 `/cases`：列表、各狀態件數、時間軸、回填表單；可以只用鍵盤回填（F-CASE-4；拆成下列 a、b）
   - [ ] M3-11a `/cases` 列表：各狀態件數、篩選（反映在網址）、逾期標記、匯出 CSV；導覽列加「案件」
   - [ ] M3-11b `/cases/:id` 詳情：時間軸、回填表單（管道、結果、備註、下次追蹤日、成交金額）、Vitest
 - [ ] M3-12 總覽頁 `/overview`：KPI、名單漏斗、各來源回覆率、待辦提醒（F-DASH-1～4，數字只從 view 來；拆成下列 a、b）
-  - [ ] M3-12a migration 0008（單獨 commit）：`v_case_fact`（每件案件一列，含是否回覆、成交、金額、產業、來源、業務、寄出日）；`v_kpi_summary` 的回覆率改用案件（不再讀 `email_event`）
+  - [ ] M3-12a migration 0009（單獨 commit；0008 已用在 job.kind）：`v_case_fact`（每件案件一列，含是否回覆、成交、金額、產業、來源、業務、寄出日）；`v_kpi_summary` 的回覆率改用案件（不再讀 `email_event`）
   - [ ] M3-12b `GET /metrics/overview`（日期區間、產業、業務篩選）＋前端 `/overview`：KPI、漏斗、各來源回覆率（少於 10 封標「樣本不足」）、待辦件數可點進清單；導覽列加「總覽」
 - [ ] M3-13 候選名單欄位自選、匯出 CSV、批次「加入追蹤」（F-REC-8、F-REC-9；拆成下列 a～c）
   - [ ] M3-13a `GET /companies/export`：依目前篩選匯出 CSV（UTF-8 BOM，Excel 開得了）＋測試

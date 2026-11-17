@@ -16,7 +16,7 @@ from app.config import Settings
 from app.domain import draft_rules, send_guard, send_limits
 from app.domain.company_rules import DomainError, can_transition
 from app.models import ActivityLog, AppUser, Campaign, Company, Contact, EmailDraft, EmailMessage, UserMailCredential
-from app.services import campaign_service, jobs
+from app.services import campaign_service, case_service, jobs
 from app.services import company_service as company_svc
 from app.services.mailer import MailAuthError, Mailer, MailSendError, OutgoingMail
 
@@ -228,19 +228,20 @@ def send_one(db: Session, draft_id: int, mailer: Mailer, settings: Settings, now
         db.commit()
         raise jobs.JobError(e.code, retryable=e.retryable) from e
 
-    db.add(
-        EmailMessage(
-            draft_id=draft.draft_id,
-            sender_id=sender.user_id,
-            graph_message_id=result.graph_message_id,
-            conversation_id=result.conversation_id,
-            sent_at=now,
-        )
+    message = EmailMessage(
+        draft_id=draft.draft_id,
+        sender_id=sender.user_id,
+        graph_message_id=result.graph_message_id,
+        conversation_id=result.conversation_id,
+        sent_at=now,
     )
+    db.add(message)
+    db.flush()
     draft.status = draft_rules.transition(draft.status, "sent")
     draft.last_error = None
     if can_transition(company.status, "sent"):
         company_svc.change_status(db, company, "sent", sender, f"邀請信已寄出（草稿 #{draft.draft_id}）")
+    case_service.open_for_email(db, company, draft.contact_id, sender, message, now)  # F-CASE-1
     db.add(
         ActivityLog(
             company_id=company.company_id, user_id=sender.user_id, action="send", to_value=f"draft:{draft.draft_id}"

@@ -278,11 +278,11 @@ backend/app/
 | POST | `/campaigns/{id}/approve-all` | 全部核准，body 要帶 `confirm: true` |
 | POST | `/campaigns/{id}/send` | 寄出全部已核准的草稿（可帶 `scheduled_at`；只有批次的負責業務本人可以寄） |
 | GET/POST/DELETE | `/me/mail-connection` | 查看、連結、中斷自己的 Outlook 寄信權限（只回傳狀態，不回傳權杖） |
-| GET | `/cases?status=&owner=&sent_from=&overdue=` | 案件列表與各狀態件數 |
+| GET | `/cases?status=&owner=&sent_from=&sent_to=&overdue=` | 案件列表與各狀態件數（業務只看自己的）；`/cases/export` 同條件匯出 CSV（不含 email） |
 | GET | `/cases/{id}` | 案件詳情與時間軸 |
-| POST | `/cases` | 批次「加入追蹤」（不寄信直接開案） |
+| POST | `/cases` | 批次「加入追蹤」`{company_ids[]}`（只限已通過的公司，整批檢查；沒人負責時順便認領） |
 | POST | `/cases/{id}/updates` | 人工回填一筆紀錄 |
-| GET | `/reminders` | 目前使用者的待辦提醒 |
+| GET | `/reminders` | 目前使用者的待辦提醒件數（讀 `v_case_reminder`）＋新名單待審核 |
 | GET | `/metrics/overview?from=&to=&industry=&owner=` | 總覽：KPI、漏斗、各來源回覆率（讀 view） |
 | GET | `/companies/export?…` | 依目前篩選條件匯出 CSV |
 | GET | `/metrics/kpis` | 推薦清單頁的 KPI 卡（讀 `v_kpi_summary`） |
