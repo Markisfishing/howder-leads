@@ -151,10 +151,12 @@ function TemplateEditor({
     const currentBody = el?.value ?? body;
     const start = Math.min(el?.selectionStart ?? currentBody.length, currentBody.length);
     const end = Math.min(el?.selectionEnd ?? currentBody.length, currentBody.length);
+    const scrollTop = el?.scrollTop ?? 0;
     setBody((value) => value.slice(0, start) + token + value.slice(end));
     requestAnimationFrame(() => {
       if (!el) return;
       el.focus({ preventScroll: true });
+      el.scrollTop = scrollTop;
       el.setSelectionRange(start + token.length, start + token.length);
     });
   };
