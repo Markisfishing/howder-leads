@@ -6,6 +6,7 @@ import { AppLayout } from "./components/AppLayout";
 import { Empty, Loading } from "./components/StateView";
 import { AdminImportsPage } from "./pages/AdminImportsPage";
 import { AdminTemplatesPage } from "./pages/AdminTemplatesPage";
+import { CasesPage } from "./pages/cases/CasesPage";
 import { CampaignNewPage } from "./pages/campaigns/CampaignNewPage";
 import { CampaignReviewPage } from "./pages/campaigns/CampaignReviewPage";
 import { CampaignsPage } from "./pages/campaigns/CampaignsPage";
@@ -32,6 +33,8 @@ export function App() {
         <Route path="campaigns" element={<CampaignsPage />} />
         <Route path="campaigns/new" element={<CampaignNewPage />} />
         <Route path="campaigns/:id" element={<CampaignReviewPage />} />
+        <Route path="cases" element={<CasesPage />} />
+        <Route path="cases/:id" element={<CasesPage />} />
         <Route
           path="admin/imports"
           element={

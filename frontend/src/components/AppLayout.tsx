@@ -33,6 +33,11 @@ export function AppLayout() {
             </NavLink>
           </li>
           <li>
+            <NavLink to="/cases" className={linkClass}>
+              案件
+            </NavLink>
+          </li>
+          <li>
             <span className={`${styles.link} ${styles.disabled}`} aria-disabled="true" title="M4 開放">
               績效<small>即將推出</small>
             </span>

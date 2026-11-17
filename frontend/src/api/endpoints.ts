@@ -1,6 +1,11 @@
 // 每個後端端點一個函式。頁面透過 src/api/hooks.ts 的 React Query hook 使用。
 import { api, apiBlob } from "./client";
 import type {
+  CaseDetail,
+  CaseList,
+  CaseUpdateInput,
+  ReminderItem,
+  SalesCase,
   Campaign,
   CampaignCreated,
   Candidate,
@@ -167,3 +172,23 @@ export const regenerateDraft = (id: number) => api<{ job_id: number }>(`/drafts/
 export const getMailConnection = () => api<MailConnection>("/me/mail-connection");
 export const connectMail = () => api<MailConnection>("/me/mail-connection", { method: "POST" });
 export const disconnectMail = () => api<void>("/me/mail-connection", { method: "DELETE" });
+
+// ---------- 案件追蹤（M3-09～M3-11）----------
+export interface CaseQuery {
+  status?: string | null;
+  owner?: number | null;
+  sent_from?: string | null;
+  sent_to?: string | null;
+  overdue?: boolean | null;
+}
+const caseQuery = (q: CaseQuery) => ({ ...q, overdue: q.overdue ? true : null });
+export const listCases = (q: CaseQuery) => api<CaseList>("/cases", { query: caseQuery(q) });
+export const downloadCases = (q: CaseQuery) => apiBlob("/cases/export", caseQuery(q));
+export const getCase = (id: number) => api<CaseDetail>(`/cases/${id}`);
+export const addTracking = (companyIds: number[]) =>
+  api<SalesCase[]>("/cases", { method: "POST", json: { company_ids: companyIds } });
+export const addCaseUpdate = (id: number, body: CaseUpdateInput) =>
+  api<CaseDetail>(`/cases/${id}/updates`, { method: "POST", json: body });
+export const unsubscribeCase = (id: number, contactId?: number | null) =>
+  api<CaseDetail>(`/cases/${id}/unsubscribe`, { method: "POST", json: { contact_id: contactId ?? null } });
+export const getReminders = () => api<ReminderItem[]>("/reminders");

@@ -282,6 +282,7 @@ backend/app/
 | GET | `/cases/{id}` | 案件詳情與時間軸 |
 | POST | `/cases` | 批次「加入追蹤」`{company_ids[]}`（只限已通過的公司，整批檢查；沒人負責時順便認領） |
 | POST | `/cases/{id}/updates` | 人工回填一筆紀錄 |
+| POST | `/cases/{id}/unsubscribe` | 客戶要求退訂：聯絡人退訂、公司改 `do_not_contact`、案件結案為失敗（F-CASE-5） |
 | GET | `/reminders` | 目前使用者的待辦提醒件數（讀 `v_case_reminder`）＋新名單待審核 |
 | GET | `/metrics/overview?from=&to=&industry=&owner=` | 總覽：KPI、漏斗、各來源回覆率（讀 view） |
 | GET | `/companies/export?…` | 依目前篩選條件匯出 CSV |
