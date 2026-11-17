@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-17 |
 | 目前階段 | **M1 MVP（進行中）** |
-| 下一個任務 | M1-16 名單匯入 importer |
+| 下一個任務 | M1-23 狀態機 |
 | 卡住 / 待確認 | 優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准應用程式權限（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -48,12 +48,12 @@
 - [ ] M1-15 前端登入流程與路由守衛
 
 ### 名單匯入（F-IMP）
-- [ ] M1-16 `importer`：解析 CSV/XLSX，支援 UTF-8 / Big5（F-IMP-1）
-- [ ] M1-17 `importer`：欄位驗證（統編 8 碼、產業/優先級要在維度表裡）（F-IMP-4）
-- [ ] M1-18 `importer`：產生預覽差異（新增 / 更新 / 錯誤）（F-IMP-2）
-- [ ] M1-19 `importer`：確認寫入，以統編去重，建立 `model_run` 與 `classification`（F-IMP-3）
-- [ ] M1-20 Excel 欄位轉換規則（拆「明確但競合」、忽略圖例欄）（SPEC 8.3）
-- [ ] M1-21 `POST /imports`、`POST /imports/{id}/commit` API（F-IMP-2、F-IMP-5）
+- [x] M1-16 `importer`：解析 CSV/XLSX，支援 UTF-8 / Big5（F-IMP-1） — 2026-11-17
+- [x] M1-17 `importer`：欄位驗證（統編 8 碼、產業/優先級要在維度表裡）（F-IMP-4） — 2026-11-17
+- [x] M1-18 `importer`：產生預覽差異（新增 / 更新 / 錯誤）（F-IMP-2） — 2026-11-17
+- [x] M1-19 `importer`：確認寫入，以統編去重，建立 `model_run` 與 `classification`（F-IMP-3） — 2026-11-17
+- [x] M1-20 Excel 欄位轉換規則（拆「明確但競合」、忽略圖例欄）（SPEC 8.3） — 2026-11-17
+- [x] M1-21 `POST /imports`、`POST /imports/{id}/commit` API（F-IMP-2、F-IMP-5） — 2026-11-17
 - [ ] M1-22 前端 `/admin/imports` 上傳與預覽頁
 
 ### 狀態機與審核

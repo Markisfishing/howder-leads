@@ -7,9 +7,7 @@ from app.models import Base
 
 
 def _db_columns(db: Session, table: str) -> set[str]:
-    rows = db.execute(
-        text("SELECT column_name FROM information_schema.columns WHERE table_name = :t"), {"t": table}
-    )
+    rows = db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = :t"), {"t": table})
     return {r[0] for r in rows}
 
 

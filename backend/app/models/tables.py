@@ -28,9 +28,18 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 USER_ROLES = ("sales", "manager", "admin")
 COMPANY_STATUSES = (
-    "imported", "pending_review", "approved", "rejected",
-    "drafted", "draft_approved", "sent", "replied",
-    "meeting", "won", "lost", "do_not_contact",
+    "imported",
+    "pending_review",
+    "approved",
+    "rejected",
+    "drafted",
+    "draft_approved",
+    "sent",
+    "replied",
+    "meeting",
+    "won",
+    "lost",
+    "do_not_contact",
 )
 
 user_role_enum = ENUM(*USER_ROLES, name="user_role", create_type=False)
@@ -172,7 +181,8 @@ class ActivityLog(Base):
 
 # ---------- 指標層 view（唯讀）----------
 v_recommendation = Table(
-    "v_recommendation", Base.metadata,
+    "v_recommendation",
+    Base.metadata,
     Column("company_id", BigInteger, primary_key=True),
     Column("tax_id", String(8)),
     Column("name", Text),
@@ -198,7 +208,8 @@ v_recommendation = Table(
 )
 
 v_kpi_summary = Table(
-    "v_kpi_summary", Base.metadata,
+    "v_kpi_summary",
+    Base.metadata,
     Column("pending_review", BigInteger),
     Column("total_companies", BigInteger),
     Column("five_star", BigInteger),
@@ -209,7 +220,8 @@ v_kpi_summary = Table(
 )
 
 v_reject_reasons = Table(
-    "v_reject_reasons", Base.metadata,
+    "v_reject_reasons",
+    Base.metadata,
     Column("reject_reason", Text),
     Column("run_id", BigInteger),
     Column("n", BigInteger),
