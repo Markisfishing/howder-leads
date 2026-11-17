@@ -328,7 +328,7 @@ PostgreSQL 16，完整的 DDL 在 [`backend/db/schema.sql`](../backend/db/schema
 | 成果 | `sales_case`、`case_update`、`activity_log` | 案件（編號 `case_no` C-0001；來源 `email`／`tracking`；狀態 sent／tracking／replied／negotiating／no_response／won／lost；下次追蹤日、成交金額；同一家公司同時只有一件未結案）→ 回填紀錄（管道、結果、備註、下次追蹤日、金額；系統事件管道為 `system`）；所有變更的稽核紀錄。原 `opportunity` 在 0006 移除 |
 | 背景工作 | `job` | PostgreSQL 佇列（ADR 0003）：`kind`、`status`、`run_after`（排程與重試）、`attempts`；新增時 `NOTIFY job_queued` |
 | 寄信權杖 | `user_mail_credential` | 每位業務一筆 Fernet 加密的 MSAL 權杖快取與連結狀態（ADR 0005） |
-| 指標 | `v_recommendation`、`v_kpi_summary`、`v_funnel`、`v_win_rate_by_priority`、`v_reject_reasons` | **KPI 只在這些 view 定義一次** |
+| 指標 | `v_recommendation`、`v_kpi_summary`、`v_case_reminder`（待辦提醒，0007）、`v_funnel`、`v_win_rate_by_priority`、`v_reject_reasons` | **KPI 只在這些 view 定義一次** |
 
 ### 8.2 ER 關係（簡化）
 ```

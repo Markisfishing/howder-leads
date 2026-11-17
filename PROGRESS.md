@@ -205,7 +205,7 @@
   - [ ] M3-09a `services/case_service`：worker 寄出成功時開案（已有未結案案件就在時間軸加一筆「寄出」）；`POST /cases` 批次加入追蹤（整批檢查權限與鎖定）＋測試
   - [ ] M3-09b `GET /cases`（狀態、負責業務、寄信日、只看逾期；各狀態件數）、`GET /cases/{id}`（時間軸）、`POST /cases/{id}/updates` 回填（帶動公司狀態、寫 `activity_log`）、`GET /cases/export` CSV＋權限測試（業務只看自己的）
 - [ ] M3-10 worker 每日催辦（`job` 排程）＋ `GET /reminders`（F-CASE-3；拆成下列 a、b）
-  - [ ] M3-10a migration 0007（單獨 commit）：view `v_case_reminder`（逾期未回報、該追蹤了、無回應建議拜訪），提醒條件只在 view 定義一次
+  - [x] M3-10a migration 0007（單獨 commit）：view `v_case_reminder`（逾期未回報、該追蹤了、無回應建議拜訪），提醒條件只在 view 定義一次 — 2026-11-18
   - [ ] M3-10b worker `case_daily`：每天把寄出 14 天沒回覆的案件標成 `no_response`（時間軸記一筆 system），做完排下一次；worker 啟動時確保有一筆排程；`GET /reminders`＋測試
 - [ ] M3-11 前端 `/cases`：列表、各狀態件數、時間軸、回填表單；可以只用鍵盤回填（F-CASE-4；拆成下列 a、b）
   - [ ] M3-11a `/cases` 列表：各狀態件數、篩選（反映在網址）、逾期標記、匯出 CSV；導覽列加「案件」

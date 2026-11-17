@@ -361,6 +361,23 @@ JOIN classification cl ON cl.company_id = r.company_id AND cl.is_current
 WHERE r.decision = 'rejected'
 GROUP BY r.reject_reason, cl.run_id;
 
+CREATE VIEW v_case_reminder AS                      -- 0007：待辦提醒（F-CASE-3），條件只在這裡定義
+WITH c AS (
+  SELECT sc.case_id, sc.owner_id, sc.company_id, sc.status, sc.next_follow_up,
+         coalesce((SELECT max(u.created_at) FROM case_update u
+                   WHERE u.case_id = sc.case_id AND u.result = 'sent'), sc.opened_at) AS last_sent_at
+  FROM sales_case sc
+  WHERE sc.closed_at IS NULL
+)
+SELECT case_id, owner_id, company_id, 'overdue_report'::text AS kind, last_sent_at AS since
+FROM c WHERE status = 'sent' AND last_sent_at <= now() - interval '7 days'
+UNION ALL
+SELECT case_id, owner_id, company_id, 'follow_up_due', next_follow_up::timestamptz
+FROM c WHERE next_follow_up IS NOT NULL AND next_follow_up <= ((now() AT TIME ZONE 'UTC') + interval '8 hours')::date  -- 台灣日期（無日光節約）
+UNION ALL
+SELECT case_id, owner_id, company_id, 'no_response', last_sent_at
+FROM c WHERE status = 'no_response';
+
 -- ---------- 種子資料 ----------
 INSERT INTO dim_priority VALUES
  ('A','第一優先','整機控制、配電、線束或設備配線，端子台使用機率高','優先開發',5),
