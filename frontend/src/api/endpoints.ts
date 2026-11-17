@@ -189,11 +189,15 @@ export const disconnectMail = () => api<void>("/me/mail-connection", { method: "
 
 // ---------- 案件追蹤（M3-09～M3-11）----------
 export interface CaseQuery {
+  q?: string | null;
+  queue?: "todo" | "overdue" | "follow_up" | "all" | null;
   status?: string | null;
   owner?: number | null;
   sent_from?: string | null;
   sent_to?: string | null;
   overdue?: boolean | null;
+  page?: number;
+  page_size?: number;
 }
 const caseQuery = (q: CaseQuery) => ({ ...q, overdue: q.overdue ? true : null });
 export const listCases = (q: CaseQuery) => api<CaseList>("/cases", { query: caseQuery(q) });

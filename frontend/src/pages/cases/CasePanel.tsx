@@ -1,10 +1,11 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { useAddCaseUpdate, useCase, useUnsubscribeCase } from "../../api/hooks";
-import type { CaseDetail, CaseUpdateInput } from "../../api/types";
+import type { CaseDetail, CaseTimelineItem, CaseUpdateInput } from "../../api/types";
 import { Button } from "../../components/Button";
+import { Modal } from "../../components/Modal";
 import { ErrorState, InlineError, Loading } from "../../components/StateView";
 import { Tag } from "../../components/Tag";
 import {
@@ -28,113 +29,94 @@ const CHANNELS: Channel[] = ["email", "line", "wechat", "phone", "visit", "other
 /** 依案件目前狀態，能回填哪些結果（和後端 domain/case_rules 一致；不能往回走） */
 export function allowedResults(status: CaseDetail["status"]): Result[] {
   switch (status) {
-    case "replied":
-      return ["replied", "negotiating", "won", "lost"];
-    case "negotiating":
-      return ["negotiating", "won", "lost"];
+    case "replied": return ["replied", "negotiating", "won", "lost"];
+    case "negotiating": return ["negotiating", "won", "lost"];
     case "won":
-    case "lost":
-      return [];
-    default:
-      return ["replied", "negotiating", "won", "lost", "no_response"];
+    case "lost": return [];
+    default: return ["replied", "negotiating", "won", "lost", "no_response"];
   }
 }
 
-/** 案件詳情：資訊、時間軸、回填表單、客戶要求退訂（M3-11b、M3-04a、F-CASE-2、F-CASE-5） */
+export function CaseDetailPage() {
+  const id = Number(useParams().id) || null;
+  const [sp] = useSearchParams();
+  const backSearch = sp.toString() ? `?${sp.toString()}` : "";
+  if (!id) return <ErrorState error={new Error("找不到案件編號")} />;
+  return <main className={c.detailPage}><Link className={styles.back} to={`/cases${backSearch}`}>← 返回案件</Link><CasePanel caseId={id} /></main>;
+}
+
+/** 獨立案件詳情頁：頁首先回答狀態、最後事件與下一步，再顯示紀錄和資訊。 */
 export function CasePanel({ caseId }: { caseId: number }) {
   const { data, isLoading, error, refetch } = useCase(caseId);
+  const [updateOpen, setUpdateOpen] = useState(false);
   if (isLoading) return <Loading />;
   if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} />;
   const closed = !!data.closed_at;
+  const latest = [...data.timeline].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  const firstReminder = data.reminders[0];
+  const nextAction = firstReminder === "overdue_report"
+    ? "回填聯絡結果"
+    : firstReminder === "follow_up_due"
+      ? "今天聯絡客戶"
+      : firstReminder === "no_response"
+        ? "安排電話或拜訪"
+        : data.next_follow_up
+          ? `下次追蹤：${formatDate(data.next_follow_up)}`
+          : "等待客戶回覆";
 
-  return (
-    <section className={styles.card} aria-labelledby="case-title">
-      <div className={c.headRow}>
-        <h2 id="case-title" className={styles.cardTitle}>
-          {data.case_no} <Link to={`/companies/${data.company_id}`}>{data.company_name}</Link>
-        </h2>
+  return <>
+    <header className={c.detailHeader}>
+      <div className={c.detailTitleRow}>
+        <div><div className={c.caseEyebrow}>{data.case_no} · {data.owner_name ?? "未指定負責人"}</div><h1 className={styles.title}>{data.company_name}</h1></div>
         <Tag tone={CASE_STATUS_TONE[data.status]}>{CASE_STATUS_LABELS[data.status]}</Tag>
       </div>
-      {data.reminders.length > 0 && (
-        <div className={c.tags} role="note">
-          {data.reminders.map((r) => (
-            <Tag key={r} tone="warning">
-              {REMINDER_LABELS[r]}
-            </Tag>
-          ))}
-        </div>
-      )}
-      <dl className={c.facts}>
-        <div>
-          <dt>聯絡人</dt>
-          <dd>{data.contact_name ?? data.contact_email ?? "—"}</dd>
-        </div>
-        <div>
-          <dt>負責業務</dt>
-          <dd>{data.owner_name ?? "—"}</dd>
-        </div>
-        <div>
-          <dt>開案</dt>
-          <dd>
-            {formatDate(data.opened_at)}（{data.origin === "email" ? "開發信" : "加入追蹤"}）
-          </dd>
-        </div>
-        <div>
-          <dt>{closed ? "結案" : "下次追蹤日"}</dt>
-          <dd>{closed ? formatDate(data.closed_at) : (data.next_follow_up ?? "—")}</dd>
-        </div>
-        {data.status === "won" && (
-          <div>
-            <dt>成交金額</dt>
-            <dd>{formatTwd(data.amount_twd)}</dd>
-          </div>
-        )}
-      </dl>
+      <div className={c.nextAction}>
+        <div><span className={c.nextActionLabel}>{data.reminders.length > 0 ? "該追蹤了" : "目前進度"}</span><strong>{nextAction}</strong><span className={styles.hint}>上次聯絡：{latest ? formatDateTime(latest.created_at) : formatDateTime(data.opened_at)}</span></div>
+        {!closed && <Button variant="primary" onClick={() => setUpdateOpen(true)}>記錄聯絡結果</Button>}
+      </div>
+      {data.reminders.length > 0 && <div className={c.tags} role="note">{data.reminders.map((reminder) => <Tag key={reminder} tone="warning">{REMINDER_LABELS[reminder]}</Tag>)}</div>}
+    </header>
 
-      {/* 區塊：時間軸 */}
-      <h3 className={styles.label}>時間軸</h3>
-      <ol className={c.timeline} aria-label="時間軸">
-        <li className={c.event}>
-          <span className={c.eventHead}>
-            <strong>開案</strong>
-            <span className={styles.hint}>{formatDateTime(data.opened_at)}</span>
-          </span>
-        </li>
-        {data.timeline.map((u) => (
-          <li key={u.update_id} className={c.event}>
-            <span className={c.eventHead}>
-              <strong>{CASE_RESULT_LABELS[u.result]}</strong>
-              <Tag tone="neutral">{CASE_CHANNEL_LABELS[u.channel]}</Tag>
-              <span className={styles.hint}>
-                {formatDateTime(u.created_at)}
-                {u.user_name && ` · ${u.user_name}`}
-                {u.contact_name && ` · ${u.contact_name}`}
-              </span>
-            </span>
-            {u.note && <p className={c.eventNote}>{u.note}</p>}
-            {(u.next_follow_up || u.amount_twd) && (
-              <p className={styles.hint}>
-                {u.next_follow_up && `下次追蹤 ${u.next_follow_up}`}
-                {u.amount_twd && ` 成交金額 ${formatTwd(u.amount_twd)}`}
-              </p>
-            )}
-          </li>
-        ))}
-      </ol>
+    <div className={c.detailLayout}>
+      <section className={styles.card} aria-labelledby="timeline-title"><div className={c.sectionHeading}><h2 id="timeline-title" className={styles.cardTitle}>往來紀錄</h2><span className={styles.hint}>{data.timeline.length + 1} 筆活動</span></div><ActivityTimeline data={data} /></section>
+      <aside className={c.infoCard} aria-labelledby="case-info-title"><h2 id="case-info-title" className={styles.cardTitle}>案件資訊</h2><dl className={c.infoList}><Info label="聯絡人">{data.contact_name ?? data.contact_email ?? "未指定"}</Info><Info label="負責業務">{data.owner_name ?? "未指定"}</Info><Info label="開案日">{formatDate(data.opened_at)}</Info><Info label={closed ? "結案日" : "下一次追蹤"}>{closed ? formatDate(data.closed_at) : data.next_follow_up ? formatDate(data.next_follow_up) : "尚未設定"}</Info>{data.status === "won" && <Info label="成交金額">{formatTwd(data.amount_twd)}</Info>}</dl><div className={c.infoActions}><Link className={c.actionLink} to={`/companies/${data.company_id}`}>查看公司資料</Link>{!closed && <MoreActions data={data} />}</div></aside>
+    </div>
 
-      {closed ? (
-        <p className={styles.hint}>這件案件已結案。如果客戶之後再聯絡，請從推薦清單重新開發。</p>
-      ) : (
-        <>
-          <UpdateForm data={data} />
-          <UnsubscribeAction data={data} />
-        </>
-      )}
-    </section>
-  );
+    {closed && <p className={styles.hint}>這件案件已結案。如果客戶之後再聯絡，請從推薦清單重新開發。</p>}
+    {!closed && <UpdateForm data={data} open={updateOpen} onOpenChange={setUpdateOpen} />}
+  </>;
 }
 
-function UpdateForm({ data }: { data: CaseDetail }) {
+function Info({ label, children }: { label: string; children: ReactNode }) { return <div><dt>{label}</dt><dd>{children}</dd></div>; }
+
+function ActivityTimeline({ data }: { data: CaseDetail }) {
+  const events = useMemo(() => {
+    const opened: CaseTimelineItem = { update_id: -1, user_name: null, channel: "system", contact_name: null, result: "sent", note: data.origin === "email" ? "由開發信建立案件" : "由加入追蹤建立案件", next_follow_up: null, amount_twd: null, created_at: data.opened_at };
+    return [opened, ...data.timeline].sort((a, b) => b.created_at.localeCompare(a.created_at) || b.update_id - a.update_id);
+  }, [data]);
+  return <ol className={c.timeline} aria-label="往來紀錄">{events.map((event, index) => {
+    const day = timelineDay(event.created_at);
+    const previous = index > 0 ? events[index - 1] : undefined;
+    const showDay = !previous || day !== timelineDay(previous.created_at);
+    const opening = event.update_id === -1;
+    return <li key={`${event.update_id}-${event.created_at}`} className={c.timelineItem}>{showDay && <h3 className={c.timelineDay}>{day}</h3>}<div className={c.event}><span className={c.eventNode} aria-hidden="true">{channelIcon(event.channel)}</span><div className={c.eventContent}><div className={c.eventHead}><strong>{opening ? "建立案件" : CASE_RESULT_LABELS[event.result]}</strong><span className={c.channel}>{channelIcon(event.channel)} {CASE_CHANNEL_LABELS[event.channel]}</span><time className={styles.hint}>{formatDateTime(event.created_at)}</time></div>{!opening && <p className={c.eventMeta}>{event.user_name ?? "系統"}{event.contact_name ? ` 與 ${event.contact_name}` : ""}</p>}{event.note && <p className={c.eventNote}>{event.note}</p>}{(event.next_follow_up || event.amount_twd) && <p className={c.eventFollowUp}>{event.next_follow_up ? `下一次追蹤：${formatDate(event.next_follow_up)}` : ""}{event.amount_twd ? ` · 成交金額 ${formatTwd(event.amount_twd)}` : ""}</p>}</div></div></li>;
+  })}</ol>;
+}
+
+function timelineDay(iso: string): string {
+  const key = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Taipei" }).format(new Date(iso));
+  const today = taipeiToday();
+  const yesterday = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Taipei" }).format(new Date(Date.now() - 86400000));
+  if (key === today) return "今天";
+  if (key === yesterday) return "昨天";
+  return new Intl.DateTimeFormat("zh-TW", { month: "long", day: "numeric", timeZone: "Asia/Taipei" }).format(new Date(iso));
+}
+
+function channelIcon(channel: CaseTimelineItem["channel"]): string {
+  return { email: "✉", line: "◈", wechat: "◉", phone: "☎", visit: "⌂", other: "•", system: "⚙" }[channel];
+}
+
+function UpdateForm({ data, open, onOpenChange }: { data: CaseDetail; open: boolean; onOpenChange: (open: boolean) => void }) {
   const mutation = useAddCaseUpdate();
   const results = allowedResults(data.status);
   const [channel, setChannel] = useState<Channel>("phone");
@@ -143,154 +125,25 @@ function UpdateForm({ data }: { data: CaseDetail }) {
   const [note, setNote] = useState("");
   const [followUp, setFollowUp] = useState("");
   const [amount, setAmount] = useState("");
-  const [saved, setSaved] = useState("");
   const closing = result === "won" || result === "lost";
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    setSaved("");
-    mutation.mutate(
-      {
-        id: data.case_id,
-        body: {
-          channel,
-          result,
-          contact_id: contactId,
-          note: note.trim() || null,
-          next_follow_up: closing ? null : followUp || null,
-          amount_twd: result === "won" && amount ? Number(amount) : null,
-        },
-      },
-      {
-        onSuccess: (res) => {
-          setNote("");
-          setFollowUp("");
-          setAmount("");
-          setResult(allowedResults(res.status)[0] ?? "replied");
-          setSaved(`已回填：${CASE_RESULT_LABELS[result]}`);
-        },
-      },
-    );
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    mutation.mutate({ id: data.case_id, body: { channel, result, contact_id: contactId, note: note.trim() || null, next_follow_up: closing ? null : followUp || null, amount_twd: result === "won" && amount ? Number(amount) : null } }, { onSuccess: () => { setNote(""); setFollowUp(""); setAmount(""); onOpenChange(false); } });
   };
 
-  return (
-    <form className={c.form} onSubmit={submit} aria-labelledby="case-update-title">
-      <h3 id="case-update-title" className={styles.cardTitle}>
-        回填客戶回覆
-      </h3>
-      <div className={c.formRow}>
-        <label className={styles.field}>
-          <span className={styles.label}>管道</span>
-          <select className={styles.input} value={channel} onChange={(e) => setChannel(e.target.value as Channel)}>
-            {CHANNELS.map((ch) => (
-              <option key={ch} value={ch}>
-                {CASE_CHANNEL_LABELS[ch]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={styles.field}>
-          <span className={styles.label}>結果</span>
-          <select className={styles.input} value={result} onChange={(e) => setResult(e.target.value as Result)}>
-            {results.map((r) => (
-              <option key={r} value={r}>
-                {CASE_RESULT_LABELS[r]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={styles.field}>
-          <span className={styles.label}>聯絡人</span>
-          <select
-            className={styles.input}
-            value={contactId ?? ""}
-            onChange={(e) => setContactId(e.target.value ? Number(e.target.value) : null)}
-          >
-            <option value="">（未指定）</option>
-            {data.contacts.map((ct) => (
-              <option key={ct.contact_id} value={ct.contact_id}>
-                {ct.name ?? ct.email}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <label className={styles.field}>
-        <span className={styles.label}>備註（客戶說了什麼、下一步）</span>
-        <textarea
-          className={`${styles.input} ${c.note}`}
-          rows={4}
-          maxLength={2000}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </label>
-      <div className={c.formRow}>
-        {!closing && (
-          <label className={styles.field}>
-            <span className={styles.label}>下次追蹤日（選填）</span>
-            <input
-              type="date"
-              className={styles.input}
-              min={taipeiToday()}
-              value={followUp}
-              onChange={(e) => setFollowUp(e.target.value)}
-            />
-          </label>
-        )}
-        {result === "won" && (
-          <label className={styles.field}>
-            <span className={styles.label}>成交金額（新台幣，選填）</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step={1}
-              className={styles.input}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </label>
-        )}
-      </div>
-      <div className={styles.actions}>
-        <Button type="submit" variant="primary" busy={mutation.isPending}>
-          儲存回填
-        </Button>
-      </div>
-      <div aria-live="polite">{saved && <p className={styles.hint}>{saved}</p>}</div>
-      <InlineError error={mutation.error} />
-    </form>
-  );
+  return <Modal open={open} onOpenChange={onOpenChange} title="記錄聯絡結果" description="回填後會更新案件狀態與下一步提醒。"><form className={c.form} onSubmit={submit}>
+    <div className={c.formRow}><label className={styles.field}><span className={styles.label}>管道</span><select className={styles.input} value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>{CHANNELS.map((item) => <option key={item} value={item}>{CASE_CHANNEL_LABELS[item]}</option>)}</select></label><label className={styles.field}><span className={styles.label}>結果</span><select className={styles.input} value={result} onChange={(event) => setResult(event.target.value as Result)}>{results.map((item) => <option key={item} value={item}>{CASE_RESULT_LABELS[item]}</option>)}</select></label><label className={styles.field}><span className={styles.label}>聯絡人</span><select className={styles.input} value={contactId ?? ""} onChange={(event) => setContactId(event.target.value ? Number(event.target.value) : null)}><option value="">（未指定）</option>{data.contacts.map((contact) => <option key={contact.contact_id} value={contact.contact_id}>{contact.name ?? contact.email}</option>)}</select></label></div>
+    <label className={styles.field}><span className={styles.label}>客戶說了什麼？</span><textarea className={`${styles.input} ${c.note}`} rows={4} maxLength={2000} value={note} onChange={(event) => setNote(event.target.value)} /></label>
+    <div className={c.formRow}>{!closing && <label className={styles.field}><span className={styles.label}>下一次追蹤</span><input type="date" className={styles.input} min={taipeiToday()} value={followUp} onChange={(event) => setFollowUp(event.target.value)} /></label>}{result === "won" && <label className={styles.field}><span className={styles.label}>成交金額（新台幣，選填）</span><input type="number" inputMode="numeric" min={0} step={1} className={styles.input} value={amount} onChange={(event) => setAmount(event.target.value)} /></label>}</div>
+    <div className={c.modalActions}><Button onClick={() => onOpenChange(false)}>取消</Button><Button type="submit" variant="primary" busy={mutation.isPending}>儲存紀錄</Button></div><InlineError error={mutation.error} />
+  </form></Modal>;
 }
 
-function UnsubscribeAction({ data }: { data: CaseDetail }) {
-  const mutation = useUnsubscribeCase();
+function MoreActions({ data }: { data: CaseDetail }) {
+  const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const mutation = useUnsubscribeCase();
   if (!data.contact_id) return null;
-  return confirming ? (
-    <div className={c.danger} role="alert">
-      <p>
-        標記後，{data.contact_name ?? data.contact_email} 會改成已退訂，{data.company_name}{" "}
-        改成「不再聯絡」，這件案件結案為失敗。之後任何批次都不能再寄信給這家公司。
-      </p>
-      <div className={styles.actions}>
-        <Button
-          variant="danger"
-          busy={mutation.isPending}
-          onClick={() => mutation.mutate({ id: data.case_id }, { onSuccess: () => setConfirming(false) })}
-        >
-          確定標記退訂
-        </Button>
-        <Button onClick={() => setConfirming(false)}>取消</Button>
-      </div>
-      <InlineError error={mutation.error} />
-    </div>
-  ) : (
-    <div className={styles.actions}>
-      <Button size="sm" onClick={() => setConfirming(true)}>
-        客戶要求退訂…
-      </Button>
-    </div>
-  );
+  return <div className={c.moreActions}><Button size="sm" aria-expanded={open} onClick={() => setOpen((value) => !value)}>更多操作 ⋯</Button>{open && <div className={c.actionMenu}><button type="button" onClick={() => { setConfirming(true); setOpen(false); }}>客戶要求停止聯絡</button></div>}{confirming && <div className={c.danger} role="alert"><p>標記後，{data.contact_name ?? data.contact_email} 會改成已退訂，{data.company_name} 改成「不再聯絡」，這件案件會結案為失敗。</p><div className={styles.actions}><Button variant="danger" busy={mutation.isPending} onClick={() => mutation.mutate({ id: data.case_id }, { onSuccess: () => setConfirming(false) })}>確定標記退訂</Button><Button onClick={() => setConfirming(false)}>取消</Button></div><InlineError error={mutation.error} /></div>}</div>;
 }

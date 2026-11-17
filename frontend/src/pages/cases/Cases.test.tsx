@@ -77,7 +77,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("M3-11 案件純函式", () => {
   it("test_f_case_4_query_from_url：網址參數轉成篩選，不合法的值忽略", () => {
-    expect(readCaseQuery(new URLSearchParams("status=replied&owner=2&from=2026-11-01&overdue=1"))).toEqual({
+    expect(readCaseQuery(new URLSearchParams("status=replied&owner=2&from=2026-11-01&overdue=1"))).toMatchObject({
       status: "replied",
       owner: 2,
       sent_from: "2026-11-01",
@@ -97,20 +97,21 @@ describe("M3-11 案件純函式", () => {
 describe("M3-11 案件頁", () => {
   it("test_f_case_4_list_counts_and_reminders：顯示各狀態件數與待辦提醒", async () => {
     setup("/cases");
-    expect(await screen.findByRole("button", { name: /已寄出 1/ })).toBeInTheDocument();
-    expect(screen.getByText("逾期未回報")).toBeInTheDocument();
-    expect(screen.getByText("選一件案件")).toBeInTheDocument();
+    expect(await screen.findByText("逾期，請回報")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /我的待辦/ })).toHaveTextContent("1");
+    expect(screen.getByText("集中處理今天需要跟進的案件。")).toBeInTheDocument();
   });
 
   it("test_f_case_2_backfill_form_posts_update：回填送出管道、結果、備註、下次追蹤日", async () => {
     const fn = setup();
     expect(await screen.findByText("寄出開發信（草稿 #1）")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "記錄聯絡結果" }));
     fireEvent.change(screen.getByLabelText("管道"), { target: { value: "visit" } });
     fireEvent.change(screen.getByLabelText("結果"), { target: { value: "negotiating" } });
-    fireEvent.change(screen.getByLabelText(/備註/), { target: { value: "  客戶要報價  " } });
-    fireEvent.change(screen.getByLabelText(/下次追蹤日/), { target: { value: "2099-01-02" } });
+    fireEvent.change(screen.getByLabelText(/客戶說了什麼/), { target: { value: "  客戶要報價  " } });
+    fireEvent.change(screen.getByLabelText(/下一次追蹤/), { target: { value: "2099-01-02" } });
     expect(screen.queryByLabelText(/成交金額/)).not.toBeInTheDocument(); // 只有成交才填金額
-    fireEvent.click(screen.getByRole("button", { name: "儲存回填" }));
+    fireEvent.click(screen.getByRole("button", { name: "儲存紀錄" }));
     await waitFor(() => expect(posted(fn, "/api/v1/cases/7/updates")).toHaveLength(1));
     expect(JSON.parse(String(posted(fn, "/api/v1/cases/7/updates")[0]?.[1]?.body))).toEqual({
       channel: "visit",
@@ -120,11 +121,12 @@ describe("M3-11 案件頁", () => {
       next_follow_up: "2099-01-02",
       amount_twd: null,
     });
-    expect(await screen.findByText("已回填：洽談中")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("test_f_case_2_won_shows_amount：選成交時顯示金額、隱藏下次追蹤日", async () => {
     setup();
+    fireEvent.click(await screen.findByRole("button", { name: "記錄聯絡結果" }));
     fireEvent.change(await screen.findByLabelText("結果"), { target: { value: "won" } });
     expect(screen.getByLabelText(/成交金額/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/下次追蹤日/)).not.toBeInTheDocument();
@@ -132,7 +134,8 @@ describe("M3-11 案件頁", () => {
 
   it("test_m3_04a_unsubscribe_needs_confirm：客戶要求退訂要再按一次確認", async () => {
     const fn = setup();
-    fireEvent.click(await screen.findByRole("button", { name: "客戶要求退訂…" }));
+    fireEvent.click(await screen.findByRole("button", { name: "更多操作 ⋯" }));
+    fireEvent.click(screen.getByRole("button", { name: "客戶要求停止聯絡" }));
     expect(posted(fn, "/api/v1/cases/7/unsubscribe")).toHaveLength(0);
     expect(screen.getByRole("alert")).toHaveTextContent("不再聯絡");
     fireEvent.click(screen.getByRole("button", { name: "確定標記退訂" }));
