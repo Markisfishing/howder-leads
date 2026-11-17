@@ -2,7 +2,19 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import campaigns, companies, contacts, imports, mail_connection, meta, reviews, templates, users
+from app.api.v1 import (
+    campaigns,
+    cases,
+    companies,
+    contacts,
+    imports,
+    mail_connection,
+    meta,
+    reminders,
+    reviews,
+    templates,
+    users,
+)
 
 api_router = APIRouter()
 api_router.include_router(users.router, tags=["users"])
@@ -13,4 +25,6 @@ api_router.include_router(reviews.router, tags=["reviews"])
 api_router.include_router(templates.router, tags=["templates"])
 api_router.include_router(campaigns.router, tags=["campaigns"])
 api_router.include_router(mail_connection.router, tags=["mail"])
+api_router.include_router(cases.router, tags=["cases"])
+api_router.include_router(reminders.router, tags=["reminders"])
 api_router.include_router(meta.router, tags=["meta"])

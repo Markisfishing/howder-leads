@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config import Settings, get_settings
 from app.db import get_engine
 from app.models import Job
-from app.services import generator, jobs, send_service
+from app.services import generator, jobs, reminder_service, send_service
 from app.services.mailer import GraphMailer, Mailer, SandboxMailer
 
 log = logging.getLogger("howder.worker")
@@ -53,6 +53,8 @@ def _handle(db: Session, job: Job, deps: WorkerDeps) -> None:
         generator.run_generate_job(db, job.payload)
     elif job.kind == "send_email":
         send_service.send_one(db, int(job.payload["draft_id"]), deps.mailer, deps.settings, deps.now())
+    elif job.kind == reminder_service.DAILY_KIND:
+        reminder_service.run_daily(db, deps.now())
     else:
         raise jobs.JobError("UNKNOWN_JOB_KIND", retryable=False)
 
@@ -107,6 +109,8 @@ def main() -> None:
     worker_id = f"{socket.gethostname()}-{os.getpid()}"
     url = settings.database_url.replace("postgresql+psycopg://", "postgresql://")
     log.info("worker 啟動 id=%s mail_mode=%s", worker_id, settings.mail_mode)
+    with session_factory() as db:
+        reminder_service.ensure_daily_job(db, deps.now())  # 每日催辦（M3-10b）
     with psycopg.connect(url, autocommit=True) as listener:
         listener.execute("LISTEN job_queued")
         while True:

@@ -40,6 +40,10 @@ target-version = "py312"
 select = ["E", "F", "I", "B", "UP", "SIM"]
 ignore = ["B008"]  # FastAPI 的 Depends() 寫在預設參數是官方用法
 
+[tool.ruff.lint.per-file-ignores]
+# migration 是手寫 SQL，套用後不能再改（CLAUDE.md 第 5 節），SQL 行長不檢查
+"migrations/versions/*.py" = ["E501"]
+
 [tool.mypy]
 python_version = "3.12"
 plugins = ["pydantic.mypy"]
