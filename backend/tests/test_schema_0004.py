@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session
 def _company(db: Session) -> int:
     return int(
         db.execute(
-            text("INSERT INTO company (tax_id, name, status) VALUES ('90000001', '測試公司', 'approved') RETURNING company_id")
+            text(
+                "INSERT INTO company (tax_id, name, status) "
+                "VALUES ('90000001', '測試公司', 'approved') RETURNING company_id"
+            )
         ).scalar_one()
     )
 
