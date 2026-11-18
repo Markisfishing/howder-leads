@@ -7,11 +7,151 @@
 |---|---|
 | 最後更新 | 2026-11-18（M4 併入 feat/m1-mvp） |
 | 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 b（業務盲評）、g（`CLAUDE.md` 指令補充）、l（完整 sandbox 50 封驗收）。M3 全部完成。M2 剩 M2-17，以及真實寄信（先用個人 Microsoft 帳號：M2-19～M2-21 → M2-15；M2-22 已完成）；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | M2-19 ADR：個人 Microsoft 帳號登入與寄信（先確認做法再寫程式）；M2-23 拿掉介面上的「模型」用語；M2-17；M4-06b 業務盲評（要業務來做）；M4-06g 問使用者後補 `CLAUDE.md` 第 3 節指令；M4-06l 完整 sandbox 驗收；之後 M5 |
+| 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。M2-19 ADR：個人 Microsoft 帳號登入與寄信（先確認做法再寫程式）；M2-23 拿掉介面上的「模型」用語；M2-17；M4-06b 業務盲評（要業務來做）；M4-06g 問使用者後補 `CLAUDE.md` 第 3 節指令；M4-06l 完整 sandbox 驗收；之後 M5 |
 | 卡住 / 待確認 | 個人帳號能不能註冊應用程式（M2-19）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）、Docker Desktop 無法啟動（M1-03）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
 一個任務的大小以「一次對話、一個 commit 做得完」為準；太大就拆開。
+
+---
+
+## 交接：剩下的任務怎麼做（2026-11-18 整理，給接手的人）
+
+> 下面每一張卡片寫清楚：誰能做、前置、要改哪些檔案、步驟、驗收與測試。任務清單本身（`[ ]`／`[x]`）仍在各階段底下，做完照 CLAUDE.md 第 13 節打勾、填日期、更新上方狀態表。
+
+### 開工前必讀
+- **規則**：先讀 `CLAUDE.md`（以它為準）、`docs/SPEC.md`、`CHANGELOG.md` 最上面一則。最重要的幾條：
+  - 系統絕對不自動寄信；只有 `approved` 草稿能寄，後端寄前再檢查（第 6 節）。
+  - 測試環境不可以真的寄信；開發環境要 `MAIL_ALLOWED_RECIPIENTS` 不是空的才可以 `MAIL_MODE=live`（第 6 節第 3 點，M2-22 已實作在 `backend/app/config.py` 的 `_guard_production`）。
+  - 自動化測試不可以連真實的 LLM 或 Microsoft；一律用假的實作（`FakeLlmClient`、`tests/test_mail_connection.py` 的 `FakeObo` 等）。
+  - 不可以把真實的姓名、email、電話放進程式、測試、範例或這份文件；真實信箱只寫在 `backend/.env`（不 commit）。
+  - 密碼、client secret、`MAIL_TOKEN_KEY`、API key 只放 `.env`，不貼進對話、不 commit。**系統不使用任何信箱密碼**：寄信是用 Microsoft 登入授權（OAuth），帳號擁有人自己在 Microsoft 頁面登入、按同意。
+  - 不改 `frontend/src/styles/design-tokens.css`；樣式不寫死色碼或 px；不用 prettier（專案沒有用，會改到不相關的行）。
+  - 已套用的 migration 不能改；schema 變更單獨一個 commit，並同步 `backend/db/schema.sql` 與 SPEC 第 8 節。
+- **分支**：目前在 `feat/m1-mvp`（M4 已併入，還沒 push）。接手的人要先拿到這個分支；push 與否由專案負責人決定。新任務開 `feat/xxx` 或 `fix/xxx` 分支。
+- **開發環境**（指令細節見 CLAUDE.md 第 3 節）：
+  - 資料庫：`cd backend && uv run python -m scripts.dev_db`（內嵌 Postgres，資料在 `%LOCALAPPDATA%\howder\pgdata`；要全新的空資料庫就設 `HOWDER_PGDATA` 指到另一個純英文路徑）→ `uv run alembic upgrade head` → `uv run python -m scripts.seed_templates`。
+  - API：`uv run uvicorn app.main:app --port 8000`；worker：`uv run python -m app.workers`（兩個都要開）。
+  - 前端：`cd frontend && npm run dev`（http://127.0.0.1:5173）。
+  - 本機 LLM（M4）：這台開發機的 `C:\Users\y7632\.ollama` 是指向不存在路徑的連結，`ollama serve` 要用 `USERPROFILE=C:\howder-wt\ollama-home OLLAMA_MODELS=D:\ollama\models` 啟動；模型 `qwen3:8b`、`qwen3:14b`。換電腦的話照 Ollama 一般安裝即可。
+- **完成前檢查**（CLAUDE.md 第 11 節）：後端 `uv run ruff check . && uv run ruff format --check . && uv run mypy app && uv run pytest`；前端 `npm run typecheck && npm run lint && npm run test && npm run build`；有畫面改動就在瀏覽器看 375px 與 1280px。
+  - 目前 `mypy` 已知 1 個錯（`api/v1/campaigns.py:322`），不是你造成的，見「開發中發現」。
+
+### 建議順序與分工
+| 順序 | 任務 | 誰 | 備註 |
+|---|---|---|---|
+| 1 | M2-23 介面拿掉「模型」用語 | 開發者 | 小、獨立，適合先熟悉專案 |
+| 1 | M2-17 每天最晚寄送時間 | 開發者 | 獨立 |
+| 1 | 「開發中發現」的小修（mypy、焦點、防呆文字） | 開發者 | 每項一個 commit |
+| 2 | M2-19 ADR 0007 個人帳號 | 開發者查資料＋負責人決定 | 要負責人用寄件帳號登入 Azure 入口網站註冊應用程式 |
+| 3 | M2-20 登入支援個人帳號 → M2-21 連結 Outlook | 開發者 | 依 M2-19 的結論 |
+| 4 | M2-15 真實寄信驗收 | 負責人＋開發者 | 負責人自己登入、授權；開發者在旁操作系統 |
+| — | M4-06b 業務盲評 | 業務 | 開發者先準備 10 封草稿 |
+| — | M4-06g CLAUDE.md 指令補充 | 開發者 | 改 CLAUDE.md 前先問負責人 |
+| — | M4-06l 完整 sandbox 50 封驗收 | 開發者 | 需要本機 Ollama |
+| — | M1-03 Docker 驗證 | 有 Docker 的電腦 | 這台的 Docker Desktop 起不來 |
+| 之後 | M5 | 先拆細 | CLAUDE.md 第 13 節：開始前拆成和 M1 一樣細 |
+
+### M2-23 介面拿掉「模型」用語
+- **為什麼**：系統沒有模型，名單是在系統外整理好的 Excel／CSV（CLAUDE.md 開頭、名詞表「匯入批次」）。
+- **要改的地方**（行號是 2026-11-18 的，改之前再 grep `模型\|MLE` 確認）：
+  - `frontend/src/pages/AdminImportsPage.tsx`：第 40 行提示「模型版本 run #」→「匯入批次 #」；第 141、158 行表頭與 `data-label`「模型版本」→「匯入批次」；第 212、215 行「MLE 提供」的漏斗區塊標題（這一塊要不要整個拿掉見「開發中發現」的漏斗項目，先只改字）。
+  - `frontend/src/pages/recommendations/CompanyDetailPanel.tsx`：第 95 行「模型版本 run #」→「匯入批次 #」；第 147 行「模型沒有提供理由」→「匯入資料沒有提供推薦理由」；第 213 行「模型原判」→「匯入時的產業」。
+  - `frontend/src/pages/recommendations/ReviewWorkspace.tsx` 第 156 行：「模型沒有提供推薦理由…」→「匯入資料沒有提供推薦理由…」。
+  - `frontend/src/pages/recommendations/RejectDialog.tsx` 第 58 行：「這會用來改善推薦模型。」→「原因會列入名單品質報表。」
+  - `frontend/src/pages/performance/AdminModelPage.tsx` 第 31 行標籤「匯入批次（模型版本）」→「匯入批次」，第 10 行註解；**同時改** `Performance.test.tsx` 第 118 行用到的標籤文字。
+  - 註解：`components/Stars.tsx` 第 7、11 行、`lib/labels.ts` 第 229 行、`recommendations/AddCompanyDialog.tsx` 第 15 行，「MLE／模型」改成「整理好的名單」。
+  - **不要改**：`api/errorMessages.ts` 的 `LLM_*` 訊息（那裡的「模型」指 AI 寫信的 LLM，是對的）；`Campaigns.test.tsx` 的 AI 模型與 prompt 版本；資料庫與 API 欄位名稱 `model_run`、`run_id`、`model_name`、路由 `/admin/model`。
+- **驗收**：`grep -rn "模型\|MLE" frontend/src` 只剩 LLM 相關；前端四項檢查通過；瀏覽器看匯入頁、公司側欄、審核畫面、排除對話框、名單品質頁（375px／1280px）。
+- **Commit**：`style:` 或 `refactor:`（純文字），進度更新放同一個 commit。
+
+### M2-17 每天最晚寄送時間 `SEND_DAY_END_HOUR`（F-MAIL-6、SPEC 7.5）
+- **現況**：`backend/app/domain/send_limits.py` 的 `plan_send_times()` 只管每日上限（超過排到隔天 `day_start_hour`）和每分鐘限速；沒有「幾點以後不寄」。呼叫的地方：`backend/app/services/send_service.py` 第 127～133 行（按寄出時排時間）、第 193 行（worker 寄出前發現今天已滿 → `jobs.Reschedule` 到隔天）。
+- **步驟**：
+  1. `backend/app/config.py` 加 `send_day_end_hour: int = 18`；在 `_guard_production` 檢查 `0 <= send_day_start_hour < send_day_end_hour <= 24`，不合法啟動失敗。`.env.example` 加說明（台灣時間）。
+  2. `plan_send_times()` 加參數 `day_end_hour: int = 24`：排到的時間（當地時間）`>= day_end_hour` 點就跳到隔天 `day_start_hour`，並重新計數。
+  3. 一併處理「早於上班時間」：排到的時間早於當天 `day_start_hour` 就延到當天 `day_start_hour`。**這會改變現在的行為**（目前半夜按寄出會立刻寄），先跟負責人確認；確認後 SPEC 7.5 寫清楚。注意之前 sandbox 示範是用 `SEND_DAY_START_HOUR=0` 繞過，之後示範要再加 `SEND_DAY_END_HOUR=24`。
+  4. `send_service.py` 兩個地方都帶入設定；worker 寄出前如果現在已超過 `send_day_end_hour`（例如 job 延遲），也 `Reschedule` 到隔天上班時間。
+- **測試**（名稱帶 `test_f_mail_6_`）：`tests/test_mail_domain.py` 加單元測試——17:59 照排、18:00 跳隔天 9:00、跨日同時碰到每日上限、早於 9 點延到 9 點、台灣時區跨 UTC 日；設定不合法時啟動失敗；worker 超過時間會改期（可參考 `tests/test_campaigns.py` 寄出相關測試的寫法）。
+- **文件**：SPEC 7.5、`.env.example`、CLAUDE.md 不用改。
+
+### M2-19 ADR 0007：先用個人 Microsoft 帳號登入與寄信
+- **背景**：公司 Microsoft 365 帳號之後再說（SPEC 11-4）。先用一個專門測試用的個人 outlook.com 帳號當寄件人，寄到負責人自己的信箱（實際地址只寫在 `.env` 的 `MAIL_ALLOWED_RECIPIENTS`，已設定好）。系統不會、也不可以用信箱密碼；寄件帳號的擁有人要自己在 Microsoft 頁面登入、按同意。
+- **現在的設計**（ADR 0005）：前端用 MSAL 登入公司租用戶，拿 `api://{clientId}/access_as_user` 的 token 給後端；後端用 On-Behalf-Of（`backend/app/services/mail_token.py` 的 `MsalOboClient`）換成 Graph `Mail.Send` token，MSAL 快取用 Fernet 加密存在 `user_mail_credential.token_cache`；worker 用 `acquire_silent` 拿 token 寄信。
+- **要查清楚的事**（查 Microsoft identity platform 官方文件，結論與連結寫進 ADR）：
+  1. 個人帳號能不能在 Azure 入口網站註冊應用程式（可能要先有預設目錄或免費 Azure 帳號）；「支援的帳戶類型」選「僅個人 Microsoft 帳戶」（`consumers`）還是「組織目錄與個人帳戶」（`common`，之後切公司帳號比較方便）。
+  2. 個人帳號拿「自己 API」（`api://…/access_as_user`）的 access token 有沒有限制（例如應用程式資訊清單要設 `accessTokenAcceptedVersion: 2`）；token 的 issuer 是個人帳號固定的租用戶 ID，要確認實際值。
+  3. On-Behalf-Of 能不能用在個人帳號；**不能的話**，「連結 Outlook」改成後端的授權碼流程（PKCE＋機密用戶端，scopes `Mail.Send`、`User.Read`、`offline_access`），refresh token 照舊用 Fernet 加密存在 `user_mail_credential`，worker 不用改。
+  4. 個人帳號用 Graph `POST /me/sendMail` 寄信的限制（每日上限、新帳號可能被限制寄送或要求驗證）。
+- **要決定**（寫成 ADR 的「決定」，給負責人確認）：登入與連結各用哪種流程；設定怎麼做成可切換（建議新增 `ENTRA_AUTHORITY`：`consumers`／`common`／`organizations`／租用戶 ID，預設維持公司租用戶），之後換公司帳號只改 `.env`。
+- **需要負責人做的事**：用寄件測試帳號登入 Azure 入口網站 → 註冊應用程式 → 設定重新導向 URI（開發用 `http://localhost:5173` 與後端 callback，依 ADR 決定）→ 建立 client secret 並**自己**填進 `backend/.env` 的 `ENTRA_CLIENT_SECRET`；`MAIL_TOKEN_KEY` 用 `.env.example` 裡的指令產生後自己填。client ID、租用戶 ID 不是機密，可以告訴開發者。
+- **產出**：`docs/adr/0007-personal-microsoft-account.md`（背景、決定、理由，100 行以內）；SPEC 7.x 寄信流程與 11-4 更新；依結論把 M2-20、M2-21 再修細。這個任務只寫文件，不寫程式。
+
+### M2-20 登入支援個人 Microsoft 帳號（依 M2-19）
+- **要改的地方**：
+  - `backend/app/services/auth.py`：第 28～29 行 JWKS 網址與第 41 行 issuer 都用 `settings.entra_tenant_id` 組；改成依 M2-19 的 `ENTRA_AUTHORITY` 決定 JWKS 網址，issuer 檢查改成「允許的 issuer 清單」（不可以關掉 issuer 驗證）。audience 第 40 行維持 client id 與 `api://{client id}`。
+  - 確認個人帳號 token 裡哪個 claim 有 email（`preferred_username`／`email`），對應到 `app_user` 的邏輯跟著調整；負責人的帳號要當管理員就把它寫進 `.env` 的 `BOOTSTRAP_ADMIN_EMAILS`（不 commit）。
+  - `backend/app/config.py`、`backend/.env.example`：新設定與說明。
+  - `frontend/src/auth/msal.ts` 第 20 行 `authority`：改成讀 `VITE_ENTRA_AUTHORITY`（沒設時沿用租用戶 ID）；`frontend/.env.example` 加這一行。
+- **測試**（名稱帶 `test_m2_20_`）：參考 `tests/test_auth.py` 用自己產生的金鑰簽假 token（`signing_key` 參數），測個人帳號 issuer 通過、別的租用戶被拒、audience 錯被拒、過期被拒；不連真實 Microsoft。
+- **驗收**：負責人自己用寄件測試帳號在 http://127.0.0.1:5173 登入成功、看到推薦清單；後端 log 不印 token。
+
+### M2-21 「連結 Outlook」支援個人帳號（依 M2-19）
+- **現況**：`backend/app/api/v1/mail_connection.py`（`get_obo_client`、`get_cipher` 可在測試替換）、`backend/app/services/mail_token.py`（`OboClient` 介面、`connect`、`disconnect`、`access_token_for`）、前端 `frontend/src/pages/campaigns/MailConnectionBanner.tsx` 與 `api/endpoints.ts` 的 mail-connection 呼叫。
+- **如果 M2-19 結論是授權碼流程**：
+  1. `OboClient` 介面擴充或新增 `MailTokenProvider`（產生授權網址、用 code 換 token、`acquire_silent`），worker 用的 `access_token_for` 不改呼叫方式。
+  2. 新 API：`GET /me/mail-connection/start` 回傳授權網址（帶 `state` 與 PKCE）；`GET /me/mail-connection/callback` 驗證 `state`（綁定目前登入的使用者、短時間過期，可用 `MAIL_TOKEN_KEY` 加密成 Fernet 字串，不必新增資料表）→ 換 token → 加密存進 `user_mail_credential` → 轉回前端頁面。需要資料表的話另開 migration、單獨 commit。
+  3. 前端「連結 Outlook」改成導向授權網址；回來後顯示已連結；token 失效時狀態 `needs_reconnect`，橫幅提示重新連結（現有行為保留）。
+- **安全**：`state` 不對就拒絕；回應、log、錯誤訊息都不可以出現 code、token、client secret；錯誤用 `{ "error": { "code", "message" } }`，新的 code 加進 `frontend/src/api/errorMessages.ts`。
+- **測試**（名稱帶 `test_m2_21_`）：用假的 token 端點（`httpx.MockTransport` 或假的 provider）測——成功連結、`state` 錯誤或過期被拒、別人的 `state` 被拒、換 token 失敗、`needs_reconnect`、回應不含權杖；前端 Vitest 測橫幅按鈕。
+
+### M2-15 驗收：用個人帳號真實寄 10 封（前置：M2-19～M2-21）
+- **誰**：負責人自己登入寄件測試帳號、按同意；開發者操作系統。開發者不代填密碼、不代按同意。
+- **`backend/.env`**（不 commit）：`ENV=development`、`AUTH_MODE=entra`、M2-19 決定的 `ENTRA_*` 設定、`ENTRA_CLIENT_SECRET` 與 `MAIL_TOKEN_KEY`（負責人自己填）、`MAIL_MODE=live`、`MAIL_ALLOWED_RECIPIENTS`（已設好，負責人自己的收件信箱）、`DAILY_SEND_LIMIT=10`、`SEND_PER_MINUTE=1`（已設好）。白名單是空的話系統不會啟動（M2-22）。
+- **步驟**：
+  1. 用全新的空資料庫：`HOWDER_PGDATA` 指到新的純英文資料夾啟動 `scripts.dev_db` → `alembic upgrade head` → `seed_templates`。
+  2. 準備 10 家假公司的 CSV（格式照 `docs/samples/import_v1_sample.csv`，公司名用「測試」開頭的假名）；以管理員身分匯入並確認。
+  3. 每家加一位聯絡人，email 都填白名單裡的收件信箱（只存在這個測試資料庫，不寫進任何檔案）；另外加 1 家聯絡人用 `blocked@example.com`，用來確認白名單會擋。
+  4. 業務頁審核通過 → 建立批次（模板）→ 預覽、核准 10 封 → 「連結 Outlook」（負責人登入授權）→ 寄出。`blocked@example.com` 那家應該在建立批次時就被排除，原因「收件者不在測試白名單」。
+  5. 確認：收件信箱收到 10 封；寄件帳號的「寄件備份」有 10 封；`email_message` 有 10 筆；每封結尾有退訂說明；14 天內再寄同一家會被擋。
+  6. 結束後 `MAIL_MODE` 改回 `sandbox`；結果（不含信箱地址）寫進 CHANGELOG，打勾 M2-15。
+- **注意**：新的個人帳號可能被 Microsoft 限制寄送量或要求驗證；遇到就記錄錯誤代碼，不要調高上限硬寄。
+
+### M4-06g 本機冒煙腳本：剩 CLAUDE.md 指令補充
+- 腳本 `backend/scripts/llm_smoke.py` 已完成並實測通過；只剩把下面幾行加進 CLAUDE.md 第 3 節指令區。**改 CLAUDE.md 前先問負責人**：
+  - `ollama serve`（這台機器要用上面「開發環境」那段的環境變數啟動）
+  - `uv run python -m scripts.llm_smoke [--mode full_ai] [--model qwen3:14b --runs 3]`
+  - `uv run python -m scripts.llm_bench --n 50 --concurrency 2`
+- 負責人同意、改完後打勾 M4-06g 與上層 M4-06（如果 b、l 也完成）。
+
+### M4-06b 選地端模型：剩業務盲評
+- 速度與失敗率已實測（ADR 0006）：`qwen3:8b` 每封約 3 秒，`qwen3:14b` 約 28 秒。
+- **開發者準備**：sandbox 用 10 家假公司（只用公司名、產業、推薦理由）各用 8b、14b 產生一封 `template_ai`，匯出成不標示模型的對照表（A／B 隨機），對應表另外保存。
+- **業務做**：每封評 1～5 分——通順度、內容正確、有沒有捏造（實績／價格／認證／交期）、要改多少。
+- **結果**：平均分數、捏造次數寫回 `docs/adr/0006-local-llm-first.md`，決定預設模型（`LOCAL_LLM_MODEL`）。
+
+### M4-06l 完整 sandbox 50 封驗收
+- LLM 階段已測過（`qwen3:8b` 50 封 82 秒、0 失敗）。還要走完整流程：`MAIL_MODE=sandbox`、開本機 Ollama、API 與 worker → 準備 50 家假公司 → 建立 `template_ai` 批次 → 從按下建立到 50 封都出現在預覽佇列計時 → 記錄總耗時與失敗數，對照 F-MAIL-3「50 封 3 分鐘」→ 寫進 ADR 0006 → 打勾。
+
+### M1-03 Docker 驗證
+- 需要一台 Docker Desktop 能啟動的電腦：在專案根目錄 `docker compose up -d` → 把 `DATABASE_URL` 指到 compose 的 Postgres → `alembic upgrade head` → `uv run pytest` 與 API 都正常 → 打勾。發現 compose 檔要改就一起修。
+
+### M5 延伸（開始前要先拆細）
+- CLAUDE.md 第 13 節：開始 M5 前先拆成和 M1 一樣細的任務（一個任務一個 commit 做得完），拆好加在 M5 底下，編號用 `M5-01a`、`M5-01b`…。
+- M5-01 來源管理 `/admin/sources`（SPEC F-SRC-1）：列出資料來源、新增、停用、各來源撈取筆數與回覆率、依日期區間篩選新增的公司。預計要：來源維度表 migration、API、管理頁、回覆率讀 view（KPI 只定義在 view）。
+- M5-02 產品標籤維護 `/admin/tags`（SPEC F-TAG-1）：標籤內容要等厚達提供「產品用在哪裡」；標籤命中數與回覆率讀 view。
+- M5-03 專用信箱轉寄、自動比對案件（SPEC F-TRK-1）：系統不讀業務個人信箱（ADR 0004）；需要專用信箱與 Graph 讀信權限，先寫 ADR；比對結果只產生「待確認的回填」，業務確認後才生效。
+- M5-04 管理者 BI 儀表板（案件數、成功開案數）：先跟負責人確認要哪些數字、用內建頁面還是外部 BI 工具。
+
+### 「開發中發現」的處理方式
+- **可以直接做的小修**（每項一個 `fix:` commit，先寫重現測試再修，CLAUDE.md 第 9 節第 3 點）：
+  - mypy 錯誤：`backend/app/api/v1/campaigns.py` 第 322 行 `row.count` 被 mypy 當成 Row 的方法 → 改成 `row[1]` 或在查詢裡替欄位取別名；`uv run mypy app` 要變成 0 個錯。
+  - 防呆文字固定寫「14 天內已經寄過」：改成依 `RECENT_SEND_DAYS` 顯示天數（文字由後端 `/campaigns/exclusion-reasons` 提供，在 `backend/app/domain/send_guard.py` 的原因標籤）。
+  - 公司詳情側欄打開時焦點落在「排除…」→ 改落在標題或關閉鈕；受控對話框關閉後焦點回到原本的按鈕（`Modal` 元件還原焦點）。鍵盤實測。
+  - `AdminImportsPage` 元件測試（Vitest）：上傳預覽、確認匯入、錯誤列表四種狀態。
+  - 前端 bundle 超過 500 kB：dev 模式不載入 MSAL（動態 import）或依路由切分。
+  - 手機版篩選列太長（14 個欄位）：收合成「篩選」按鈕，用 Radix 的對話框或側欄。
+- **要負責人決定的**（決定後才做，不做就照 CLAUDE.md 第 13 節直接刪掉並記在 CHANGELOG）：漏斗數字要不要移除、`gold_label` 表要不要刪（要新增 migration）、寄信時要不要自動認領（SPEC 11-11）、案件聯絡人退訂後要不要自動換人、Excel 缺統編找整理的人補、總覽門檻「只定義一次」要不要改成 SQL 函式。
 
 ---
 
