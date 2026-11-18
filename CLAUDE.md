@@ -93,6 +93,8 @@ uv run alembic upgrade head              # 套用 migration
 uv run python -m scripts.seed_templates  # 初版郵件模板（可重複執行）
 uv run uvicorn app.main:app --port 8000  # API：http://127.0.0.1:8000/api/v1
 uv run python -m app.workers            # 背景 worker（產生草稿、寄信）；要跟 API 一起開著
+ollama serve                             # 本機 LLM（AI 寫信用，預設 qwen3:8b；先 `ollama pull qwen3:8b`）
+uv run python -m scripts.llm_smoke       # 對本機 LLM 跑 1 家假公司，印耗時、JSON 是否合格（手動，不進 pytest）
 uv run pytest                            # 測試（自己會開一個暫時的 Postgres，不碰開發資料庫）
 uv run ruff check . && uv run ruff format --check . && uv run mypy app
 
