@@ -26,7 +26,7 @@ backend/                  後端 API + 背景 Worker（同一個 Python 套件�
     api/v1/               FastAPI 路由：只做輸入驗證、權限檢查、呼叫 domain/services
     domain/               商業規則：狀態機、寄送防呆、鎖定規則（不 import FastAPI 或 SQLAlchemy）
     services/             對外整合與流程：importer、generator(地端 LLM／Claude，ADR 0006)、mailer(Graph)、metrics
-    workers/              背景工作（PostgreSQL 佇列，ADR 0003）：generate_drafts、send_scheduled、sync_replies
+    workers/              背景工作（PostgreSQL 佇列，ADR 0003）：generate_drafts、send_scheduled、case_daily（每日催辦）
     models/               SQLAlchemy ORM
     prompts/              AI 郵件 prompt，檔名帶版本（invite_v1.md）
   db/schema.sql           資料庫參考 DDL（M1 導入 Alembic 後，以 migrations 為準）
@@ -106,7 +106,7 @@ npm run typecheck && npm run lint && npm run test && npm run build
 3. **公司狀態只能透過 `domain` 的狀態機函式改變**，不可以直接 `company.status = ...`。每次變更都要寫一筆 `activity_log`。
 4. **KPI 只在資料庫 view（`v_*`）定義一次**。後端 `metrics` 只讀取 view，前端只負責顯示，不重算比例。
 5. **外部服務一律包在 `services/` 裡**（LLM、Graph），並且透過介面注入，測試時可以換成假的實作。
-6. **耗時的工作放進 worker**（產生草稿、寄信、同步回覆），API 只回傳 `job_id`，不在 request 裡等待。
+6. **耗時的工作放進 worker**（產生草稿、寄信、每日催辦），API 只回傳 `job_id`，不在 request 裡等待。
 7. API 錯誤統一用 `{ "error": { "code": "UPPER_SNAKE", "message": "…" } }` 格式；`code` 要能讓前端對應到中文訊息。
 
 ---
