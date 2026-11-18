@@ -61,6 +61,7 @@ class ContactPatch(BaseModel):
 
 class UnsubscribeBody(BaseModel):
     note: str | None = Field(default=None, max_length=500)
+    whole_company: bool = False  # 客戶明講整家公司都不要聯絡（F-CASE-5）
 
 
 class DeleteBody(BaseModel):
@@ -105,7 +106,8 @@ def unsubscribe_contact(
     db: Session = Depends(get_db),
 ) -> ContactOut:
     contact = svc.get_contact(db, contact_id)
-    return ContactOut.of(svc.unsubscribe(db, user, contact, body.note if body else None))
+    body = body or UnsubscribeBody()
+    return ContactOut.of(svc.unsubscribe(db, user, contact, body.note, whole_company=body.whole_company))
 
 
 @router.delete("/contacts/{contact_id}", status_code=204)

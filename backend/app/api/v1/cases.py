@@ -290,6 +290,7 @@ def get_case(case_id: int, user: AppUser = Depends(current_user), db: Session = 
 
 class UnsubscribeBody(BaseModel):
     contact_id: int | None = None  # 沒填就用案件的聯絡人
+    whole_company: bool = False  # 客戶明講整家公司都不要聯絡（F-CASE-5）
 
 
 @router.post("/cases/{case_id}/unsubscribe", response_model=CaseDetail)
@@ -299,13 +300,16 @@ def unsubscribe(
     user: AppUser = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> CaseDetail:
-    """客戶要求退訂（M3-04a、F-CASE-5）：聯絡人退訂、公司不再聯絡、案件結案為失敗。"""
+    """客戶要求退訂（M3-04a、M3-17、F-CASE-5）：聯絡人退訂；整家公司不要聯絡或已沒有其他聯絡人時，
+    公司改成不再聯絡、案件結案為失敗。否則案件照常進行，可以改用其他聯絡人。"""
     case = case_service.get_case(db, user, case_id)
     contact_id = (body.contact_id if body else None) or case.contact_id
     contact = db.get(Contact, contact_id) if contact_id else None
     if contact is None or contact.company_id != case.company_id:
         raise DomainError("NO_CONTACT", "請選擇要求退訂的聯絡人", 422)
-    contact_service.unsubscribe(db, user, contact, f"案件 {case.case_no} 客戶要求退訂")
+    contact_service.unsubscribe(
+        db, user, contact, f"案件 {case.case_no} 客戶要求退訂", whole_company=bool(body and body.whole_company)
+    )
     db.refresh(case)
     return _detail(db, case)
 

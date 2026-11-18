@@ -29,6 +29,18 @@ def check_source(source: str) -> str:
     return source
 
 
+def company_stops_contact(*, whole_company: bool, reachable_left: int) -> bool:
+    """F-CASE-5（2026-11-18 改）：退訂只標記那位聯絡人；公司什麼時候才改成「不再聯絡」。
+
+    - 客戶明講整家公司都不要聯絡（whole_company）→ 是
+    - 公司已沒有其他可聯絡（沒退訂）的聯絡人 → 是
+    - 否則公司照常，其他聯絡人還可以寄
+    """
+    if reachable_left < 0:
+        raise ValueError("reachable_left 不能是負數")
+    return whole_company or reachable_left == 0
+
+
 def check_delete_reason(reason: str | None) -> str:
     """個資刪除一定要寫原因（例如客戶來信要求），留在 activity_log 備查。"""
     text = (reason or "").strip()

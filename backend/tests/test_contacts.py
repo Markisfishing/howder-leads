@@ -253,6 +253,52 @@ def test_f_case_5_unsubscribe_on_won_company_keeps_status(
     assert db.get(Company, cid).status == "won"  # type: ignore[union-attr]
 
 
+@pytest.mark.parametrize(
+    ("whole_company", "left", "expected"),
+    [(False, 1, False), (False, 3, False), (False, 0, True), (True, 2, True), (True, 0, True)],
+)
+def test_m3_17_company_stops_contact_rule(whole_company: bool, left: int, expected: bool) -> None:
+    assert contact_rules.company_stops_contact(whole_company=whole_company, reachable_left=left) is expected
+
+
+def test_m3_17_company_stops_contact_rejects_negative() -> None:
+    with pytest.raises(ValueError):
+        contact_rules.company_stops_contact(whole_company=False, reachable_left=-1)
+
+
+def test_m3_17_unsubscribe_one_of_two_keeps_company(
+    client: TestClient, db: Session, cid: int, sales1: dict[str, str]
+) -> None:
+    a = _add(client, sales1, cid, email="a@example.com")
+    b = _add(client, sales1, cid, email="b@example.com")
+    before = db.get(Company, cid).status  # type: ignore[union-attr]
+    res = client.post(f"/api/v1/contacts/{a['contact_id']}/unsubscribe", json={}, headers=sales1)
+    assert res.status_code == 200 and res.json()["unsubscribed"] is True
+    db.expire_all()
+    assert db.get(Company, cid).status == before  # type: ignore[union-attr]  # 還有 b 可以聯絡
+    assert _logs(db, "status_change") == []
+
+    # 最後一位也退訂 → 公司才改成不再聯絡
+    client.post(f"/api/v1/contacts/{b['contact_id']}/unsubscribe", json={}, headers=sales1)
+    db.expire_all()
+    assert db.get(Company, cid).status == "do_not_contact"  # type: ignore[union-attr]
+    [log] = _logs(db, "status_change")
+    assert log.note == "所有聯絡人都已退訂"
+
+
+def test_m3_17_unsubscribe_whole_company(client: TestClient, db: Session, cid: int, sales1: dict[str, str]) -> None:
+    a = _add(client, sales1, cid, email="a@example.com")
+    _add(client, sales1, cid, email="b@example.com")
+    res = client.post(f"/api/v1/contacts/{a['contact_id']}/unsubscribe", json={"whole_company": True}, headers=sales1)
+    assert res.status_code == 200
+    db.expire_all()
+    assert db.get(Company, cid).status == "do_not_contact"  # type: ignore[union-attr]
+    [log] = _logs(db, "status_change")
+    assert log.note == "客戶要求整家公司不再聯絡"
+    [unsub] = _logs(db, "contact_unsubscribe")
+    assert unsub.note == "整家公司不再聯絡"
+
+
 # ---------- 個資刪除（SPEC 9）----------
 def _seed_mail(db: Session, company_id: int, contact_id: int) -> None:
     """直接用 SQL 建一封寄出的信和一筆事件（郵件 API 在 M2-02 之後才有）。"""
