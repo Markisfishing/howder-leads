@@ -6,8 +6,8 @@
 | 項目 | 狀態 |
 |---|---|
 | 最後更新 | 2026-11-18（使用者決定：Microsoft／Outlook 相關等拿到 Outlook 帳號再做；M1-03 Docker 驗證完成；補齊本機測試 PostgreSQL 執行檔；完成開發中發現的 mypy、焦點、防呆文字小修；M2-24 共用信箱 SMTP 寄信；複核 M2-17、M2-23；M4 併入 feat/m1-mvp；新增並修正一鍵啟動開發環境；修正前端 127.0.0.1 綁定） |
-| 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 l。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（2026-11-18 改成先用共用 Outlook.com 信箱 SMTP：M2-24 已完成 → M2-25 → M2-15；個人帳號 OAuth 的 M2-20、M2-21 暫緩當備案）；M1 全部完成（M1-03 Docker 驗證 2026-11-18 完成） |
-| 下一個任務 | **Microsoft／Outlook 相關（M2-15、M2-20、M2-21、M2-25、M2-26）暫停，等負責人拿到 Outlook 帳號**。現在可以做、不需要帳號的：①手機版篩選列收合成「篩選」按鈕（含推薦清單 14 欄位）；②補 `RecommendationsPage`、`AdminImportsPage` 元件測試；③M4-06l 完整 sandbox 50 封驗收（要開 Ollama）；④總覽比例門檻重複寫在 `metrics_service` 的收斂（CLAUDE.md 第 4 節第 4 點）；⑤官網摘要失敗原因分布（查開發資料庫）。要負責人決定的：M4-06g 補 `CLAUDE.md` 指令、漏斗與 `gold_label` 表要不要移除、寄信要不要自動認領（SPEC 11-11）。之後 M5 |
+| 目前階段 | **M4 全部完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 全部完成。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（2026-11-18 改成先用共用 Outlook.com 信箱 SMTP：M2-24 已完成 → M2-25 → M2-15；個人帳號 OAuth 的 M2-20、M2-21 暫緩當備案）；M1 全部完成（M1-03 Docker 驗證 2026-11-18 完成） |
+| 下一個任務 | **Microsoft／Outlook 相關（M2-15、M2-20、M2-21、M2-25、M2-26）暫停，等負責人拿到 Outlook 帳號**。不需要帳號、可以先做的已做完（2026-11-18）。剩下：請負責人在公司側欄對失敗的官網摘要按「重新抓取」（gzip bug 已修）；案件聯絡人退訂後自動換人（開發中發現）；M5（先拆細）。之後等 Outlook 帳號 → M2-15 |
 | 卡住 / 待確認 | **等負責人拿到 Outlook 帳號**（M2-15 真實寄信驗收、M2-20／M2-21 個人帳號 OAuth 備案、M2-25、M2-26；ADR 0007 也等這件事）、公司對外信箱的類型與管理員能否註冊應用程式、同意 `Mail.Send`（M2-26，等 IT 回覆；outlook.com 已不能用密碼登入 SMTP，M2-25）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -48,7 +48,6 @@
 | 2 | M2-26 向 IT 確認公司對外信箱 | 負責人 | 問題清單在 `docs/it-mail-questions.md`，可直接複製傳給 IT |
 | 3 | M2-15 真實寄信驗收 | 負責人＋開發者 | 用共用信箱 SMTP；不需要 Azure |
 | 備案 | M2-20 登入支援個人帳號 → M2-21 連結 Outlook | 開發者 | 只有 M2-25 登入不了、或換公司帳號時才做（ADR 0007） |
-| — | M4-06l 完整 sandbox 50 封驗收 | 開發者 | 需要本機 Ollama |
 | 已完成 | M1-03 Docker 驗證 | 開發者 | 2026-11-18：compose 補上專案名稱並只綁本機，migration、測試、API 都正常 |
 | 之後 | M5 | 先拆細 | CLAUDE.md 第 13 節：開始前拆成和 M1 一樣細 |
 
@@ -112,8 +111,6 @@
   6. 結束後 `MAIL_MODE` 改回 `sandbox`；結果（不含信箱地址）寫進 CHANGELOG，打勾 M2-15。
 - **注意**：新的個人帳號可能被 Microsoft 限制寄送量或要求驗證；遇到就記錄錯誤代碼，不要調高上限硬寄。
 
-### M4-06l 完整 sandbox 50 封驗收
-- LLM 階段已測過（`qwen3:8b` 50 封 82 秒、0 失敗）。還要走完整流程：`MAIL_MODE=sandbox`、開本機 Ollama、API 與 worker → 準備 50 家假公司 → 建立 `template_ai` 批次 → 從按下建立到 50 封都出現在預覽佇列計時 → 記錄總耗時與失敗數，對照 F-MAIL-3「50 封 3 分鐘」→ 寫進 ADR 0006 → 打勾。
 
 ### M1-03 Docker 驗證
 - 需要一台 Docker Desktop 能啟動的電腦：在專案根目錄 `docker compose up -d` → 把 `DATABASE_URL` 指到 compose 的 Postgres → `alembic upgrade head` → `uv run pytest` 與 API 都正常 → 打勾。發現 compose 檔要改就一起修。
@@ -368,7 +365,7 @@
 ### 原始任務（保留編號，細項在下面各小節）
 - [x] M4-01 績效頁：漏斗、各星級成交率、各來源／標籤／模板回覆率、業務排行（F-TRK-5）→ 拆成 M4-01a～c — 2026-11-18
 - [x] M4-02 排除原因報表（F-MLE-1，內部的名單品質報表）→ 拆成 M4-02a、b — 2026-11-18
-- [ ] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）。先用地端 LLM（ADR 0006）→ 拆成 M4-06a～l（沒有 b：2026-11-18 使用者決定不做業務盲評，已刪除）
+- [x] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）。先用地端 LLM（ADR 0006）→ 拆成 M4-06a～l（沒有 b：2026-11-18 使用者決定不做業務盲評，已刪除） — 2026-11-18
 - [x] M4-07 依回填內容判斷回覆態度（F-TRK-2；原 M3-03）→ 拆成 M4-07a～c — 2026-11-18
 - [x] M4-08 官網摘要：給 AI 寫信用的公司背景（SPEC 7.4；M4-06 的前置）→ 拆成 M4-08a～e — 2026-11-18
 
@@ -385,7 +382,7 @@
 - [x] M4-06j 並發與失敗處理：依 `LLM_CONCURRENCY` 同時產生；JSON 不合格或有簡體字重試一次，再失敗就標 `failed` 並記錄錯誤代碼；「重新產生」走同一條路；錯誤代碼前端翻成中文 — 2026-11-18
 - [x] M4-06k 前端：建立批次頁開放「模板＋AI 段落」「整封 AI 撰寫」（目前顯示「M4 開放」）；預覽佇列顯示這封是哪個模型、哪一版 prompt 產生的，AI 內容旁提醒業務核對事實 — 2026-11-18
 - [x] M4-06d `ClaudeClient`（保留切換選項，用假的實作測試；要不要上線由使用者決定） — 2026-11-18（`ClaudeClient` 用 Messages API，假 HTTP 測試；`LLM_PROVIDER=claude` 需 `ANTHROPIC_API_KEY`，要不要上線由使用者決定）
-- [ ] M4-06l 驗收（sandbox，不寄出）：本機 Ollama 用選定的模型產生 50 封 `template_ai` 草稿，記錄總耗時與失敗率，對照 F-MAIL-3「50 封 3 分鐘」；達不到就在 ADR 0006 記下本機實測數字，正式環境靠公司 GPU 主機（進行中：LLM 階段實測 `qwen3:8b` 50 封 `template_ai` 共 82 秒、0 失敗，達到 3 分鐘目標；尚未用完整 sandbox 流程〔建批次→worker→預覽〕跑 50 封）
+- [x] M4-06l 驗收（sandbox，不寄出）：本機 Ollama 用選定的模型產生 50 封 `template_ai` 草稿，記錄總耗時與失敗率，對照 F-MAIL-3「50 封 3 分鐘」；達不到就在 ADR 0006 記下本機實測數字，正式環境靠公司 GPU 主機（進行中：LLM 階段實測 `qwen3:8b` 50 封 `template_ai` 共 82 秒、0 失敗，達到 3 分鐘目標；尚未用完整 sandbox 流程〔建批次→worker→預覽〕跑 50 封） — 2026-11-18（完整流程實測：50 封 81 秒、0 失敗，已寫入 ADR 0006）
 
 ### 官網摘要（M4-08；SPEC 7.4）
 - [x] M4-08a migration：新增 `company_site_summary` 表（公司、抓取網址、摘要、抓取時間、狀態、錯誤代碼），`job.kind` 加上 `fetch_site`（單獨 commit；同步 `db/schema.sql`、SPEC 8.1） — 2026-11-18
