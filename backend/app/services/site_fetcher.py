@@ -104,7 +104,11 @@ class SiteFetcher:
                         if len(body) >= self._max_bytes:
                             body = body[: self._max_bytes]  # 太大的頁面只取前面一段
                             break
-                    final = httpx.Response(res.status_code, headers=res.headers, content=body, request=res.request)
+                    # iter_bytes() 已經解壓；重組回應時要拿掉 Content-Encoding／Length，否則 httpx 會再解壓一次而失敗
+                    headers = {
+                        k: v for k, v in res.headers.items() if k.lower() not in ("content-encoding", "content-length")
+                    }
+                    final = httpx.Response(res.status_code, headers=headers, content=body, request=res.request)
                     return final, current
             except httpx.TimeoutException as e:
                 raise SiteFetchError("SITE_TIMEOUT") from e
