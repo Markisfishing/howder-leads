@@ -110,6 +110,16 @@ export interface CompanyDetail extends CompanyRow {
   contacts: Contact[];
   reviews: ReviewRecord[];
   activities: Activity[];
+  /** 官網摘要（M4-08）：還沒抓過為 null；status = failed 時看 error_code */
+  site_summary?: SiteSummary | null;
+}
+
+export interface SiteSummary {
+  status: "ok" | "failed";
+  summary: string | null;
+  error_code: string | null;
+  source_url: string | null;
+  fetched_at: string;
 }
 
 export interface Kpis {
