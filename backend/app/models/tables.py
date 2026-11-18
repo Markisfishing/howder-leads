@@ -277,6 +277,9 @@ class EmailDraft(Base):
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     send_attempts: Mapped[int] = mapped_column(Integer, default=0)
     last_error: Mapped[str | None] = mapped_column(Text)
+    gen_provider: Mapped[str | None] = mapped_column(Text)
+    gen_model: Mapped[str | None] = mapped_column(Text)
+    prompt_version: Mapped[str | None] = mapped_column(Text)
 
     def __repr__(self) -> str:  # 不印內文（CLAUDE.md 第 8 節第 4 點）
         return f"EmailDraft(draft_id={self.draft_id}, status={self.status!r})"
