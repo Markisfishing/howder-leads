@@ -58,6 +58,7 @@ export const useReview = () => useCompanyMutation(ep.submitReview);
 export const usePatchCompany = () =>
   useCompanyMutation(({ id, body }: { id: number; body: ep.CompanyPatch }) => ep.patchCompany(id, body));
 export const useCreateCompany = () => useCompanyMutation(ep.createCompany);
+export const useRefreshSiteSummary = () => useCompanyMutation(ep.refreshSiteSummary);
 export const useClaim = () => useCompanyMutation(ep.claimCompany);
 export const useRelease = () => useCompanyMutation(ep.releaseCompany);
 

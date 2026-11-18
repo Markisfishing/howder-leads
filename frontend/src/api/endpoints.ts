@@ -117,6 +117,9 @@ export const deleteContact = (id: number, reason: string) =>
   api<void>(`/contacts/${id}`, { method: "DELETE", json: { reason } });
 
 export const claimCompany = (id: number) => api<CompanyDetail>(`/companies/${id}/claim`, { method: "POST" });
+/** 重新抓取官網摘要（M4-08e）：先清掉舊的，排進背景工作 */
+export const refreshSiteSummary = (id: number) =>
+  api<CompanyDetail>(`/companies/${id}/site-summary/refresh`, { method: "POST" });
 export const releaseCompany = (id: number) => api<CompanyDetail>(`/companies/${id}/release`, { method: "POST" });
 
 export interface ReviewBody {
