@@ -19,6 +19,7 @@ from app.config import Settings, get_settings
 from app.db import get_engine
 from app.domain import template_rules
 from app.models import Company, EmailDraft, EmailMessage, Job
+from app.services.llm import FakeLlmClient
 from app.services.mailer import MailAuthError, MailSendError, OutgoingMail, SandboxMailer, SendResult
 from app.workers.runner import WorkerDeps, run_until_idle
 from tests.factories import csv_bytes
@@ -58,7 +59,8 @@ class World:
 
     def worker(self, *, advance: timedelta = timedelta(0)) -> int:
         self.clock[0] = self.clock[0] + advance
-        deps = WorkerDeps(settings=self.settings, mailer=self.mailer, now=lambda: self.clock[0])
+        # LLM 一律用假的：沒放回覆的 FakeLlmClient 會直接失敗，不會連本機 Ollama
+        deps = WorkerDeps(settings=self.settings, mailer=self.mailer, now=lambda: self.clock[0], llm=FakeLlmClient())
         n = run_until_idle(sessionmaker(bind=get_engine(), expire_on_commit=False), deps)
         self.db.expire_all()
         return n

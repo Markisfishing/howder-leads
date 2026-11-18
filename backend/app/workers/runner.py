@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config import Settings, get_settings
 from app.db import get_engine
 from app.models import Job
-from app.services import generator, jobs, reminder_service, send_service
+from app.services import generator, jobs, reminder_service, send_service, sentiment_service
 from app.services.llm import LlmClient, get_llm_client
 from app.services.mailer import GraphMailer, Mailer, SandboxMailer
 
@@ -60,6 +60,8 @@ def _handle(db: Session, job: Job, deps: WorkerDeps) -> None:
         )
     elif job.kind == "send_email":
         send_service.send_one(db, int(job.payload["draft_id"]), deps.mailer, deps.settings, deps.now())
+    elif job.kind == sentiment_service.KIND:
+        sentiment_service.classify_update(db, int(job.payload["update_id"]), deps.llm or get_llm_client(deps.settings))
     elif job.kind == reminder_service.DAILY_KIND:
         reminder_service.run_daily(db, deps.now())
     else:

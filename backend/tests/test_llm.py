@@ -106,18 +106,18 @@ def test_m4_06a_fake_client_can_fail_on_demand() -> None:
 
 
 def test_m4_06a_settings_default_to_local_ollama_and_inject_client() -> None:
-    s = Settings(_env_file=None)
+    s = Settings(_env_file=None, env="development")
     assert s.llm_provider == "local"
     assert s.local_llm_base_url == "http://127.0.0.1:11434/v1"
     assert s.local_llm_model == "qwen3:8b"
-    client = get_llm_client(Settings(_env_file=None, local_llm_model="qwen3:14b"))
+    client = get_llm_client(Settings(_env_file=None, env="development", local_llm_model="qwen3:14b"))
     assert isinstance(client, LocalLlmClient)
     assert client.model == "qwen3:14b"
 
 
 def test_m4_06a_claude_provider_not_available_yet() -> None:
     with pytest.raises(LlmError) as e:
-        get_llm_client(Settings(_env_file=None, llm_provider="claude"))
+        get_llm_client(Settings(_env_file=None, env="development", llm_provider="claude"))
     assert e.value.code == "LLM_PROVIDER_NOT_AVAILABLE"
 
 
@@ -125,3 +125,10 @@ def test_m4_06a_claude_provider_not_available_yet() -> None:
 def test_m4_06a_settings_reject_bad_llm_values(kwargs: dict[str, float]) -> None:
     with pytest.raises(ValueError):
         Settings(_env_file=None, **kwargs)
+
+
+def test_m4_06a_real_llm_client_is_refused_in_test_env() -> None:
+    """ENV=test 時不准建立真實 client，避免自動化測試誤連本機 Ollama。"""
+    with pytest.raises(LlmError) as e:
+        get_llm_client(Settings(_env_file=None, env="test"))
+    assert e.value.code == "LLM_DISABLED_IN_TEST"
