@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-11-18｜M2-25 結果：outlook.com 不能用密碼登入 SMTP
+
+**改了哪些檔案**
+- `backend/scripts/smtp_check.py`：登入失敗時印出伺服器回的原因（不含密碼），並對照成白話說明（密碼登入被停用／信箱關閉 SMTP／帳密錯誤）
+- `PROGRESS.md`：M2-25 打勾並記錄結果，狀態表改成「寄件方式待負責人決定」
+- `docs/adr/0008-shared-outlook-smtp-for-testing.md`：狀態補上實測結果
+
+**解決了什麼問題**
+- 負責人執行 `smtp_check` 得到 `SMTP_AUTH_FAILED（535）`。查證：Microsoft 2024-06 宣布、2024-09-16 起停用 Outlook.com／Hotmail 個人信箱的基本驗證（密碼與應用程式密碼都不行），使用者無法自己打開。2026 年新註冊的個人信箱另有回覆「SmtpClientAuthentication is disabled for the Mailbox」，連 OAuth 的 SMTP 也被拒。
+- 原本腳本只印代碼，分不出是哪一種；現在會印伺服器原文。
+
+**做了哪些決定**
+- 不再嘗試 outlook.com SMTP；`SmtpMailer` 程式保留（不綁 Outlook，換主機就能用）。
+
+**還沒處理的問題**
+- 寄件方式要負責人決定：Gmail＋應用程式密碼（只改 `.env`，寄件人是 Gmail）或 ADR 0007 的 Graph（要註冊 Azure 應用程式，做 M2-20、M2-21）。
+- 查到的來源多是 Microsoft Q&A 社群回覆與新聞，不是 Microsoft 正式文件；官方「user: sendMail」文件寫明個人帳號可用委派 `Mail.Send`（ADR 0007 已引用）。
+
+**下一步**
+- 負責人決定後：Gmail → 更新 ADR 0008 與 `.env.example` 再做 M2-15；Graph → M2-20、M2-21 → M2-15。
+
+---
+
 ## 2026-11-18｜補齊本機測試 PostgreSQL 執行檔
 
 **改了哪些檔案**
