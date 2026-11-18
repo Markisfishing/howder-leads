@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { useTemplateActions, useTemplatePreview, useTemplateVariables, useTemplateVersions, useTemplates } from "../api/hooks";
 import type { EmailTemplate } from "../api/types";
@@ -138,6 +138,13 @@ function TemplateEditor({
   const [body, setBody] = useState(template?.body_text ?? NEW_BODY);
   const [previewOpen, setPreviewOpen] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  // 內文依內容自動增高，不出現內部捲軸（捲動交給整個頁面）
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+  }, [body]);
   const preview = useTemplatePreview(useDebounced(subject), useDebounced(body));
   const mutation = template ? update : create;
 
