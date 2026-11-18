@@ -318,6 +318,10 @@ export interface Draft {
   send_attempts: number;
   last_error: string | null;
   approved_at: string | null;
+  /** AI 產生才有（M4-06h）；只用模板時是 null */
+  gen_provider?: string | null;
+  gen_model?: string | null;
+  prompt_version?: string | null;
 }
 
 export interface DraftPage {

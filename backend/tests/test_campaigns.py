@@ -173,18 +173,18 @@ def test_f_mail_1_all_excluded_is_rejected(world: World) -> None:
     assert res.json()["error"]["code"] == "NO_ELIGIBLE_TARGETS"
 
 
-def test_f_mail_2_ai_modes_not_available_yet(world: World) -> None:
+def test_f_mail_2_unknown_gen_mode_rejected(world: World) -> None:
     res = world.client.post(
         "/api/v1/campaigns",
         json={
             "name": "x",
             "template_id": world.template_id,
-            "gen_mode": "full_ai",
+            "gen_mode": "magic",
             "targets": [{"company_id": world.ids["10000001"], "contact_id": world.contacts[world.ids["10000001"]]}],
         },
         headers=world.sales1,
     )
-    assert res.json()["error"]["code"] == "GEN_MODE_NOT_AVAILABLE"
+    assert res.status_code == 422  # AI 模式在 M4-06 開放；沒有的模式仍然擋下
 
 
 def test_f_mail_7_unsubscribed_and_locked_are_excluded(world: World) -> None:
