@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     local_llm_model: str = "qwen3:8b"
     llm_timeout_seconds: float = 120.0
     llm_concurrency: int = 2
+    # LLM_PROVIDER=claude 時才需要（M4-06d）；金鑰只放 .env，不 commit
+    anthropic_api_key: str = ""
+    claude_model: str = "claude-sonnet-5-5"
 
     # MLE function 直接呼叫匯入 API 用的金鑰
     import_api_key: str = ""
@@ -55,6 +58,8 @@ class Settings(BaseSettings):
             raise ValueError("MAIL_MODE=live 需要 ENTRA_CLIENT_SECRET 與 MAIL_TOKEN_KEY（ADR 0005）")
         if self.mail_mode == "live" and self.auth_mode != "entra":
             raise ValueError("MAIL_MODE=live 需要 AUTH_MODE=entra")
+        if self.llm_provider == "claude" and not self.anthropic_api_key:
+            raise ValueError("LLM_PROVIDER=claude 需要 ANTHROPIC_API_KEY")
         if self.llm_concurrency < 1 or self.llm_timeout_seconds <= 0:
             raise ValueError("LLM_CONCURRENCY 必須大於 0，LLM_TIMEOUT_SECONDS 必須大於 0")
         if self.daily_send_limit < 1 or self.send_per_minute < 1:
