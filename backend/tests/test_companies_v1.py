@@ -5,11 +5,26 @@ from collections.abc import Callable
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.factories import csv_bytes
+
 Headers = Callable[[str], dict[str, str]]
 
 
+COLUMNS = {
+    "country": "國別",
+    "url_status": "網址狀態",
+    "product_type": "產品類型",
+    "tags": "命中標籤",
+    "fit_stars": "適合度星等",
+    "source": "資料來源",
+}
+
+
 def _row(tax_id: str, name: str, priority: str, **v1: object) -> dict[str, object]:
-    return {"tax_id": tax_id, "name": name, "priority": priority, "industry": "配電盤與電機控制", **v1}
+    row: dict[str, object] = {"統編": tax_id, "公司名稱": name, "開發優先級": priority, "產業": "配電盤與電機控制"}
+    for key, value in v1.items():
+        row[COLUMNS[key]] = "、".join(value) if isinstance(value, list) else value
+    return row
 
 
 @pytest.fixture
@@ -21,14 +36,14 @@ def sales1(client: TestClient, as_user: Headers) -> dict[str, str]:
         _row("90000304", "丁", "A", source="expo"),  # 沒給 fit_stars → 用優先級星等
         _row("90000305", "戊", "C", fit_stars=3.0),  # 沒有來源
     ]
-    # 「戊」沒有來源但同批有來源欄，API 匯入要求每列都填；分兩批送
+    # 「戊」沒有來源：有「資料來源」欄時每列都要填，所以分兩個檔案匯入（第二個沒有這一欄）
+    admin = as_user("admin@example.com")
     for batch in (rows[:4], rows[4:]):
-        res = client.post(
-            "/api/v1/imports/api?commit=true",
-            json={"model_name": "t", "rows": batch},
-            headers={"X-API-Key": "test-key"},
-        )
+        res = client.post("/api/v1/imports", files={"file": ("v1.csv", csv_bytes(batch), "text/csv")}, headers=admin)
         assert res.status_code == 201, res.text
+        assert res.json()["rows_error"] == 0, res.json()["errors"]
+        res = client.post(f"/api/v1/imports/{res.json()['batch_id']}/commit", headers=admin)
+        assert res.status_code == 200, res.text
     return as_user("sales1@example.com")
 
 

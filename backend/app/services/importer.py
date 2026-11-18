@@ -182,7 +182,7 @@ def normalize(
     """records 的 key 是標準欄位名。回傳乾淨資料列與錯誤（row 是 Excel 上看到的列號，表頭是第 1 列）。
 
     has_source_column：檔案有沒有「資料來源」欄。有這欄就是 CSV v1，每列都要填；
-    舊版 Excel 沒有這欄，照樣匯入，但提示來源會算在「未標示」。None 表示從資料判斷（API 匯入用）。
+    舊版 Excel 沒有這欄，照樣匯入，但提示來源會算在「未標示」。None 表示從資料判斷。
     """
     parsed = ParsedFile(rows=[])
     for col in unknown_columns or []:

@@ -46,9 +46,6 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     claude_model: str = "claude-sonnet-5-5"
 
-    # MLE function 直接呼叫匯入 API 用的金鑰
-    import_api_key: str = ""
-
     lock_days: int = 30
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 

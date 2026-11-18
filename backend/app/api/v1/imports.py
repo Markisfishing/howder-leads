@@ -1,20 +1,18 @@
-"""名單匯入 API（F-IMP-1 ~ F-IMP-5）。
+"""名單匯入 API（F-IMP-1 ~ F-IMP-4）。
 
-- 管理員上傳檔案：POST /imports（multipart）→ 預覽；POST /imports/{id}/commit 確認。
-- MLE function：POST /imports/api（JSON + X-API-Key），可帶 ?commit=true 直接寫入。
+管理員上傳整理好的 CSV / XLSX：POST /imports（multipart）→ 預覽；POST /imports/{id}/commit 確認。
+（F-IMP-5 API 匯入已在 2026-11-18 移除：沒有模型，名單一律從檔案匯入。）
 """
 
-import secrets
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, Form, Header, Query, UploadFile
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi import APIRouter, Depends, File, Form, UploadFile
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_admin
-from app.config import Settings, get_settings
 from app.db import get_db
 from app.errors import AppError
 from app.models import AppUser, ImportBatch
@@ -47,33 +45,6 @@ class BatchDetail(BatchSummary):
     warnings: list[dict[str, Any]]  # 不擋匯入的提示：看不懂的欄位、沒有資料來源欄
 
 
-class ApiImportRow(BaseModel):
-    tax_id: str
-    name: str
-    website_url: str | None = None
-    registered_products: str | None = None
-    industry: str | None = None
-    customer_type: str | None = None
-    likelihood: str | None = None
-    priority: str
-    score: float | None = None
-    reason: str | None = None
-    # CSV 欄位規格 v1（SPEC 8.4）
-    country: str | None = None
-    url_status: str | None = None
-    product_type: str | None = None
-    tags: list[str] | str | None = None
-    fit_stars: float | None = None
-    source: str | None = None
-
-
-class ApiImportBody(BaseModel):
-    model_name: str = Field(min_length=1, max_length=200)
-    rows: list[ApiImportRow] = Field(min_length=1, max_length=20000)
-    # 漏斗前段數字（資料庫總數、產業篩選後、網址有效、產品命中…），系統只顯示、不重算
-    funnel: dict[str, int] | None = Field(default=None, max_length=20)
-
-
 def _detail(batch: ImportBatch) -> BatchDetail:
     summary = BatchSummary.model_validate(batch).model_dump()
     payload = batch.payload or []
@@ -85,13 +56,6 @@ def _detail(batch: ImportBatch) -> BatchDetail:
         errors=[e for e in report if e.get("level") != "warning"],
         warnings=[{k: v for k, v in e.items() if k != "level"} for e in report if e.get("level") == "warning"],
     )
-
-
-def _api_record(row: ApiImportRow) -> dict[str, Any]:
-    rec = row.model_dump()
-    if isinstance(rec["tags"], list):
-        rec["tags"] = "、".join(rec["tags"])
-    return rec
 
 
 def _get_batch(db: Session, batch_id: int) -> ImportBatch:
@@ -125,28 +89,6 @@ async def upload_import(
         model_name=model_name,
         user=user,
     )
-    return _detail(batch)
-
-
-@router.post("/imports/api", response_model=BatchDetail, status_code=201)
-def api_import(
-    body: ApiImportBody,
-    commit: bool = Query(default=False),
-    x_api_key: str | None = Header(default=None),
-    settings: Settings = Depends(get_settings),
-    db: Session = Depends(get_db),
-) -> BatchDetail:
-    if not settings.import_api_key or not x_api_key or not secrets.compare_digest(x_api_key, settings.import_api_key):
-        raise AppError("INVALID_API_KEY", "API key 不正確", 401)
-    records = [_api_record(r) for r in body.rows]
-    parsed = importer.normalize(records, importer.industry_lookup(db))
-    batch = importer.create_batch(
-        db, parsed, file_name=None, source="api", model_name=body.model_name, user=None, funnel=body.funnel
-    )
-    if commit:
-        if parsed.errors:
-            raise AppError("IMPORT_HAS_ERRORS", "資料有錯誤，未寫入；請修正後重送", 422, parsed.errors)
-        batch = importer.commit_batch(db, batch, None)
     return _detail(batch)
 
 

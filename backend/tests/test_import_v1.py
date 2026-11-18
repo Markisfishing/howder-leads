@@ -96,31 +96,6 @@ def test_m3_06b_reimport_without_source_keeps_known_source(
     assert {c.source for c in db.scalars(select(Company))} == {"expo"}
 
 
-def test_m3_06b_api_import_tags_list_and_funnel(client: TestClient, db: Session) -> None:
-    body = {
-        "model_name": "mle-v3",
-        "funnel": {"資料庫總數": 12000, "產業篩選後": 800, "網址有效": 600, "產品命中": 120},
-        "rows": [
-            {
-                "tax_id": "90000201",
-                "name": "範例 API 公司",
-                "priority": "B",
-                "country": "vn",
-                "tags": ["電箱", "自動化"],
-                "fit_stars": 3.26,
-                "source": "b2b",
-            }
-        ],
-    }
-    res = client.post("/api/v1/imports/api?commit=true", json=body, headers={"X-API-Key": "test-key"})
-    assert res.status_code == 201, res.text
-    assert res.json()["funnel"]["產品命中"] == 120
-    company = db.scalars(select(Company).where(Company.tax_id == "90000201")).one()
-    cl = db.scalars(select(Classification).where(Classification.company_id == company.company_id)).one()
-    assert company.country == "VN"
-    assert (cl.fit_stars, sorted(cl.tags)) == (Decimal("3.3"), ["自動化", "電箱"])
-
-
 def test_m3_06b_sample_csv_has_utf8_bom() -> None:
     """範例檔要帶 UTF-8 BOM：Excel 雙擊開啟時才不會把中文顯示成亂碼。"""
     raw = SAMPLE.read_bytes()

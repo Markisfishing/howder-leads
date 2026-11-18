@@ -1,4 +1,4 @@
-"""名單匯入（F-IMP-1 ~ F-IMP-5、SPEC 8.3）。"""
+"""名單匯入（F-IMP-1 ~ F-IMP-4、SPEC 8.3）。"""
 
 from collections.abc import Callable
 
@@ -126,37 +126,6 @@ def test_m1_20_two_sheet_excel_merges_tax_id_and_cleans_columns(
     assert competitor["likelihood"] == "高" and competitor["is_competitor"] is True
     assert by_tax["10000002"]["website_url"] is None  # 「無官網」轉成空值
     assert "家數" not in by_tax["10000001"] and "分類" not in by_tax["10000001"]
-
-
-def test_f_imp_5_api_import_requires_key(client: TestClient) -> None:
-    body = {"model_name": "mle-v2", "rows": [{"tax_id": "10000009", "name": "API 公司", "priority": "A"}]}
-    assert client.post("/api/v1/imports/api", json=body).status_code == 401
-    res = client.post("/api/v1/imports/api", json=body, headers={"X-API-Key": "wrong"})
-    assert res.json()["error"]["code"] == "INVALID_API_KEY"
-
-
-def test_f_imp_5_api_import_commit(client: TestClient, db: Session) -> None:
-    body = {
-        "model_name": "mle-v2",
-        "rows": [
-            {
-                "tax_id": "10000009",
-                "name": "API 公司",
-                "industry": "配電盤與電機控制",
-                "likelihood": "高",
-                "priority": "A",
-            },
-        ],
-    }
-    res = client.post("/api/v1/imports/api?commit=true", json=body, headers={"X-API-Key": "test-key"})
-    assert res.status_code == 201, res.text
-    assert res.json()["status"] == "committed"
-    assert _count(db) == 1
-
-    bad = {"model_name": "mle-v2", "rows": [{"tax_id": "x", "name": "壞資料", "priority": "A"}]}
-    res = client.post("/api/v1/imports/api?commit=true", json=bad, headers={"X-API-Key": "test-key"})
-    assert res.status_code == 422
-    assert res.json()["error"]["code"] == "IMPORT_HAS_ERRORS"
 
 
 def test_sales_cannot_upload(client: TestClient, as_user: Headers) -> None:
