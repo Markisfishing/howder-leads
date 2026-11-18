@@ -20,6 +20,7 @@ from app.domain.company_rules import STATUS_LABELS, DomainError
 from app.domain.send_limits import TAIPEI
 from app.models import ActivityLog, AppUser, Classification, Contact, DimPriority, Review, v_recommendation
 from app.services import company_service as svc
+from app.services import site_service
 
 router = APIRouter()
 V = v_recommendation.c
@@ -62,6 +63,14 @@ class CompanyPage(BaseModel):
     page_size: int
 
 
+class SiteSummaryOut(BaseModel):
+    status: str  # ok / failed
+    summary: str | None
+    error_code: str | None
+    source_url: str | None
+    fetched_at: datetime
+
+
 class CompanyDetail(CompanyRow):
     registered_products: str | None
     model_industry_id: int | None
@@ -72,6 +81,7 @@ class CompanyDetail(CompanyRow):
     contacts: list[dict[str, Any]]
     reviews: list[dict[str, Any]]
     activities: list[dict[str, Any]]
+    site_summary: "SiteSummaryOut | None" = None  # M4-08e：官網摘要（AI 寫信的公司背景）
 
 
 class CompanyPatch(BaseModel):
@@ -355,7 +365,37 @@ def _detail(db: Session, company_id: int) -> CompanyDetail:
         contacts=contacts,
         reviews=reviews,
         activities=activities,
+        site_summary=_site_summary(db, company_id),
     )
+
+
+def _site_summary(db: Session, company_id: int) -> "SiteSummaryOut | None":
+    row = site_service.get_summary(db, company_id)
+    if row is None:
+        return None
+    return SiteSummaryOut(
+        status=row.status,
+        summary=row.summary,
+        error_code=row.error_code,
+        source_url=row.source_url,
+        fetched_at=row.fetched_at,
+    )
+
+
+@router.post("/companies/{company_id}/site-summary/refresh", response_model=CompanyDetail, status_code=202)
+def refresh_site_summary(
+    company_id: int, user: AppUser = Depends(current_user), db: Session = Depends(get_db)
+) -> CompanyDetail:
+    """M4-08e：業務按「重新抓取」。要有官網；被其他業務鎖定的公司只有主管能操作。"""
+    company = svc.get_company(db, company_id)
+    svc.ensure_can_act(company, user)
+    if not company.website_url:
+        raise DomainError("SITE_NO_URL", "這家公司沒有官網，沒辦法抓取", 422)
+    site_service.invalidate(db, company_id)
+    db.flush()
+    site_service.enqueue(db, company_id, user.user_id)
+    db.commit()
+    return _detail(db, company_id)
 
 
 @router.get("/companies/{company_id}", response_model=CompanyDetail)
