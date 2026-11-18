@@ -1,10 +1,10 @@
 # 厚達電子 潛在客戶推薦與邀請信系統
 
 協助厚達電子（端子台製造商）業務部的內部 Web 系統。主要功能：
-1. 把 MLE 模型評分後的潛在客戶，以星級排序呈現。
+1. 把整理好的潛在客戶名單（Excel／CSV 匯入），以星級排序呈現。
 2. 讓業務審核要合作的對象。
 3. 批次產生邀請信，經業務預覽、核准後，從業務本人的 Outlook 寄出。
-4. 追蹤回覆與成效，評估各批名單的品質（MLE 只負責產生名單 CSV，結果不回傳給 MLE）。
+4. 追蹤回覆與成效，評估各批名單的品質（系統沒有模型：名單在系統外整理好再匯入，結果不回傳）。
 
 完整規格見 `docs/SPEC.md`。**規格和本檔衝突時，以本檔為準，並回報使用者，讓他決定要不要更新 SPEC。**
 
@@ -53,9 +53,8 @@ CHANGELOG.md              ★ 開發日誌：每個階段改了什麼、下一�
 | 邀請信批次 | `campaign` | |
 | 草稿 | `email_draft` | AI 原稿存在 `ai_original` |
 | 寄出的信 | `email_message` | 只有核准的草稿才會變成這個 |
-| 模型版本 | `model_run` / `run_id` | 每次 MLE 匯入就是一個 run |
-| 盲標 | `gold_label` | 標準答案，標的人看不到模型結果 |
-| 適合度星等 | `fit_stars` | MLE 在 CSV 提供（1.0～5.0）；沒提供時用 `stars` |
+| 匯入批次 | `model_run` / `run_id`（資料庫沿用舊名） | 每次確認匯入就是一個 run；UI 一律叫「匯入批次」，不叫模型 |
+| 適合度星等 | `fit_stars` | 整理好的 Excel／CSV 提供（1.0～5.0）；沒提供時用 `stars` |
 | 資料來源 | `source` | 名單從哪個網站撈來，用來算各來源回覆率 |
 | 案件 | `sales_case` | 每封開發信（或「加入追蹤」）開一個，編號 C-0001 |
 | 回填 | `case_update` | 業務人工記錄客戶回覆與結果；系統不讀業務信箱（ADR 0004） |
@@ -125,11 +124,10 @@ npm run typecheck && npm run lint && npm run test && npm run build
 
 1. **系統絕對不會自動寄信。** 只有 `status = approved` 的草稿可以寄，後端寄送前要再檢查一次，不能只靠前端把按鈕藏起來。
 2. 寄送防呆一律在後端 `domain` 實作：已退訂、`do_not_contact`、被其他業務鎖定、14 天內寄過的對象都要排除。
-3. **開發和測試環境不可以真的寄信。** `MAIL_MODE=sandbox` 時，信件只寫進資料庫或 log。只有 `MAIL_MODE=live` 才會呼叫 Graph `sendMail`，而且只能在正式環境設定。
+3. **測試環境不可以真的寄信，開發環境預設也不寄。** `MAIL_MODE=sandbox` 時，信件只寫進資料庫或 log。只有 `MAIL_MODE=live` 才會呼叫 Graph `sendMail`：正式環境可以設定；開發環境只有在收件者白名單 `MAIL_ALLOWED_RECIPIENTS` 不是空的時候才可以設定（用個人帳號測試，只寄到自己的測試信箱），否則啟動失敗；`ENV=test` 一律不可以 live。
 4. 自動化測試不可以呼叫真實的 LLM（地端或 Claude）或 Graph API，一律用假的實作。
 5. AI prompt 放在 `backend/app/prompts/`，檔名要帶版本。修改 prompt 就新增一個版本，不覆蓋舊檔，這樣才能對照 `ai_original` 是哪一版產生的。
 6. Prompt 必須要求模型：不捏造客戶實績、價格、認證或交期，內容只能根據提供的公司資料撰寫。
-7. **盲標 API 的回應不可以包含任何模型欄位**（priority、stars、score、reason、industry 預測），寫測試驗證這一點。
 
 ---
 
@@ -158,7 +156,7 @@ npm run typecheck && npm run lint && npm run test && npm run build
 ## 9. 測試規則
 
 1. `domain/` 的每一條規則都要有單元測試：狀態機的合法與非法轉換、寄送防呆、鎖定規則。
-2. API 至少要測：權限（業務不能呼叫 `/admin`）、未核准的草稿不能寄、盲標 API 不含模型欄位、重複匯入不會新增公司。
+2. API 至少要測：權限（業務不能呼叫 `/admin`）、未核准的草稿不能寄、重複匯入不會新增公司。
 3. 修 bug 時，先寫一個能重現 bug 的測試，再修。
 4. 前端用 Vitest 測試 `api/` 和有邏輯的元件；畫面外觀用原型和瀏覽器檢查。
 5. 新功能必須附測試，**每一條驗收條件至少一個 test**，test 名稱帶需求 ID（例如 `test_f_mail_7_*`）。純樣式或畫面調整不強制寫 test，改用瀏覽器檢查。功能和它的測試放在同一個 commit。
@@ -196,10 +194,9 @@ npm run typecheck && npm run lint && npm run test && npm run build
 ## 12. 禁止事項
 
 - 不可以加入任何自動寄信、跳過核准、繞過寄送防呆的程式路徑，包括「測試用」的捷徑。
-- 不可以在測試或開發環境使用真實的客戶 email。
+- 不可以在測試或開發環境使用真實的客戶 email；開發環境真實寄信只能寄到白名單裡自己的測試信箱。
 - 不可以修改已經套用過的 migration。
 - 不可以在 `design-tokens.css` 以外的地方寫死顏色。
-- 不可以把模型預測欄位加進盲標 API。
 - 不可以刪除使用者已經寫好、但這次任務沒有要求修改的程式或文件。
 
 ---
