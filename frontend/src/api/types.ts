@@ -241,7 +241,7 @@ export interface RenderedMail {
 }
 
 // ---------- 邀請信批次、草稿、寄出（M2-03～M2-07）----------
-export type CampaignStatus = "draft" | "generating" | "reviewing" | "scheduled" | "sending" | "done";
+export type CampaignStatus = "draft" | "generating" | "reviewing" | "ready" | "scheduled" | "sending" | "done";
 export type DraftStatus = "generating" | "pending_review" | "approved" | "discarded" | "sent" | "failed";
 export type GenMode = "template_only" | "template_ai" | "full_ai";
 

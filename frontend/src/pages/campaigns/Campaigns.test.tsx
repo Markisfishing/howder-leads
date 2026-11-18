@@ -6,7 +6,7 @@ import type { Campaign, Candidate, Draft } from "../../api/types";
 import { draftErrorText } from "../../lib/labels";
 import { CampaignNewPage } from "./CampaignNewPage";
 import { CampaignReviewPage, nextToReview } from "./CampaignReviewPage";
-import { progressText } from "./CampaignsPage";
+import { needsAction, progressText } from "./CampaignsPage";
 
 const me = { user_id: 1, display_name: "業務甲", role: "sales" as const, email: "sales1@example.com" };
 vi.mock("../../auth/AuthProvider", () => ({ useAuth: () => ({ user: me, isAdmin: false }) }));
@@ -87,6 +87,13 @@ afterEach(() => vi.unstubAllGlobals());
 describe("M2 邀請信純函式", () => {
   it("test_m2_03e_progress_text：只顯示不是 0 的項目", () => {
     expect(progressText({ ...progress, total: 3, pending_review: 1, sent: 2 })).toBe("共 3 封：待審核 1、已寄出 2");
+  });
+
+  it("test_m2_16_ready_is_todo：待寄出的批次也算我的待辦，已排程的不算", () => {
+    const done = { ...progress, pending_review: 0, failed: 0, approved: 2 };
+    expect(needsAction({ ...campaign, status: "ready", progress: done })).toBe(true);
+    expect(needsAction({ ...campaign, status: "scheduled", progress: done })).toBe(false);
+    expect(needsAction({ ...campaign, status: "reviewing", progress: { ...done, pending_review: 1 } })).toBe(true);
   });
 
   it("test_m2_05b_next_to_review：跳到下一封待審核或失敗的，最後回頭找", () => {

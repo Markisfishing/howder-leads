@@ -206,7 +206,11 @@ def create_campaign(
 
 
 def refresh_status(db: Session, campaign: Campaign) -> None:
-    """依草稿狀態更新批次狀態（不 commit）。"""
+    """依草稿狀態更新批次狀態（不 commit）。
+
+    還有待審核或失敗的草稿 → reviewing（待審核）；都審完、有核准但還沒按寄出 → ready（待寄出，M2-16）；
+    按寄出後 → scheduled／sending；沒有要寄的 → done。
+    """
     counts = draft_counts(db, [campaign.campaign_id])[campaign.campaign_id]
     if counts.get("generating"):
         campaign.status = "generating"
@@ -224,7 +228,9 @@ def refresh_status(db: Session, campaign: Campaign) -> None:
     )
     if scheduled:
         campaign.status = "sending" if counts.get("sent") else "scheduled"
-    elif waiting or approved:
+    elif waiting:
         campaign.status = "reviewing"
+    elif approved:
+        campaign.status = "ready"
     else:
         campaign.status = "done"

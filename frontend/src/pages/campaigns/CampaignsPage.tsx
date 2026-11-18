@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useCampaigns } from "../../api/hooks";
-import type { CampaignProgress } from "../../api/types";
+import type { Campaign, CampaignProgress } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Empty, ErrorState, Loading } from "../../components/StateView";
 import { Tag } from "../../components/Tag";
@@ -26,6 +26,11 @@ export function progressText(p: CampaignProgress): string {
   return `共 ${p.total} 封${shown.length ? "：" + shown.join("、") : ""}`;
 }
 
+/** 「我的待辦」：還有草稿要審（待審核、失敗），或都審完等著按寄出（待寄出，M2-16） */
+export function needsAction(campaign: Campaign): boolean {
+  return campaign.progress.pending_review > 0 || campaign.progress.failed > 0 || campaign.status === "ready";
+}
+
 /** 邀請信批次列表（SPEC 6.2 /campaigns · M2-03e） */
 export function CampaignsPage() {
   const { data, isLoading, error, refetch } = useCampaigns();
@@ -35,10 +40,10 @@ export function CampaignsPage() {
   const filtered = useMemo(() => (data ?? []).filter((campaign) => {
     const term = search.trim().toLowerCase();
     const matchesSearch = !term || `${campaign.name} ${campaign.owner_name ?? ""} ${campaign.template_name ?? ""}`.toLowerCase().includes(term);
-    const matchesView = view === "all" || (view === "done" ? campaign.status === "done" : view === "active" ? campaign.status !== "done" : campaign.progress.pending_review > 0 || campaign.progress.failed > 0);
+    const matchesView = view === "all" || (view === "done" ? campaign.status === "done" : view === "active" ? campaign.status !== "done" : needsAction(campaign));
     return matchesSearch && matchesView;
   }), [data, search, view]);
-  const todoCount = (data ?? []).filter((campaign) => campaign.progress.pending_review > 0 || campaign.progress.failed > 0).length;
+  const todoCount = (data ?? []).filter(needsAction).length;
   const activeCount = (data ?? []).filter((campaign) => campaign.status !== "done").length;
   const doneCount = (data ?? []).filter((campaign) => campaign.status === "done").length;
 
