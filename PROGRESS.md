@@ -241,9 +241,9 @@
 ### AI 寫信（M4-06；F-MAIL-2、F-MAIL-3、F-MAIL-8、SPEC 7.4、ADR 0006）
 依這個順序做：a → e → f → g → h → c → i → j → k → b → d → l
 
-- [ ] M4-06a `LlmClient` 介面（輸入 system prompt＋使用者內容，回傳文字與耗時、token 數）＋`FakeLlmClient`；設定 `LLM_PROVIDER`（預設 `local`）、`LOCAL_LLM_BASE_URL`（預設本機 Ollama）、`LOCAL_LLM_MODEL`（預設 `qwen3:8b`）、`LLM_TIMEOUT_SECONDS`、`LLM_CONCURRENCY` 加進設定與 `.env.example`；依設定注入的測試（原本這一項也含 JSON 驗證、簡體字檢查、逾時重試，改拆到 M4-06e、M4-06f）
-- [ ] M4-06e `domain/ai_rules.py`（純函式）：去掉 qwen3 的 `<think>…</think>` 思考段、從回覆取出 JSON、驗證必要欄位與長度（主旨、`ai_paragraph`、`body_text`）、常見簡體字檢查；每條規則都有單元測試
-- [ ] M4-06f `LocalLlmClient`：呼叫 `/v1/chat/completions`（要求 JSON 格式、關閉 qwen3 思考模式、溫度可設定、逾時）；連不上、逾時、HTTP 錯誤都轉成錯誤代碼（`LLM_UNAVAILABLE`、`LLM_TIMEOUT`…）；用假的 HTTP 回應測試，不連真實 Ollama
+- [x] M4-06a `LlmClient` 介面（輸入 system prompt＋使用者內容，回傳文字與耗時、token 數）＋`FakeLlmClient`；設定 `LLM_PROVIDER`（預設 `local`）、`LOCAL_LLM_BASE_URL`（預設本機 Ollama）、`LOCAL_LLM_MODEL`（預設 `qwen3:8b`）、`LLM_TIMEOUT_SECONDS`、`LLM_CONCURRENCY` 加進設定與 `.env.example`；依設定注入的測試（原本這一項也含 JSON 驗證、簡體字檢查、逾時重試，改拆到 M4-06e、M4-06f） — 2026-11-18
+- [x] M4-06e `domain/ai_rules.py`（純函式）：去掉 qwen3 的 `<think>…</think>` 思考段、從回覆取出 JSON、驗證必要欄位與長度（主旨、`ai_paragraph`、`body_text`）、常見簡體字檢查；每條規則都有單元測試 — 2026-11-18
+- [x] M4-06f `LocalLlmClient`：呼叫 `/v1/chat/completions`（要求 JSON 格式、關閉 qwen3 思考模式、溫度可設定、逾時）；連不上、逾時、HTTP 錯誤都轉成錯誤代碼（`LLM_UNAVAILABLE`、`LLM_TIMEOUT`…）；用假的 HTTP 回應測試，不連真實 Ollama — 2026-11-18
 - [ ] M4-06g 本機冒煙腳本 `scripts/llm_smoke.py`：對本機 Ollama 用 1 家假公司跑一次，印出耗時、token 數、JSON 是否合格、有沒有簡體字（手動執行，不進 pytest）；`CLAUDE.md` 第 3 節指令補上 `ollama serve` 與這支腳本（改 CLAUDE.md 前先問使用者）
 - [ ] M4-06h migration：`email_draft` 加 `gen_provider`、`gen_model`、`prompt_version`（單獨 commit；同步 `db/schema.sql`、SPEC 8.1）
 - [ ] M4-06c prompt `prompts/invite_v1.md`（system：厚達產品介紹先用佔位文字待 SPEC 11-5、不捏造實績／價格／認證／交期、繁體中文、只回 JSON）＋`template_ai`：AI 只寫 `{{ai_paragraph}}`，其他照模板代入；接進 worker `generate_drafts`，草稿記錄 provider、模型、prompt 版本（原本含 `full_ai`，改拆到 M4-06i）

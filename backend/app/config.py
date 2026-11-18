@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     # 背景工作：沒收到 NOTIFY 時多久輪詢一次
     worker_poll_seconds: float = 5.0
 
+    # AI 寫信（ADR 0006）：預設用本機 Ollama（OpenAI 相容 API）；公司 GPU 主機確認後只改網址與模型名稱
+    llm_provider: Literal["local", "claude"] = "local"
+    local_llm_base_url: str = "http://127.0.0.1:11434/v1"
+    local_llm_model: str = "qwen3:8b"
+    llm_timeout_seconds: float = 120.0
+    llm_concurrency: int = 2
+
     # MLE function 直接呼叫匯入 API 用的金鑰
     import_api_key: str = ""
 
@@ -48,6 +55,8 @@ class Settings(BaseSettings):
             raise ValueError("MAIL_MODE=live 需要 ENTRA_CLIENT_SECRET 與 MAIL_TOKEN_KEY（ADR 0005）")
         if self.mail_mode == "live" and self.auth_mode != "entra":
             raise ValueError("MAIL_MODE=live 需要 AUTH_MODE=entra")
+        if self.llm_concurrency < 1 or self.llm_timeout_seconds <= 0:
+            raise ValueError("LLM_CONCURRENCY 必須大於 0，LLM_TIMEOUT_SECONDS 必須大於 0")
         if self.daily_send_limit < 1 or self.send_per_minute < 1:
             raise ValueError("DAILY_SEND_LIMIT 與 SEND_PER_MINUTE 必須大於 0")
         if self.auth_mode == "entra" and not (self.entra_tenant_id and self.entra_client_id):
