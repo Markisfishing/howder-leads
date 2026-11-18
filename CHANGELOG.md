@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-11-18｜併入 M4；移除 API 匯入；CLAUDE.md 拿掉模型與盲標；開發環境可在白名單下真實寄信（M2-22）
+
+**改了哪些檔案**
+- `PROGRESS.md`、`CHANGELOG.md`：併入 M4 分支時的衝突（兩邊都保留；合併 commit `ac245bf`）
+- `backend/app/api/v1/imports.py`、`config.py`、`.env.example`、`tests/conftest.py`：移除 `POST /imports/api` 與 `IMPORT_API_KEY`
+- `backend/tests/test_import.py`、`test_import_v1.py`：刪掉只測 API 匯入的 3 個測試；`test_companies_v1.py` 改用 CSV 上傳準備資料
+- `CLAUDE.md`：開頭、名詞表（`model_run` 改叫匯入批次、刪盲標）、第 6 節第 3 點、刪第 6 節第 7 點與第 12 節的盲標規則
+- `backend/app/config.py`、`tests/test_mail_connection.py`、`tests/test_auth.py`、`docs/SPEC.md` 7.5：M2-22 啟動檢查
+
+**解決了什麼問題**
+- 沒有模型之後，給 MLE 程式用的 API 匯入沒人會用，又多一把要保管的金鑰。
+- 用個人帳號測真實寄信時，原本的規則要求只有正式環境能 live，開發機無法測。
+
+**做了哪些決定**
+- 刪掉需求 F-IMP-5（使用者決定）；M1-21 保留勾選，加註 F-IMP-5 已移除。刪掉「開發中發現」裡「API 匯入要不要移除」那一項（已處理）。
+- `MAIL_MODE=live`：正式環境照舊；開發環境必須先填 `MAIL_ALLOWED_RECIPIENTS`，否則啟動失敗；`ENV=test` 一律不行（使用者同意改 CLAUDE.md 第 6 節第 3 點）。Microsoft 登入、client secret、加密金鑰的要求不變。
+- 盲標功能先前已取消，CLAUDE.md 的盲標規則一起刪掉；資料庫 `model_run`、`run_id` 名稱不改。
+
+**還沒處理的問題**
+- `import_batch.funnel`、總覽 `mle_funnel`、匯入頁的漏斗區塊之後不會有新資料；`gold_label` 表沒在用。要不要移除待使用者決定。
+- `mypy` 在 `api/v1/campaigns.py:322` 仍有原本就有的 1 個錯。
+
+**下一步**
+- M2-19 ADR 0007（個人帳號登入與連結 Outlook）→ M2-20、M2-21 → M2-15；M2-23；M2-17；M4-06b／g／l。
+
+---
+
 ## 2026-11-18｜M4：AI 寫信、官網摘要、回覆態度、績效與名單品質
 
 **改了哪些檔案**

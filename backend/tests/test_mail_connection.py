@@ -69,9 +69,46 @@ def test_m2_07c_live_requires_secret_and_key() -> None:
         Settings(env="production", auth_mode="entra", entra_tenant_id="t", entra_client_id="c", mail_mode="live")
 
 
-def test_m2_07c_live_only_in_production() -> None:
-    with pytest.raises(ValueError, match="正式環境"):
-        Settings(env="development", mail_mode="live", entra_client_secret="s", mail_token_key="k")
+LIVE_READY = {
+    "auth_mode": "entra",
+    "entra_tenant_id": "t",
+    "entra_client_id": "c",
+    "entra_client_secret": "s",
+    "mail_token_key": "k",
+    "mail_mode": "live",
+}
+
+
+def test_m2_22_live_in_development_requires_allowlist() -> None:
+    with pytest.raises(ValueError, match="MAIL_ALLOWED_RECIPIENTS"):
+        Settings(env="development", **LIVE_READY)
+
+
+def test_m2_22_live_in_development_allowed_with_allowlist() -> None:
+    settings = Settings(env="development", mail_allowed_recipients="tester@example.com", **LIVE_READY)
+    assert settings.mail_mode == "live"
+    assert settings.allowlist == ("tester@example.com",)
+
+
+def test_m2_22_live_never_in_test_env() -> None:
+    with pytest.raises(ValueError, match="測試環境"):
+        Settings(env="test", mail_allowed_recipients="tester@example.com", **LIVE_READY)
+
+
+def test_m2_22_live_in_development_still_needs_secret_and_entra() -> None:
+    with pytest.raises(ValueError, match="AUTH_MODE=entra"):
+        Settings(
+            env="development",
+            mail_mode="live",
+            mail_allowed_recipients="tester@example.com",
+            entra_client_secret="s",
+            mail_token_key="k",
+        )
+
+
+def test_m2_22_production_live_without_allowlist_still_allowed() -> None:
+    """正式上線時白名單清空，不受這條限制。"""
+    assert Settings(env="production", **LIVE_READY).mail_mode == "live"
 
 
 # ---------- API ----------
