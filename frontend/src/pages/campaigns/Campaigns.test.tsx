@@ -129,6 +129,7 @@ describe("M2-03d 建立批次", () => {
   it("test_f_mail_1_create_campaign_with_selected_targets：勾選對象後建立，被排除的顯示原因", async () => {
     const fn = mockFetch((url, init) => {
       if (url === "/api/v1/campaigns/candidates") return [ok, blocked];
+      if (url === "/api/v1/dimensions") return { industries: [], priorities: [] };
       if (url === "/api/v1/templates") return [{ template_id: 1, name: "邀請信", version: 2 }];
       if (url === "/api/v1/campaigns/exclusion-reasons") return reasons;
       if (url === "/api/v1/campaigns" && init.method === "POST")
@@ -150,6 +151,44 @@ describe("M2-03d 建立批次", () => {
     expect(await screen.findByText("到了批次頁")).toBeInTheDocument();
     const body = JSON.parse(String(calls(fn, "POST", "/api/v1/campaigns")[0]?.[1]?.body));
     expect(body).toMatchObject({ template_id: 1, gen_mode: "template_only", targets: [{ company_id: 10, contact_id: 100 }] });
+  });
+
+  it("test_m3_16_filter_candidates：搜尋、產業、星級會帶進網址，已勾選的公司不會因篩選消失", async () => {
+    const other: Candidate = { ...ok, company_id: 12, name: "另一家公司" };
+    const fn = mockFetch((url) => {
+      if (url.startsWith("/api/v1/campaigns/candidates?q=%E5%8F%A6%E4%B8%80")) return [other];
+      if (url === "/api/v1/campaigns/candidates") return [ok];
+      if (url === "/api/v1/dimensions") return { industries: [{ industry_id: 3, name: "電子" }], priorities: [] };
+      if (url === "/api/v1/templates") return [{ template_id: 1, name: "邀請信", version: 2 }];
+      if (url === "/api/v1/campaigns/exclusion-reasons") return reasons;
+      return {};
+    });
+    renderAt("/campaigns/new", <CampaignNewPage />, "/campaigns/new");
+
+    fireEvent.click(await screen.findByRole("checkbox", { name: /可寄公司/ }));
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "另一" } });
+    expect(await screen.findByRole("checkbox", { name: /另一家公司/ })).toBeInTheDocument();
+    expect(screen.getByText("已選 1 家")).toBeInTheDocument(); // 篩選換了名單，原本勾的還在
+
+    const urls = fn.mock.calls.map(([u]) => String(u));
+    expect(urls.some((u) => u.startsWith("/api/v1/campaigns/candidates?q=%E5%8F%A6%E4%B8%80"))).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "清除篩選" }));
+    expect(await screen.findByRole("checkbox", { name: /可寄公司/ })).toBeChecked();
+  });
+
+  it("test_m3_16_filter_empty_state：篩選後沒有結果時顯示可以清除篩選的空狀態", async () => {
+    mockFetch((url) => {
+      if (url === "/api/v1/campaigns/candidates") return [ok];
+      if (url.startsWith("/api/v1/campaigns/candidates?")) return [];
+      if (url === "/api/v1/dimensions") return { industries: [], priorities: [] };
+      if (url === "/api/v1/templates") return [];
+      if (url === "/api/v1/campaigns/exclusion-reasons") return reasons;
+      return {};
+    });
+    renderAt("/campaigns/new", <CampaignNewPage />, "/campaigns/new");
+    await screen.findByRole("checkbox", { name: /可寄公司/ });
+    fireEvent.change(screen.getByLabelText("星級"), { target: { value: "5" } });
+    expect(await screen.findByText("沒有符合條件的公司")).toBeInTheDocument();
   });
 });
 
