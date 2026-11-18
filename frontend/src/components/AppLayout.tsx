@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthProvider";
+import { Loading } from "./StateView";
 import styles from "./AppLayout.module.css";
 
 const ROLE_LABELS = { sales: "業務", manager: "主管", admin: "管理員" } as const;
@@ -62,7 +64,10 @@ export function AppLayout() {
         )}
       </nav>
       <main className={styles.main}>
-        <Outlet />
+        {/* 頁面是延遲載入的（App.tsx），下載期間只在內容區顯示載入中，導覽列不動 */}
+        <Suspense fallback={<Loading />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );
