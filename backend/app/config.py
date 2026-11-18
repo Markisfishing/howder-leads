@@ -53,8 +53,11 @@ class Settings(BaseSettings):
     def _guard_production(self) -> "Settings":
         if self.env == "production" and self.auth_mode == "dev":
             raise ValueError("正式環境不可以使用 AUTH_MODE=dev")
-        if self.env != "production" and self.mail_mode == "live":
-            raise ValueError("只有正式環境可以設定 MAIL_MODE=live")
+        # CLAUDE.md 第 6 節第 3 點：測試環境不可以 live；開發環境要先設白名單，只寄到自己的測試信箱（M2-22）
+        if self.mail_mode == "live" and self.env == "test":
+            raise ValueError("測試環境不可以設定 MAIL_MODE=live")
+        if self.mail_mode == "live" and self.env == "development" and not self.allowlist:
+            raise ValueError("開發環境設定 MAIL_MODE=live 前，必須先填 MAIL_ALLOWED_RECIPIENTS（只寄到自己的測試信箱）")
         if self.mail_mode == "live" and not (self.entra_client_secret and self.mail_token_key):
             raise ValueError("MAIL_MODE=live 需要 ENTRA_CLIENT_SECRET 與 MAIL_TOKEN_KEY（ADR 0005）")
         if self.mail_mode == "live" and self.auth_mode != "entra":

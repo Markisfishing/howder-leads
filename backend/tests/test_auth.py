@@ -104,6 +104,6 @@ def test_dev_auth_forbidden_in_production() -> None:
         Settings(env="production", auth_mode="dev")
 
 
-def test_live_mail_only_in_production() -> None:
+def test_live_mail_needs_allowlist_outside_production() -> None:
     with pytest.raises(ValueError):
         Settings(env="development", mail_mode="live")
