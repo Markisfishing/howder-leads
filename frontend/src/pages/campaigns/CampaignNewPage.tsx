@@ -8,7 +8,7 @@ import { Button } from "../../components/Button";
 import { Stars } from "../../components/Stars";
 import { Empty, ErrorState, InlineError, Loading } from "../../components/StateView";
 import { Tag } from "../../components/Tag";
-import { GEN_MODE_LABELS } from "../../lib/labels";
+import { displayTemplateName, GEN_MODE_LABELS } from "../../lib/labels";
 import { STAR_OPTIONS } from "../recommendations/FilterBar";
 import styles from "../Page.module.css";
 import c from "./Campaigns.module.css";
@@ -118,7 +118,7 @@ export function CampaignNewPage() {
             >
               {templates.data.map((t) => (
                 <option key={t.template_id} value={t.template_id}>
-                  {t.name}（第 {t.version} 版）
+                  {displayTemplateName(t.name)}（第 {t.version} 版）
                 </option>
               ))}
             </select>

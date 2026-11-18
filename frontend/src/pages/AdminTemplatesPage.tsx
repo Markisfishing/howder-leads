@@ -5,16 +5,12 @@ import type { EmailTemplate } from "../api/types";
 import { Button } from "../components/Button";
 import { Empty, ErrorState, InlineError, Loading } from "../components/StateView";
 import { Tag } from "../components/Tag";
-import { formatDateTime } from "../lib/labels";
+import { displayTemplateName, formatDateTime } from "../lib/labels";
 import { useDebounced } from "../lib/useDebounced";
 import styles from "./Page.module.css";
 import t from "./Templates.module.css";
 
 const NEW_BODY = "{{contact_name}} 您好：\n\n\n\n{{sender_name}}\n厚達電子 業務部\n\n{{unsubscribe}}";
-
-function displayTemplateName(name: string): string {
-  return name.replace("（佔位文字，待 SPEC 11-5 確認）", "").trim() || name;
-}
 
 type Editing = { kind: "new" } | { kind: "edit"; template: EmailTemplate } | null;
 
