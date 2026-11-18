@@ -39,9 +39,10 @@ const row: CompanyRow = {
 };
 const page: CompanyPage = { items: [row], total: 1, page: 1, page_size: 50 };
 
-function setup() {
+function setup(data: CompanyPage = page, failList = false) {
   const fn = vi.fn(async (url: string, init: RequestInit = {}) => {
-    if (url.startsWith("/api/v1/companies")) return Response.json(page);
+    if (url.startsWith("/api/v1/companies"))
+      return failList ? Response.json({ error: { code: "INTERNAL", message: "壞了" } }, { status: 500 }) : Response.json(data);
     if (url === "/api/v1/cases" && init.method === "POST")
       return Response.json([{ case_id: 1 }], { status: 201 });
     if (url === "/api/v1/dimensions")
@@ -91,4 +92,16 @@ describe("M3-13c 推薦清單批次加入追蹤", () => {
     setup();
     expect(await screen.findByText("4.5")).toBeInTheDocument();
   });
+
+  it("test_f_rec_2_empty_state：沒有符合的公司時顯示空資料說明", async () => {
+    setup({ items: [], total: 0, page: 1, page_size: 50 });
+    expect(await screen.findByText("沒有符合條件的公司")).toBeInTheDocument();
+    expect(screen.getByText(/還沒有匯入名單/)).toBeInTheDocument();
+  });
+
+  it("test_f_rec_2_error_state_has_retry：載入失敗顯示錯誤並可重試", async () => {
+    setup(undefined, true);
+    expect(await screen.findByRole("button", { name: /重試|重新/ })).toBeInTheDocument();
+  });
 });
+
