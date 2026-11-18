@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.domain import ai_rules, draft_rules, template_rules
 from app.domain.company_rules import DomainError
 from app.models import AppUser, Campaign, Company, Contact, EmailDraft, EmailTemplate, v_recommendation
-from app.services import ai_writer, campaign_service
+from app.services import ai_writer, campaign_service, site_service
 from app.services.llm import LlmClient, LlmError, LlmResult
 
 log = logging.getLogger("howder.generator")
@@ -56,6 +56,7 @@ def _brief(db: Session, draft: EmailDraft, sender: AppUser) -> ai_writer.Brief:
         industry=row.industry if row else None,
         product_type=row.product_type if row else None,
         reason=row.reason if row else None,
+        site_summary=site_service.usable_summary(db, draft.company_id),  # 沒有就留空，寫信改用推薦理由（M4-08e）
         contact_name=(contact.name if contact and contact.name else DEFAULT_CONTACT_NAME),
         sender_name=sender.display_name,
     )

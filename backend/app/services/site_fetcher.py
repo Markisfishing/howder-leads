@@ -166,3 +166,18 @@ class SiteFetcher:
             raise SiteFetchError("SITE_EMPTY")
         log.info("官網抓取完成 host=%s pages=%d", urlparse(final_url).hostname, len(texts))
         return FetchedSite(source_url=final_url, text=merged, pages=len(texts))
+
+
+class FakeSiteFetcher:
+    """測試用：依網址回傳預先放好的 FetchedSite 或錯誤；沒放的網址當作連不上。不連任何網站。"""
+
+    def __init__(self, sites: dict[str, FetchedSite | SiteFetchError] | None = None) -> None:
+        self.sites = sites or {}
+        self.requested: list[str] = []
+
+    def fetch(self, raw_url: str) -> FetchedSite:
+        self.requested.append(raw_url)
+        out = self.sites.get(raw_url, SiteFetchError("SITE_UNREACHABLE"))
+        if isinstance(out, SiteFetchError):
+            raise out
+        return out

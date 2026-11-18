@@ -135,3 +135,16 @@ def check_sentiment(value: str) -> str:
     if value not in SENTIMENTS:
         raise DomainError("INVALID_SENTIMENT", "客戶態度只能是有興趣、中性或不感興趣", 422)
     return value
+
+
+# ---------- 官網摘要（M4-08d）----------
+SITE_SUMMARY_MIN = 20
+SITE_SUMMARY_MAX = 600
+
+
+def parse_site_summary(raw: str) -> str:
+    """官網摘要：一個 summary 欄位、長度合理、不混入簡體字。個資過濾在呼叫端用 site_rules.redact_personal。"""
+    data = extract_json(raw)
+    summary = _text_field(data, "summary", SITE_SUMMARY_MIN, SITE_SUMMARY_MAX, "AI_TOO_SHORT", "AI_TOO_LONG")
+    _ensure_traditional(summary)
+    return summary
