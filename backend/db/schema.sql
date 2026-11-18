@@ -47,8 +47,7 @@ CREATE TABLE import_batch (
     error_report  JSONB,
     imported_by   BIGINT REFERENCES app_user(user_id),
     status        TEXT NOT NULL DEFAULT 'previewed', -- previewed | committed | cancelled
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    funnel        JSONB                              -- 0009：MLE 附上的漏斗前段數字（只顯示）
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TYPE company_status AS ENUM (
@@ -128,16 +127,6 @@ CREATE TABLE review (
     note            TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (decision = 'approved' OR reject_reason IS NOT NULL)  -- 排除一定要有原因
-);
-
--- 盲標用的標準答案（標註員看不到模型結果）
-CREATE TABLE gold_label (
-    company_id    BIGINT PRIMARY KEY REFERENCES company(company_id) ON DELETE CASCADE,
-    industry_id   SMALLINT REFERENCES dim_industry(industry_id),
-    is_prospect   BOOLEAN,
-    correct_url   TEXT,
-    labeler_id    BIGINT REFERENCES app_user(user_id),
-    labeled_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ---------- 聯絡人 ----------
