@@ -226,7 +226,7 @@ export const REMINDER_LABELS: Record<string, string> = {
   pending_review: "新名單待審核",
 };
 
-/** MLE 漏斗前段數字：JSONB 不保留欄位順序，漏斗一定越往下越少，所以依數字由大到小排 */
+/** 匯入檔附的漏斗前段數字：JSONB 不保留欄位順序，漏斗一定越往下越少，所以依數字由大到小排 */
 export function funnelEntries(funnel: Record<string, number> | null | undefined): [string, number][] {
   return Object.entries(funnel ?? {}).sort((a, b) => b[1] - a[1]);
 }

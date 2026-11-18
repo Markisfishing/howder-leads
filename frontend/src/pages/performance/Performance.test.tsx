@@ -115,7 +115,7 @@ describe("M4-02b 名單品質頁", () => {
     expect(await screen.findByText("產業判斷錯誤")).toBeInTheDocument();
     expect(screen.getByText("66.7%")).toBeInTheDocument();
     expect(screen.getByText(/共 3 家被排除/)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("匯入批次（模型版本）"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("匯入批次"), { target: { value: "1" } });
     await waitFor(() => expect(fn.mock.calls.some(([u]) => String(u).includes("run_id=1"))).toBe(true));
   });
 

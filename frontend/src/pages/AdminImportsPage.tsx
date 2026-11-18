@@ -37,7 +37,7 @@ export function AdminImportsPage() {
     if (!preview) return;
     commit.mutate(preview.batch_id, {
       onSuccess: (b) => {
-        setNotice(`已匯入：新增 ${b.rows_created}、更新 ${b.rows_updated}（模型版本 run #${b.run_id}）`);
+        setNotice(`已匯入：新增 ${b.rows_created}、更新 ${b.rows_updated}（匯入批次 #${b.run_id}）`);
         setPreview(null);
         setFile(null);
       },
@@ -138,7 +138,7 @@ export function AdminImportsPage() {
                   <th>新增</th>
                   <th>更新</th>
                   <th>錯誤</th>
-                  <th>模型版本</th>
+                  <th>匯入批次</th>
                   <th>
                     <span className="visually-hidden">動作</span>
                   </th>
@@ -155,7 +155,7 @@ export function AdminImportsPage() {
                     <td data-label="新增">{b.rows_created}</td>
                     <td data-label="更新">{b.rows_updated}</td>
                     <td data-label="錯誤">{b.rows_error}</td>
-                    <td data-label="模型版本">{b.run_id ? `#${b.run_id}${b.model_name ? ` ${b.model_name}` : ""}` : "—"}</td>
+                    <td data-label="匯入批次">{b.run_id ? `#${b.run_id}${b.model_name ? ` ${b.model_name}` : ""}` : "—"}</td>
                     <td data-label="動作">
                       {b.status === "previewed" && (
                         <Button
@@ -209,10 +209,10 @@ function PreviewCard({
         ))}
       </div>
 
-      {/* 區塊：MLE 附上的漏斗前段數字（只顯示，不重算） */}
+      {/* 區塊：匯入檔附的漏斗前段數字（只顯示，不重算） */}
       {b.funnel && Object.keys(b.funnel).length > 0 && (
         <>
-          <h3 className={styles.label}>漏斗前段（MLE 提供）</h3>
+          <h3 className={styles.label}>漏斗前段（匯入檔提供）</h3>
           <div className={styles.counts}>
             {funnelEntries(b.funnel).map(([label, value]) => (
               <div key={label} className={styles.count}>

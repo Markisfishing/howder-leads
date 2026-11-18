@@ -7,7 +7,7 @@ import { formatDateTime, REJECT_REASON_LABELS } from "../../lib/labels";
 import styles from "../Page.module.css";
 import { formatRate } from "./PerformancePage";
 
-/** 名單品質（SPEC 6.2 /admin/model · M4-02b、F-MLE-1）：各模型批次的排除原因分布。內部用，不回傳給 MLE */
+/** 名單品質（SPEC 6.2 /admin/model · M4-02b、F-MLE-1）：各匯入批次的排除原因分布。內部用，不回傳給 MLE */
 export function AdminModelPage() {
   const [runId, setRunId] = useState<number | null>(null);
   const { data, isLoading, error, refetch } = useRejectReport(runId);
@@ -28,7 +28,7 @@ export function AdminModelPage() {
       ) : (
         <>
           <label className={styles.field}>
-            <span className={styles.label}>匯入批次（模型版本）</span>
+            <span className={styles.label}>匯入批次</span>
             <select
               className={styles.input}
               value={data.run_id ?? ""}
