@@ -239,6 +239,12 @@ def test_m2_18_draft_stage_uses_recent_send_days_setting(world: World) -> None:
     assert rows[a]["reasons"] == []
 
 
+def test_m2_18_exclusion_reason_label_uses_recent_send_days_setting(world: World) -> None:
+    _use_settings(world, recent_send_days=30)
+    reasons = world.client.get("/api/v1/campaigns/exclusion-reasons", headers=world.sales1).json()
+    assert reasons["RECENTLY_SENT"] == "30 天內已經寄過"
+
+
 def test_m2_18_allowlist_excludes_at_create(world: World) -> None:
     a, b = world.ids["10000001"], world.ids["10000002"]
     _use_settings(world, mail_allowed_recipients="buyer0@example.com")

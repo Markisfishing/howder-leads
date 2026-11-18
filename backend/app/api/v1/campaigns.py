@@ -13,7 +13,7 @@ from app.api.deps import current_user
 from app.api.v1.companies import ListFilters, apply_filters, has_filters, list_filters
 from app.config import Settings, get_settings
 from app.db import get_db
-from app.domain.send_guard import REASON_LABELS
+from app.domain.send_guard import reason_labels
 from app.models import AppUser, Campaign, Company, Contact, EmailDraft, EmailTemplate, v_recommendation
 from app.services import campaign_service, draft_service, send_service
 
@@ -260,8 +260,8 @@ def list_candidates(
 
 
 @router.get("/campaigns/exclusion-reasons", response_model=dict[str, str])
-def exclusion_reasons(_: AppUser = Depends(current_user)) -> dict[str, str]:
-    return REASON_LABELS
+def exclusion_reasons(_: AppUser = Depends(current_user), settings: Settings = Depends(get_settings)) -> dict[str, str]:
+    return reason_labels(settings.recent_send_days)
 
 
 @router.post("/campaigns", response_model=CreateOut, status_code=201)

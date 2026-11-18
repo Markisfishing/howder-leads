@@ -211,7 +211,9 @@ def create_campaign(
             included.append((company, contact))
     if not included:
         db.rollback()
-        detail = "；".join(f"{e.name}：{send_guard.describe(e.reasons)}" for e in excluded[:5])
+        detail = "；".join(
+            f"{e.name}：{send_guard.describe(e.reasons, settings.recent_send_days)}" for e in excluded[:5]
+        )
         raise DomainError("NO_ELIGIBLE_TARGETS", f"選的公司都不能寄：{detail}", 422)
 
     campaign = Campaign(

@@ -5,7 +5,7 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 最後更新 | 2026-11-18（完成開發中發現的 mypy、焦點小修；複核 M2-17、M2-23；M4 併入 feat/m1-mvp） |
+| 最後更新 | 2026-11-18（完成開發中發現的 mypy、焦點、防呆文字小修；複核 M2-17、M2-23；M4 併入 feat/m1-mvp） |
 | 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 b（業務盲評）、g（`CLAUDE.md` 指令補充）、l（完整 sandbox 50 封驗收）。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（先用個人 Microsoft 帳號：M2-19～M2-21 → M2-15）；M1 只剩 M1-03 Docker 驗證 |
 | 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。**等負責人確認 ADR 0007**，再做 M2-20、M2-21；M4-06b 業務盲評（要業務來做）；M4-06g 問使用者後補 `CLAUDE.md` 第 3 節指令；M4-06l 完整 sandbox 驗收；之後 M5 |
 | 卡住 / 待確認 | 個人帳號能不能註冊應用程式（M2-19）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）、Docker Desktop 無法啟動（M1-03）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
@@ -35,14 +35,14 @@
   - 前端：`cd frontend && npm run dev`（http://127.0.0.1:5173）。
   - 本機 LLM（M4）：這台開發機的 `C:\Users\y7632\.ollama` 是指向不存在路徑的連結，`ollama serve` 要用 `USERPROFILE=C:\howder-wt\ollama-home OLLAMA_MODELS=D:\ollama\models` 啟動；模型 `qwen3:8b`、`qwen3:14b`。換電腦的話照 Ollama 一般安裝即可。
 - **完成前檢查**（CLAUDE.md 第 11 節）：後端 `uv run ruff check . && uv run ruff format --check . && uv run mypy app && uv run pytest`；前端 `npm run typecheck && npm run lint && npm run test && npm run build`；有畫面改動就在瀏覽器看 375px 與 1280px。
-  - 目前 `mypy` 已知 1 個錯（`api/v1/campaigns.py:322`），不是你造成的，見「開發中發現」。
+  - `uv run mypy app` 已通過，開發中發現的型別錯誤已修正。
 
 ### 建議順序與分工
 | 順序 | 任務 | 誰 | 備註 |
 |---|---|---|---|
 | 已完成 | M2-23 介面拿掉「模型」用語 | 開發者 | 2026-11-18 |
 | 已完成 | M2-17 每天最晚寄送時間 | 開發者 | 2026-11-18 |
-| 1 | 「開發中發現」的小修（防呆文字） | 開發者 | mypy、焦點已完成；防呆文字獨立一個 commit |
+| 已完成 | 「開發中發現」的小修 | 開發者 | mypy、焦點、防呆文字均已完成；2026-11-18 |
 | 2 | M2-19 ADR 0007 個人帳號 | 開發者查資料＋負責人決定 | 要負責人用寄件帳號登入 Azure 入口網站註冊應用程式 |
 | 3 | M2-20 登入支援個人帳號 → M2-21 連結 Outlook | 開發者 | 依 M2-19 的結論 |
 | 4 | M2-15 真實寄信驗收 | 負責人＋開發者 | 負責人自己登入、授權；開發者在旁操作系統 |
@@ -131,10 +131,10 @@
 - M5-04 管理者 BI 儀表板（案件數、成功開案數）：先跟負責人確認要哪些數字、用內建頁面還是外部 BI 工具。
 
 ### 「開發中發現」的處理方式
-- **可以直接做的小修**（每項一個 `fix:` commit，先寫重現測試再修，CLAUDE.md 第 9 節第 3 點）：
-  - mypy 錯誤：`backend/app/api/v1/campaigns.py` 第 322 行 `row.count` 被 mypy 當成 Row 的方法 → 改成 `row[1]` 或在查詢裡替欄位取別名；`uv run mypy app` 要變成 0 個錯。
-  - 防呆文字固定寫「14 天內已經寄過」：改成依 `RECENT_SEND_DAYS` 顯示天數（文字由後端 `/campaigns/exclusion-reasons` 提供，在 `backend/app/domain/send_guard.py` 的原因標籤）。
-  - 公司詳情側欄打開時焦點落在「排除…」→ 改落在標題或關閉鈕；受控對話框關閉後焦點回到原本的按鈕（`Modal` 元件還原焦點）。鍵盤實測。
+- **已完成的小修**（每項一個 commit，先寫重現測試再修，CLAUDE.md 第 9 節第 3 點）：
+  - [x] mypy 錯誤：`backend/app/api/v1/campaigns.py` 的 `row.count` 被 mypy 當成 Row 的方法，已改成 `row[1]`，`uv run mypy app` 為 0 個錯 — 2026-11-18
+  - [x] 防呆文字固定寫「14 天內已經寄過」：已改成依 `RECENT_SEND_DAYS` 顯示天數，文字由後端 `/campaigns/exclusion-reasons` 提供 — 2026-11-18
+  - [x] 公司詳情側欄與受控對話框已改善開啟及關閉後的焦點位置 — 2026-11-18
   - `AdminImportsPage` 元件測試（Vitest）：上傳預覽、確認匯入、錯誤列表四種狀態。
   - 前端 bundle 超過 500 kB：dev 模式不載入 MSAL（動態 import）或依路由切分。
   - 手機版篩選列太長（14 個欄位）：收合成「篩選」按鈕，用 Radix 的對話框或側欄。
@@ -438,5 +438,5 @@
 - [ ] 案件的聯絡人退訂、但公司還有其他聯絡人時，案件的 `contact_id` 仍指向已退訂的人；之後回填或再寄信要手動選其他聯絡人，可考慮自動換成下一位
 - [ ] 匯入批次的漏斗數字（`import_batch.funnel`、總覽 `mle_funnel`、匯入頁的漏斗區塊）只有已移除的 API 匯入會寫入，之後不會有新資料；要不要移除請使用者決定
 - [ ] 資料庫還留著沒在用的 `gold_label` 表（盲標已取消）；要刪得新增 migration，請使用者決定
-- [ ] 建立批次時最近寄過的天數改讀設定後，防呆中文仍固定寫「14 天內已經寄過」，`RECENT_SEND_DAYS` 改值時文字不會跟著變
+- [x] 建立批次時最近寄過的天數改讀設定後，防呆中文仍固定寫「14 天內已經寄過」，`RECENT_SEND_DAYS` 改值時文字不會跟著變 — 2026-11-18
 - [ ] 總覽的比例（回覆率、留存率）在 `metrics_service` 依篩選加總後計算，「寄出未滿 10 件不算」的門檻同時寫在 `v_kpi_summary` 和 `metrics_service.MIN_SAMPLE`；若要只定義一次，可改成 SQL 函式
