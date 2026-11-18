@@ -84,6 +84,22 @@ describe("M2-01b 聯絡人對話框", () => {
     expect(bodyOf(call)).toEqual({ reason: "客戶來信要求" });
   });
 
+  it("test_m3_18_resubscribe_requires_reason：取消退訂要填原因，送到 resubscribe", async () => {
+    const onClose = vi.fn();
+    const fetchMock = wrap(<ContactConfirmDialog kind="resubscribe" contact={contact} onClose={onClose} />);
+    const confirm = screen.getByRole("button", { name: "確認取消退訂" });
+    expect(confirm).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("取消退訂原因（必填）"), { target: { value: "客戶來信同意" } });
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    const call = fetchMock.mock.calls.find(([url]) => url === "/api/v1/contacts/7/resubscribe");
+    expect(call?.[1]?.method).toBe("POST");
+    expect(bodyOf(call)).toEqual({ reason: "客戶來信同意" });
+  });
+
   it("test_m3_17_unsubscribe_confirm：預設只退訂這位聯絡人，備註選填", async () => {
     const onClose = vi.fn();
     const fetchMock = wrap(<ContactConfirmDialog kind="unsubscribe" contact={contact} onClose={onClose} />);

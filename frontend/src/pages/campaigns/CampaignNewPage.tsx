@@ -1,13 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { useCandidates, useCreateCampaign, useExclusionReasons, useTemplates } from "../../api/hooks";
+import { NO_CANDIDATE_FILTERS } from "../../api/endpoints";
+import { useCandidates, useCreateCampaign, useDimensions, useExclusionReasons, useTemplates } from "../../api/hooks";
 import type { Candidate, GenMode } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Stars } from "../../components/Stars";
 import { Empty, ErrorState, InlineError, Loading } from "../../components/StateView";
 import { Tag } from "../../components/Tag";
 import { GEN_MODE_LABELS } from "../../lib/labels";
+import { STAR_OPTIONS } from "../recommendations/FilterBar";
 import styles from "../Page.module.css";
 import c from "./Campaigns.module.css";
 
@@ -21,7 +23,16 @@ function today(): string {
 /** 建立邀請信批次（SPEC 6.2 /campaigns/new · M2-03d、F-MAIL-1、F-MAIL-7） */
 export function CampaignNewPage() {
   const navigate = useNavigate();
-  const candidates = useCandidates();
+  const [filters, setFilters] = useState(NO_CANDIDATE_FILTERS);
+  const [search, setSearch] = useState("");
+  // 打字停 300ms 才查詢，避免每打一個字就查一次
+  useEffect(() => {
+    const t = setTimeout(() => setFilters((f) => (f.q === search ? f : { ...f, q: search })), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+  const isFiltered = filters.q.trim() !== "" || filters.industryId !== null || filters.stars !== null;
+  const candidates = useCandidates(filters);
+  const { data: dims } = useDimensions();
   const templates = useTemplates();
   const { data: reasonLabels = {} } = useExclusionReasons();
   const create = useCreateCampaign();
@@ -42,10 +53,13 @@ export function CampaignNewPage() {
     setSelected(next);
   };
   const allChecked = eligible.length > 0 && eligible.every((x) => selected.has(x.company_id));
-  const toggleAll = () =>
-    setSelected(
-      allChecked ? new Map() : new Map(eligible.slice(0, MAX_TARGETS).map((x) => [x.company_id, x.default_contact_id])),
-    );
+  // 全選／全部取消只動目前顯示（篩選後）的公司，其他篩選條件下已勾的不受影響
+  const toggleAll = () => {
+    const next = new Map(selected);
+    if (allChecked) eligible.forEach((x) => next.delete(x.company_id));
+    else eligible.forEach((x) => next.has(x.company_id) || next.size >= MAX_TARGETS || next.set(x.company_id, x.default_contact_id));
+    setSelected(next);
+  };
 
   const submit = () => {
     if (tplId == null) return;
@@ -129,7 +143,60 @@ export function CampaignNewPage() {
           </h2>
           {eligible.length > 0 && (
             <Button size="sm" onClick={toggleAll}>
-              {allChecked ? "全部取消" : `全選（${Math.min(eligible.length, MAX_TARGETS)} 家）`}
+              {allChecked ? "全部取消" : `全選（${eligible.length} 家）`}
+            </Button>
+          )}
+        </div>
+        <div className={c.filterRow} role="search" aria-label="篩選候選公司">
+          <label className={`${styles.field} ${c.filterSearch}`}>
+            <span className={styles.label}>搜尋</span>
+            <input
+              className={styles.input}
+              type="search"
+              placeholder="公司名稱或統編"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+          <label className={styles.field}>
+            <span className={styles.label}>產業</span>
+            <select
+              className={styles.input}
+              value={filters.industryId ?? ""}
+              onChange={(e) => setFilters({ ...filters, industryId: e.target.value ? Number(e.target.value) : null })}
+            >
+              <option value="">全部產業</option>
+              {dims?.industries.map((i) => (
+                <option key={i.industry_id} value={i.industry_id}>
+                  {i.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.field}>
+            <span className={styles.label}>星級</span>
+            <select
+              className={styles.input}
+              value={filters.stars ?? ""}
+              onChange={(e) => setFilters({ ...filters, stars: e.target.value === "" ? null : Number(e.target.value) })}
+            >
+              <option value="">全部</option>
+              {STAR_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {isFiltered && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setSearch("");
+                setFilters(NO_CANDIDATE_FILTERS);
+              }}
+            >
+              清除篩選
             </Button>
           )}
         </div>
@@ -138,7 +205,11 @@ export function CampaignNewPage() {
         ) : candidates.error ? (
           <ErrorState error={candidates.error} onRetry={() => void candidates.refetch()} />
         ) : eligible.length === 0 && blocked.length === 0 ? (
-          <Empty title="目前沒有可以寄的公司">先到推薦清單審核通過，並認領公司、新增聯絡人。</Empty>
+          isFiltered ? (
+            <Empty title="沒有符合條件的公司">換個關鍵字或清除篩選再試試。已選的公司不受影響。</Empty>
+          ) : (
+            <Empty title="目前沒有可以寄的公司">先到推薦清單審核通過，並認領公司、新增聯絡人。</Empty>
+          )
         ) : (
           <ul className={c.candidates}>
             {eligible.map((cand) => {

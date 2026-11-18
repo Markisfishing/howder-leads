@@ -64,6 +64,10 @@ class UnsubscribeBody(BaseModel):
     whole_company: bool = False  # 客戶明講整家公司都不要聯絡（F-CASE-5）
 
 
+class ResubscribeBody(BaseModel):
+    reason: str = Field(max_length=500)
+
+
 class DeleteBody(BaseModel):
     reason: str = Field(max_length=500)
 
@@ -108,6 +112,14 @@ def unsubscribe_contact(
     contact = svc.get_contact(db, contact_id)
     body = body or UnsubscribeBody()
     return ContactOut.of(svc.unsubscribe(db, user, contact, body.note, whole_company=body.whole_company))
+
+
+@router.post("/contacts/{contact_id}/resubscribe", response_model=ContactOut)
+def resubscribe_contact(
+    contact_id: int, body: ResubscribeBody, user: AppUser = Depends(current_user), db: Session = Depends(get_db)
+) -> ContactOut:
+    contact = svc.get_contact(db, contact_id)
+    return ContactOut.of(svc.resubscribe(db, user, contact, body.reason))
 
 
 @router.delete("/contacts/{contact_id}", status_code=204)

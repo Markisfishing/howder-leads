@@ -206,6 +206,38 @@ def test_f_mail_7_candidates_show_reasons(world: World) -> None:
     assert rows[world.ids["10000001"]]["default_contact_id"] == world.contacts[world.ids["10000001"]]
 
 
+def _cand_ids(world: World, query: str = "") -> set[int]:
+    res = world.client.get(f"/api/v1/campaigns/candidates{query}", headers=world.sales1)
+    assert res.status_code == 200, res.text
+    return {r["company_id"] for r in res.json()}
+
+
+def test_m3_16_candidates_search_by_name_or_tax_id(world: World) -> None:
+    auto, motor = world.ids["10000001"], world.ids["10000002"]
+    assert _cand_ids(world, "?q=自動化") == {auto}
+    assert _cand_ids(world, "?q=10000002") == {motor}
+    assert _cand_ids(world, "?q=不存在的公司") == set()
+    assert _cand_ids(world, "?q=%20%20") == {auto, motor, world.ids["10000003"]}  # 只有空白等於沒有條件
+
+
+def test_m3_16_candidates_filter_by_industry_and_stars(world: World) -> None:
+    rows = world.client.get("/api/v1/companies", headers=world.sales1).json()["items"]
+    auto = next(r for r in rows if r["tax_id"] == "10000001")
+    assert _cand_ids(world, f"?industry_id={auto['industry_id']}") == {auto["company_id"]}
+    assert _cand_ids(world, f"?stars={auto['stars']}") == {auto["company_id"]}
+    # 篩選只縮小範圍：未通過審核的公司（第 4 家）不會因為符合條件而出現
+    assert world.ids["10000004"] not in _cand_ids(world, "?q=測試")
+
+
+def test_m3_16_candidates_filters_combine_and_keep_reasons(world: World) -> None:
+    motor = world.ids["10000002"]
+    world.client.post(f"/api/v1/companies/{motor}/claim", headers=world.sales2)
+    res = world.client.get("/api/v1/campaigns/candidates?q=電機", headers=world.sales1).json()
+    assert [r["company_id"] for r in res] == [motor]
+    assert res[0]["reasons"] == ["LOCKED_BY_OTHER"]  # 篩出來的仍然標示不能寄的原因
+    assert _cand_ids(world, "?q=電機&industry_id=9999") == set()
+
+
 def test_m2_03b_contact_must_belong_to_company(world: World) -> None:
     a, b = world.ids["10000001"], world.ids["10000002"]
     res = world.client.post(

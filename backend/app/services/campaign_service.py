@@ -90,9 +90,17 @@ def default_contact(contacts: list[Contact]) -> Contact | None:
     return next((ct for ct in sorted(contacts, key=lambda x: x.contact_id) if not ct.unsubscribed), None)
 
 
-def candidates(db: Session, user: AppUser, now: datetime) -> list[dict[str, object]]:
-    """可以選進批次的公司：所有「已通過」的公司，附上聯絡人與不能寄的原因（給前端顯示）。"""
-    companies = list(db.scalars(select(Company).where(Company.status == "approved").order_by(Company.name)))
+def candidates(
+    db: Session, user: AppUser, now: datetime, *, company_ids: set[int] | None = None
+) -> list[dict[str, object]]:
+    """可以選進批次的公司：所有「已通過」的公司，附上聯絡人與不能寄的原因（給前端顯示）。
+
+    company_ids 不是 None 時只回傳這些公司（M3-16：推薦清單篩選的結果）。
+    """
+    stmt = select(Company).where(Company.status == "approved").order_by(Company.name)
+    if company_ids is not None:
+        stmt = stmt.where(Company.company_id.in_(company_ids))
+    companies = list(db.scalars(stmt))
     if not companies:
         return []
     ids = [c.company_id for c in companies]
