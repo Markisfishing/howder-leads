@@ -140,8 +140,78 @@ class LocalLlmClient:
         )
 
 
+class ClaudeClient:
+    """Claude Messages API（M4-06d、ADR 0006 保留的切換選項）。
+
+    Messages API 沒有 JSON 模式：靠 prompt 要求只回 JSON，再由 domain/ai_rules 驗證（同一套規則）。
+    金鑰只從設定讀，不進 log。測試用假的 HTTP 回應，不連真實 Claude。
+    """
+
+    provider = "claude"
+    API_URL = "https://api.anthropic.com"
+    VERSION = "2023-06-01"
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        timeout_seconds: float,
+        transport: httpx.BaseTransport | None = None,
+        max_tokens: int = 1500,
+    ) -> None:
+        self.model = model
+        self._max_tokens = max_tokens
+        self._client = httpx.Client(
+            base_url=self.API_URL,
+            timeout=timeout_seconds,
+            transport=transport,
+            headers={"x-api-key": api_key, "anthropic-version": self.VERSION},
+        )
+
+    def complete(self, request: LlmRequest) -> LlmResult:
+        body = {
+            "model": self.model,
+            "max_tokens": self._max_tokens,
+            "temperature": request.temperature,
+            "system": request.system,
+            "messages": [{"role": "user", "content": request.user}],
+        }
+        started = time.monotonic()
+        try:
+            res = self._client.post("/v1/messages", json=body)
+        except httpx.TimeoutException as e:
+            raise LlmError("LLM_TIMEOUT", retryable=True) from e
+        except httpx.HTTPError as e:
+            raise LlmError("LLM_UNAVAILABLE", retryable=True) from e
+        seconds = time.monotonic() - started
+        if res.status_code in (401, 403):
+            raise LlmError("LLM_AUTH_FAILED")  # 金鑰錯誤，重試也沒用
+        if res.status_code >= 500 or res.status_code in (429, 529):
+            raise LlmError("LLM_UNAVAILABLE", retryable=True)
+        if res.status_code >= 400:
+            log.warning("Claude 回 %s model=%s", res.status_code, self.model)
+            raise LlmError("LLM_BAD_REQUEST")
+        try:
+            data = res.json()
+            text = "".join(b["text"] for b in data["content"] if b.get("type") == "text")
+        except (ValueError, KeyError, TypeError) as e:
+            raise LlmError("LLM_BAD_RESPONSE", retryable=True) from e
+        if not text.strip():
+            raise LlmError("LLM_BAD_RESPONSE", retryable=True)
+        usage = data.get("usage") or {}
+        log.info("LLM 完成 provider=claude model=%s seconds=%.1f", self.model, seconds)
+        return LlmResult(
+            text=text,
+            provider=self.provider,
+            model=self.model,
+            seconds=seconds,
+            prompt_tokens=usage.get("input_tokens"),
+            completion_tokens=usage.get("output_tokens"),
+        )
+
+
 def get_llm_client(settings: Settings) -> LlmClient:
-    """依設定建立 client（ADR 0006）。claude 要等 M4-06d；先明確報錯，不默默改用別的。
+    """依設定建立 client（ADR 0006）：local（預設）或 claude，不會默默改用另一個。
 
     自動化測試（ENV=test）一律不准建立真實 client：測試要自己注入 FakeLlmClient（CLAUDE.md 第 6 節第 4 點）。
     """
@@ -149,4 +219,4 @@ def get_llm_client(settings: Settings) -> LlmClient:
         raise LlmError("LLM_DISABLED_IN_TEST")
     if settings.llm_provider == "local":
         return LocalLlmClient(settings.local_llm_base_url, settings.local_llm_model, settings.llm_timeout_seconds)
-    raise LlmError("LLM_PROVIDER_NOT_AVAILABLE")
+    return ClaudeClient(settings.anthropic_api_key, settings.claude_model, settings.llm_timeout_seconds)

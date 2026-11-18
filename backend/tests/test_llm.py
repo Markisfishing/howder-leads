@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from app.config import Settings
-from app.services.llm import FakeLlmClient, LlmError, LlmRequest, LocalLlmClient, get_llm_client
+from app.services.llm import ClaudeClient, FakeLlmClient, LlmError, LlmRequest, LocalLlmClient, get_llm_client
 
 REQ = LlmRequest(system="你是業務助理", user="公司：測試公司")
 
@@ -115,10 +115,62 @@ def test_m4_06a_settings_default_to_local_ollama_and_inject_client() -> None:
     assert client.model == "qwen3:14b"
 
 
-def test_m4_06a_claude_provider_not_available_yet() -> None:
+def test_m4_06d_claude_provider_needs_api_key_and_injects_client() -> None:
+    with pytest.raises(ValueError):
+        Settings(_env_file=None, env="development", llm_provider="claude")
+    client = get_llm_client(Settings(_env_file=None, env="development", llm_provider="claude", anthropic_api_key="k"))
+    assert isinstance(client, ClaudeClient) and client.model == "claude-sonnet-5-5"
+
+
+def _claude(handler: httpx.MockTransport) -> ClaudeClient:
+    return ClaudeClient("test-key", "claude-test", 5.0, transport=handler)
+
+
+def test_m4_06d_claude_client_posts_messages_api_request_and_reads_text() -> None:
+    seen: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["url"] = str(request.url)
+        seen["key"] = request.headers["x-api-key"]
+        seen["version"] = request.headers["anthropic-version"]
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "content": [{"type": "text", "text": '{"ai_paragraph": "x"}'}],
+                "usage": {"input_tokens": 11, "output_tokens": 22},
+            },
+        )
+
+    result = _claude(httpx.MockTransport(handler)).complete(REQ)
+    assert seen["url"] == "https://api.anthropic.com/v1/messages"
+    assert (seen["key"], seen["version"]) == ("test-key", "2023-06-01")
+    body = seen["body"]
+    assert isinstance(body, dict)
+    assert body["system"] == "你是業務助理" and body["messages"] == [{"role": "user", "content": "公司：測試公司"}]
+    assert (result.text, result.provider, result.model) == ('{"ai_paragraph": "x"}', "claude", "claude-test")
+    assert (result.prompt_tokens, result.completion_tokens) == (11, 22)
+
+
+@pytest.mark.parametrize(
+    ("response", "code", "retryable"),
+    [
+        (httpx.Response(401), "LLM_AUTH_FAILED", False),
+        (httpx.Response(403), "LLM_AUTH_FAILED", False),
+        (httpx.Response(429), "LLM_UNAVAILABLE", True),
+        (httpx.Response(529), "LLM_UNAVAILABLE", True),
+        (httpx.Response(500), "LLM_UNAVAILABLE", True),
+        (httpx.Response(400, json={"error": {}}), "LLM_BAD_REQUEST", False),
+        (httpx.Response(200, json={"content": []}), "LLM_BAD_RESPONSE", True),
+        (httpx.Response(200, text="不是 JSON"), "LLM_BAD_RESPONSE", True),
+    ],
+)
+def test_m4_06d_claude_client_maps_failures_to_error_codes(
+    response: httpx.Response, code: str, retryable: bool
+) -> None:
     with pytest.raises(LlmError) as e:
-        get_llm_client(Settings(_env_file=None, env="development", llm_provider="claude"))
-    assert e.value.code == "LLM_PROVIDER_NOT_AVAILABLE"
+        _claude(httpx.MockTransport(lambda r: response)).complete(REQ)
+    assert (e.value.code, e.value.retryable) == (code, retryable)
 
 
 @pytest.mark.parametrize("kwargs", [{"llm_concurrency": 0}, {"llm_timeout_seconds": 0}])
