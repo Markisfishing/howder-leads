@@ -16,7 +16,7 @@ const BATCH_STATUS = {
   cancelled: { label: "已取消", tone: "neutral" },
 } as const;
 
-/** 名單管理（SPEC 6.2 /admin/imports · F-IMP-1~6、M3-06b）：上傳 → 預覽差異 → 確認匯入；也可下載審核結果給 MLE */
+/** 名單管理（SPEC 6.2 /admin/imports · F-IMP-1~6、M3-06b）：上傳 → 預覽差異 → 確認匯入；也可下載審核結果備查 */
 export function AdminImportsPage() {
   const { upload, commit, cancel, open } = useImportActions();
   const history = useImports();
@@ -116,10 +116,10 @@ export function AdminImportsPage() {
       {section === "import" && preview && <PreviewCard batch={preview} onCommit={doCommit} onCancel={doCancel} />}
       <InlineError error={commit.error ?? cancel.error ?? open.error} />
 
-      {/* 區塊：審核結果匯出（給 MLE 調模型） */}
+      {/* 區塊：審核結果匯出（內部備查） */}
       {section === "export" && <section className={styles.card}>
         <h2 className={styles.cardTitle}>審核結果匯出</h2>
-        <p className={styles.hint}>下載所有審核紀錄（含排除原因與產業修正），交給 MLE 調整模型。</p>
+        <p className={styles.hint}>下載所有審核紀錄（含排除原因與產業修正），內部備查用。</p>
         <div className={styles.actions}>
           <Button onClick={() => void doExport()}>下載 CSV</Button>
         </div>
