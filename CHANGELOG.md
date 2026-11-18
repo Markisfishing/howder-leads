@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-11-18｜移除側欄收合；M3-18 取消退訂、M3-16 建立批次候選篩選
+
+**改了哪些檔案**
+- `frontend/src/components/AppLayout.tsx`、`AppLayout.module.css`：移除側欄收合功能與「TEST 測試模式」標籤，還原成 `f6e8811` 的側欄（使用者覺得排版與收合效果不好；已單獨 commit `58891af`）
+- `backend/app/domain/company_rules.py`、`contact_rules.py`：`status_after_resubscribe`（`do_not_contact` → `approved`，其他不改）、`check_resubscribe_reason`
+- `backend/app/services/contact_service.py`、`api/v1/contacts.py`：`POST /contacts/{id}/resubscribe`（主管／管理員、原因必填、寫 `activity_log`）
+- `frontend/src/pages/recommendations/ContactConfirmDialog.tsx`、`ContactsSection.tsx`、`api/*`、`lib/labels.ts`：聯絡人區塊「取消退訂」按鈕（只有主管／管理員看到）與確認對話框
+- `backend/app/api/v1/campaigns.py`、`companies.py`、`services/campaign_service.py`：`/campaigns/candidates` 沿用推薦清單的篩選參數（`_filtered` 改名為公開的 `apply_filters`，加 `has_filters`）
+- `frontend/src/pages/campaigns/CampaignNewPage.tsx`、`Campaigns.module.css`、`api/endpoints.ts`、`hooks.ts`：搜尋（公司名稱／統編）、產業、星級篩選與「清除篩選」
+- `backend/tests/test_contacts.py`、`test_campaigns.py`、前端 `ContactDialogs.test.tsx`、`Campaigns.test.tsx`：各條規則的測試（`test_m3_18_*`、`test_m3_16_*`）
+- `docs/SPEC.md`、`PROGRESS.md`：候選名單 API 說明、任務勾選
+
+**解決了什麼問題**
+- 取消退訂原本沒有入口；客戶同意恢復聯絡時，主管／管理員可以處理，且公司不會卡在終點狀態。
+- 建立批次頁候選公司很多時沒有搜尋與篩選。
+
+**做了哪些決定**
+- 取消退訂後公司退回「已通過」而不是退回退訂前的狀態：不用回頭翻 `activity_log`，也不會讓舊的寄信進度誤導業務；缺點是要重新產生草稿。`do_not_contact` 在一般狀態機仍是終點，只有這條規則能離開。
+- 候選名單篩選放在後端（重用 `list_filters`），不在前端過濾，名單大時也只算需要的公司的防呆原因。
+- 勾選的公司在換篩選後保留；「全選／全部取消」只動目前顯示的公司。
+
+**還沒處理的問題**
+- 這個 worktree 的 `pg_local` 會因為兩個 worktree 的 `.venv` 路徑不同而想重建共用的 Postgres 執行檔，與另一個工作階段衝突；這次用獨立的 `LOCALAPPDATA`／`HOWDER_TEST_PGDATA` 繞過，沒改程式。
+- `uv run mypy app` 在 `api/v1/campaigns.py` 仍有 1 個既有錯誤（見 PROGRESS）。
+- 候選名單篩選只做了搜尋、產業、星級三項；推薦清單其餘篩選（國別、來源…）後端已支援，前端要不要開放待決定。
+- 建立批次頁的畫面是用舊後端（不含這次的篩選）檢查版面，篩選行為由自動化測試涵蓋，尚未用新後端在瀏覽器實測。
+
+**下一步**
+- M2-17；之後拆 M4（`PROGRESS.md`）。
+
+---
+
 ## 2026-11-18｜記錄 M2 待確認的決定；M3-17 退訂只標聯絡人、M2-16 待寄出狀態
 
 **改了哪些檔案**

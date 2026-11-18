@@ -162,7 +162,17 @@ export const previewTemplate = (body: Omit<TemplateBody, "name">) =>
 // ---------- 邀請信批次、草稿、寄出（M2-03～M2-07）----------
 export const listCampaigns = () => api<Campaign[]>("/campaigns");
 export const getCampaign = (id: number) => api<Campaign>(`/campaigns/${id}`);
-export const listCandidates = () => api<Candidate[]>("/campaigns/candidates");
+/** 建立批次的候選公司篩選（M3-16）：參數名稱和推薦清單一樣（q、industry_id、stars） */
+export interface CandidateFilters {
+  q: string;
+  industryId: number | null;
+  stars: number | null;
+}
+export const NO_CANDIDATE_FILTERS: CandidateFilters = { q: "", industryId: null, stars: null };
+export const listCandidates = (f: CandidateFilters = NO_CANDIDATE_FILTERS) =>
+  api<Candidate[]>("/campaigns/candidates", {
+    query: { q: f.q.trim(), industry_id: f.industryId, stars: f.stars === null ? [] : [f.stars] },
+  });
 export const getExclusionReasons = () => api<Record<string, string>>("/campaigns/exclusion-reasons");
 
 export interface CampaignCreate {

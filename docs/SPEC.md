@@ -270,7 +270,7 @@ backend/app/
 | POST | `/templates/{id}/archive`、`/templates/preview` | 停用模板、用假資料預覽（admin） |
 | GET | `/templates/{id}/versions` | 同一份模板的所有版本（admin） |
 | GET | `/campaigns`、`/campaigns/{id}` | 我的批次（主管看全部），含各狀態草稿數 |
-| GET | `/campaigns/candidates` | 可以選進批次的「已通過」公司、聯絡人、不能寄的原因 |
+| GET | `/campaigns/candidates` | 可以選進批次的「已通過」公司、聯絡人、不能寄的原因；沿用推薦清單的篩選參數（`q` 公司名稱／統編、`industry_id`、`stars`、`min_stars`…），只縮小範圍（M3-16） |
 | POST | `/campaigns` | 建立 campaign，並開始產生草稿（回傳 `job_id` 與被防呆排除的公司） |
 | GET | `/campaigns/{id}/drafts` | 預覽佇列 |
 | PATCH | `/drafts/{id}` | 修改主旨、內文（只有待審核或失敗的草稿） |
