@@ -5,9 +5,9 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 最後更新 | 2026-11-18（M1-03 Docker 驗證完成；補齊本機測試 PostgreSQL 執行檔；完成開發中發現的 mypy、焦點、防呆文字小修；M2-24 共用信箱 SMTP 寄信；複核 M2-17、M2-23；M4 併入 feat/m1-mvp；新增並修正一鍵啟動開發環境；修正前端 127.0.0.1 綁定） |
-| 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 b（業務盲評）、g（`CLAUDE.md` 指令補充）、l（完整 sandbox 50 封驗收）。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（2026-11-18 改成先用共用 Outlook.com 信箱 SMTP：M2-24 已完成 → M2-25 → M2-15；個人帳號 OAuth 的 M2-20、M2-21 暫緩當備案）；M1 全部完成（M1-03 Docker 驗證 2026-11-18 完成） |
-| 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。**M2-26：負責人把 `docs/it-mail-questions.md` 的問題傳給 IT**，依回覆決定正式寄客戶的方式（預計公司 Microsoft 365＋Graph）；等待期間 M2-15 先用 Gmail＋應用程式密碼只寄給自己測流程（只改 `.env`）；M4-06b 業務盲評（要業務來做）；M4-06g 問使用者後補 `CLAUDE.md` 第 3 節指令；M4-06l 完整 sandbox 驗收；之後 M5 |
+| 最後更新 | 2026-11-18（M2-15 用 Gmail SMTP 真實寄 10 封給自己完成；M4-06l 完整 sandbox 50 封 84 秒；M4-06g CLAUDE.md 指令補充；前端依路由切分、MSAL 只在 entra 模式載入；AdminImportsPage 元件測試） |
+| 目前階段 | **M4 只剩 M4-06b 業務盲評**（要業務來做）。M3 全部完成。M2 剩 M2-26（等 IT 回覆公司對外信箱）；M2-15 已用 Gmail＋應用程式密碼寄給負責人自己驗收完成（2026-11-18），正式寄客戶的方式等 M2-26；個人帳號 OAuth 的 M2-20、M2-21 暫緩當備案。M1 全部完成 |
+| 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。**M2-26：負責人把 `docs/it-mail-questions.md` 的問題傳給 IT**，依回覆決定正式寄客戶的方式（預計公司 Microsoft 365＋Graph）；M4-06b 業務盲評（要業務來做）；之後 M5（開始前先拆細） |
 | 卡住 / 待確認 | 公司對外信箱的類型與管理員能否註冊應用程式、同意 `Mail.Send`（M2-26，等 IT 回覆；outlook.com 已不能用密碼登入 SMTP，M2-25）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -46,11 +46,11 @@
 | 已完成 | M2-24 共用信箱 SMTP 寄信（ADR 0008） | 開發者 | 2026-11-18 |
 | 已完成 | M2-25 SMTP 登入檢查 | 負責人 | 2026-11-18：outlook.com 回 535，密碼登入已停用 |
 | 2 | M2-26 向 IT 確認公司對外信箱 | 負責人 | 問題清單在 `docs/it-mail-questions.md`，可直接複製傳給 IT |
-| 3 | M2-15 真實寄信驗收 | 負責人＋開發者 | 用共用信箱 SMTP；不需要 Azure |
+| 已完成 | M2-15 真實寄信驗收 | 負責人＋開發者 | 2026-11-18：Gmail＋應用程式密碼，10 封寄給負責人自己 |
 | 備案 | M2-20 登入支援個人帳號 → M2-21 連結 Outlook | 開發者 | 只有 M2-25 登入不了、或換公司帳號時才做（ADR 0007） |
 | — | M4-06b 業務盲評 | 業務 | 開發者先準備 10 封草稿 |
-| — | M4-06g CLAUDE.md 指令補充 | 開發者 | 改 CLAUDE.md 前先問負責人 |
-| — | M4-06l 完整 sandbox 50 封驗收 | 開發者 | 需要本機 Ollama |
+| 已完成 | M4-06g CLAUDE.md 指令補充 | 開發者 | 2026-11-18（負責人同意） |
+| 已完成 | M4-06l 完整 sandbox 50 封驗收 | 開發者 | 2026-11-18：84 秒、0 失敗 |
 | 已完成 | M1-03 Docker 驗證 | 開發者 | 2026-11-18：compose 補上專案名稱並只綁本機，migration、測試、API 都正常 |
 | 之後 | M5 | 先拆細 | CLAUDE.md 第 13 節：開始前拆成和 M1 一樣細 |
 
@@ -145,9 +145,9 @@
   - [x] mypy 錯誤：`backend/app/api/v1/campaigns.py` 的 `row.count` 被 mypy 當成 Row 的方法，已改成 `row[1]`，`uv run mypy app` 為 0 個錯 — 2026-11-18
   - [x] 防呆文字固定寫「14 天內已經寄過」：已改成依 `RECENT_SEND_DAYS` 顯示天數，文字由後端 `/campaigns/exclusion-reasons` 提供 — 2026-11-18
   - [x] 公司詳情側欄與受控對話框已改善開啟及關閉後的焦點位置 — 2026-11-18
-  - `AdminImportsPage` 元件測試（Vitest）：上傳預覽、確認匯入、錯誤列表四種狀態。
-  - 前端 bundle 超過 500 kB：dev 模式不載入 MSAL（動態 import）或依路由切分。
-  - 手機版篩選列太長（14 個欄位）：收合成「篩選」按鈕，用 Radix 的對話框或側欄。
+  - [x] `AdminImportsPage` 元件測試（Vitest）：上傳預覽、確認匯入、取消、錯誤訊息、紀錄的空／錯誤／列表狀態 — 2026-11-18
+  - [x] 前端 bundle 超過 500 kB：頁面依路由切分、MSAL 只在 entra 模式動態載入；主程式 766 kB → 309 kB — 2026-11-18
+  - [x] 手機版篩選列太長：審核工作台（commit cc42fa6）已改成「篩選」按鈕開側欄，2026-11-18 在 375px 確認過，不用再改 — 2026-11-18
 - **要負責人決定的**（決定後才做，不做就照 CLAUDE.md 第 13 節直接刪掉並記在 CHANGELOG）：漏斗數字要不要移除、`gold_label` 表要不要刪（要新增 migration）、寄信時要不要自動認領（SPEC 11-11）、案件聯絡人退訂後要不要自動換人、Excel 缺統編找整理的人補、總覽門檻「只定義一次」要不要改成 SQL 函式。
 
 ---
@@ -308,7 +308,7 @@
 - [x] M2-12 KPI 卡「近 7 天已寄出」接上真實資料，在瀏覽器確認 — 2026-11-18
 - [x] M2-13 sandbox 走完一輪：10 家 → 產生 → 修改 → 核准 → 寄出，`email_message` 有 10 筆 — 2026-11-18（腳本跑 API＋worker；修掉 contact_id 未填的 bug）
 - [x] M2-14 375px / 1280px 瀏覽器檢查；預覽佇列可以只用鍵盤核准 — 2026-11-18
-- [ ] M2-15 驗收：用共用測試信箱（outlook.com，SMTP，ADR 0008）真實寄 10 封到負責人自己的信箱，確認出現在寄件備份；用全新的空資料庫、只放測試公司，白名單只放那個信箱、每天上限 2～10 封（前置：M2-25；公司帳號之後再測）
+- [x] M2-15 驗收：真實寄 10 封到負責人自己的信箱 — 2026-11-18（ADR 0008 的 outlook.com 不能用密碼登入〔M2-25〕，改用 Gmail＋應用程式密碼，只改 `.env`：`SMTP_HOST=smtp.gmail.com`。全新空資料庫、10 家測試公司＋1 家 `blocked@example.com`；blocked 在建立批次時就被「收件者不在測試白名單」排除；10 封全部寄出、0 失敗、`email_message` 10 筆、結尾有退訂說明。台灣時間已過 18:00，這次啟動時用環境變數 `SEND_DAY_END_HOUR=24`，`.env` 沒改。寄件備份與收件由負責人在信箱確認。正式寄客戶的方式等 M2-26）
 
 ### 2026-11-18 使用者決定後追加
 - [x] M2-16 批次「待寄出」狀態（F-MAIL-4）：migration 讓 `campaign.status` CHECK 加上 `ready`（單獨 commit）；草稿都處理完、還沒按寄出時改成 `ready`，按寄出後 `scheduled`；前端狀態文字＋測試 — 2026-11-18（migration 0011；「我的待辦」也算待寄出的批次；既有批次要等下一次草稿動作才會重算狀態）
@@ -393,7 +393,7 @@
 - [x] M4-06a `LlmClient` 介面（輸入 system prompt＋使用者內容，回傳文字與耗時、token 數）＋`FakeLlmClient`；設定 `LLM_PROVIDER`（預設 `local`）、`LOCAL_LLM_BASE_URL`（預設本機 Ollama）、`LOCAL_LLM_MODEL`（預設 `qwen3:8b`）、`LLM_TIMEOUT_SECONDS`、`LLM_CONCURRENCY` 加進設定與 `.env.example`；依設定注入的測試（原本這一項也含 JSON 驗證、簡體字檢查、逾時重試，改拆到 M4-06e、M4-06f） — 2026-11-18
 - [x] M4-06e `domain/ai_rules.py`（純函式）：去掉 qwen3 的 `<think>…</think>` 思考段、從回覆取出 JSON、驗證必要欄位與長度（主旨、`ai_paragraph`、`body_text`）、常見簡體字檢查；每條規則都有單元測試 — 2026-11-18
 - [x] M4-06f `LocalLlmClient`：呼叫 `/v1/chat/completions`（要求 JSON 格式、關閉 qwen3 思考模式、溫度可設定、逾時）；連不上、逾時、HTTP 錯誤都轉成錯誤代碼（`LLM_UNAVAILABLE`、`LLM_TIMEOUT`…）；用假的 HTTP 回應測試，不連真實 Ollama — 2026-11-18
-- [ ] M4-06g 本機冒煙腳本 `scripts/llm_smoke.py`：對本機 Ollama 用 1 家假公司跑一次，印出耗時、token 數、JSON 是否合格、有沒有簡體字（手動執行，不進 pytest）；`CLAUDE.md` 第 3 節指令補上 `ollama serve` 與這支腳本（改 CLAUDE.md 前先問使用者）（進行中：`backend/scripts/llm_smoke.py` 已完成並在 2026-11-18 對本機 Ollama `qwen3:8b` 實測通過——template_ai 與 full_ai 都 JSON 合格、無簡體字，冷啟動第一次約 62 秒、之後約 1.4 秒；實測發現 invite_v1 會把「寄件業務：」寫進署名，已新增 `invite_v2.md` 修正。`CLAUDE.md` 第 3 節指令補充尚未做，要先問使用者。啟動方式：這台機器的 `C:\Users\y7632\.ollama` 是指向不存在的 `D:\羊駝\.ollama` 的符號連結，`ollama serve` 要用 `USERPROFILE=C:\howder-wt\ollama-home OLLAMA_MODELS=D:\ollama\models` 另開 home 才起得來）
+- [x] M4-06g 本機冒煙腳本 `scripts/llm_smoke.py`：對本機 Ollama 用 1 家假公司跑一次，印出耗時、token 數、JSON 是否合格、有沒有簡體字（手動執行，不進 pytest）；`CLAUDE.md` 第 3 節指令補上 `ollama serve` 與這支腳本 — 2026-11-18（腳本已實測通過；CLAUDE.md 第 3 節加上 `ollama serve`、`llm_smoke`、`llm_bench`、`smtp_check`，負責人同意）
 - [x] M4-06h migration：`email_draft` 加 `gen_provider`、`gen_model`、`prompt_version`（單獨 commit；同步 `db/schema.sql`、SPEC 8.1） — 2026-11-18（migration 0012）
 - [x] M4-06c prompt `prompts/invite_v1.md`（system：厚達產品介紹先用佔位文字待 SPEC 11-5、不捏造實績／價格／認證／交期、繁體中文、只回 JSON）＋`template_ai`：AI 只寫 `{{ai_paragraph}}`，其他照模板代入；接進 worker `generate_drafts`，草稿記錄 provider、模型、prompt 版本（原本含 `full_ai`，改拆到 M4-06i） — 2026-11-18
 - [x] M4-06i `full_ai`：AI 寫主旨＋整封內文，驗證長度，結尾一律由系統補上退訂說明（AI 寫的不算）；`ai_original` 存 AI 原稿供 F-MAIL-8 比對 — 2026-11-18
@@ -401,7 +401,7 @@
 - [x] M4-06k 前端：建立批次頁開放「模板＋AI 段落」「整封 AI 撰寫」（目前顯示「M4 開放」）；預覽佇列顯示這封是哪個模型、哪一版 prompt 產生的，AI 內容旁提醒業務核對事實 — 2026-11-18
 - [ ] M4-06b 選地端模型：**先在本機比 `qwen3:8b` 與 `qwen3:14b`**（8 GB VRAM 放不下整個 14b，部分會跑在 CPU，要實測速度）；同一批 10 家公司（只用公司名、產業、推薦理由等公司層級資訊）各產生一封，業務盲評通順度、正確性、有沒有捏造、要改多少，記錄每封秒數與失敗率，結果寫回 ADR 0006。公司 GPU 主機到位後再加入其他候選模型重比（進行中：速度與失敗率已實測，結果寫進 ADR 0006——`qwen3:8b` 每封約 3 秒、`qwen3:14b` 約 28 秒；尚缺業務盲評通順度、正確性、有沒有捏造，這要業務來做）
 - [x] M4-06d `ClaudeClient`（保留切換選項，用假的實作測試；要不要上線看 M4-06b 結果） — 2026-11-18（`ClaudeClient` 用 Messages API，假 HTTP 測試；`LLM_PROVIDER=claude` 需 `ANTHROPIC_API_KEY`，要不要上線由使用者決定）
-- [ ] M4-06l 驗收（sandbox，不寄出）：本機 Ollama 用選定的模型產生 50 封 `template_ai` 草稿，記錄總耗時與失敗率，對照 F-MAIL-3「50 封 3 分鐘」；達不到就在 ADR 0006 記下本機實測數字，正式環境靠公司 GPU 主機（進行中：LLM 階段實測 `qwen3:8b` 50 封 `template_ai` 共 82 秒、0 失敗，達到 3 分鐘目標；尚未用完整 sandbox 流程〔建批次→worker→預覽〕跑 50 封）
+- [x] M4-06l 驗收（sandbox，不寄出）：本機 Ollama 用選定的模型產生 50 封 `template_ai` 草稿，記錄總耗時與失敗率，對照 F-MAIL-3「50 封 3 分鐘」 — 2026-11-18（全新空資料庫、API＋worker＋`qwen3:8b`：從建立批次到 50 封進預覽佇列 84 秒、0 失敗，結果寫進 ADR 0006）
 
 ### 官網摘要（M4-08；SPEC 7.4）
 - [x] M4-08a migration：新增 `company_site_summary` 表（公司、抓取網址、摘要、抓取時間、狀態、錯誤代碼），`job.kind` 加上 `fetch_site`（單獨 commit；同步 `db/schema.sql`、SPEC 8.1） — 2026-11-18
@@ -441,11 +441,11 @@
 - [x] 根目錄新增 `start-dev.ps1`，一鍵啟動 Docker PostgreSQL、API、Worker 與前端，並在 `README.md` 補上使用說明 — 2026-11-18
 - [x] 新增 `.gitattributes` 統一 LF 換行（部署到 Linux 前） — 2026-11-17
 - [x] 本機 `pgserver` 複製資料夾缺少 `pg_ctl.exe`／`initdb.exe` 時，測試啟動會依必要執行檔完整性自動重新複製 — 2026-11-18
-- [ ] 前端 bundle 651 kB（超過 500 kB 警告）：dev 模式不需要 MSAL，可改成動態載入或依路由切分
-- [ ] 手機版篩選列有 8 個欄位，佔掉一整個螢幕；考慮收合成「篩選」按鈕
+- [x] 前端 bundle 651 kB（超過 500 kB 警告）：頁面依路由切分、MSAL 動態載入，主程式 309 kB — 2026-11-18
+- [x] 手機版篩選列有 8 個欄位，佔掉一整個螢幕；考慮收合成「篩選」按鈕 — 2026-11-18（審核工作台已改成按鈕開側欄，375px 確認）
 - [ ] 原始 Excel 第 44 列缺統編，匯入時會被略過；請整理 Excel 的人補上
 - [x] 公司詳情側欄打開時焦點落在「排除…」按鈕，改成落在標題或關閉鈕比較安全 — 2026-11-18
-- [ ] `RecommendationsPage` 與 `AdminImportsPage` 尚無元件測試（目前靠瀏覽器檢查）（進行中：已完成 RecommendationsPage 的加入追蹤與小數星等測試，AdminImportsPage 還沒有）
+- [x] `RecommendationsPage` 與 `AdminImportsPage` 尚無元件測試（目前靠瀏覽器檢查） — 2026-11-18（AdminImportsPage 補 7 個測試）
 - [ ] 寄信不會自動認領公司（`owner_id` 留空，只有「認領」或「加入追蹤」才會），寄出後其他業務 14 天後仍可寄；要不要寄出時自動認領，請業務主管決定（M3-14 發現）
 - [x] 欄位自選等受控對話框關閉後，焦點回到頁面最上面而不是原本的按鈕；`Modal` 元件可加上關閉後還原焦點 — 2026-11-18
 - [ ] 推薦清單篩選列 M3-06c 後變成 14 個欄位，手機上更長；和上面「收合成篩選按鈕」一起處理
