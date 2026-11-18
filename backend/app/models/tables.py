@@ -336,6 +336,8 @@ class CaseUpdate(Base):
     next_follow_up: Mapped[date | None] = mapped_column(Date)
     amount_twd: Mapped[Decimal | None] = mapped_column(Numeric(14, 0))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    sentiment: Mapped[str | None] = mapped_column(Text)  # positive / neutral / negative（0014）
+    sentiment_source: Mapped[str | None] = mapped_column(Text)  # ai / manual
 
 
 # ---------- 指標層 view（唯讀）----------

@@ -271,7 +271,10 @@ CREATE TABLE case_update (                           -- 0006：業務人工回�
     note             TEXT,
     next_follow_up   DATE,
     amount_twd       NUMERIC(14,0) CONSTRAINT ck_update_amount CHECK (amount_twd IS NULL OR amount_twd >= 0),
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    sentiment        TEXT CONSTRAINT ck_case_update_sentiment CHECK (sentiment IN ('positive','neutral','negative')),  -- 0014：客戶態度
+    sentiment_source TEXT CONSTRAINT ck_case_update_sentiment_source CHECK (sentiment_source IN ('ai','manual')),     -- 0014
+    CONSTRAINT ck_case_update_sentiment_pair CHECK ((sentiment IS NULL) = (sentiment_source IS NULL))
 );
 CREATE INDEX idx_case_update_case ON case_update(case_id, created_at);
 
@@ -301,7 +304,7 @@ CREATE TABLE user_mail_credential (
 -- ---------- 背景工作佇列（0003，ADR 0003）----------
 CREATE TABLE job (
     job_id        BIGSERIAL PRIMARY KEY,
-    kind          TEXT NOT NULL CHECK (kind IN ('generate_drafts', 'send_email', 'case_daily')),  -- 0008：case_daily
+    kind          TEXT NOT NULL CHECK (kind IN ('generate_drafts', 'send_email', 'case_daily', 'classify_reply')),  -- 0008：case_daily；0014：classify_reply
     payload       JSONB NOT NULL DEFAULT '{}'::jsonb,
     status        TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed')),
     run_after     TIMESTAMPTZ NOT NULL DEFAULT now(),   -- 排程與重試退避
