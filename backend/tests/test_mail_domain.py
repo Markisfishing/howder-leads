@@ -72,6 +72,10 @@ def test_f_mail_7_multiple_reasons_and_description() -> None:
     assert describe(reasons) == "聯絡人已退訂、由其他業務負責中、14 天內已經寄過"
 
 
+def test_f_mail_7_description_uses_configured_recent_days() -> None:
+    assert describe(["RECENTLY_SENT"], recent_days=30) == "30 天內已經寄過"
+
+
 # ---------- 測試收件者白名單（M2-18）----------
 def test_m2_18_parse_allowlist() -> None:
     assert parse_allowlist(" Test1@Example.com, @Corp.example.com ,,") == ("test1@example.com", "@corp.example.com")

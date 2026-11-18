@@ -83,6 +83,7 @@ export function CampaignNewPage() {
   };
 
   const reasonText = (codes: string[]) => codes.map((r) => reasonLabels[r] ?? r).join("、");
+  const recentSendReason = reasonLabels.RECENTLY_SENT ?? "近期寄過";
 
   return (
     <>
@@ -92,7 +93,7 @@ export function CampaignNewPage() {
         </Link>
         <h1 className={styles.title}>建立邀請信批次</h1>
         <p className={styles.meta}>
-          勾選要寄的公司。已退訂、不再聯絡、由其他業務負責、或 14 天內寄過的公司會自動排除並說明原因。
+          勾選要寄的公司。已退訂、不再聯絡、由其他業務負責、或{recentSendReason}的公司會自動排除並說明原因。
         </p>
       </header>
 

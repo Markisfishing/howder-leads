@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-11-18｜讓寄送防呆文字使用實際設定
+
+**改了哪些檔案**
+- `backend/app/domain/send_guard.py`、`backend/app/api/v1/campaigns.py`、`backend/app/services/campaign_service.py`：原因標籤與批次錯誤文字改由 `recent_send_days` 產生。
+- `frontend/src/pages/campaigns/CampaignNewPage.tsx`：建立批次提示改用後端原因標籤。
+- `backend/tests/test_mail_domain.py`、`backend/tests/test_campaigns.py`：補上自訂天數的 domain／API 測試；`PROGRESS.md`：完成開發中發現小修。
+
+**解決了什麼問題**
+- `RECENT_SEND_DAYS` 改變時，候選公司、批次建立錯誤與前端提示會顯示相同的實際天數，不再固定寫 14 天。
+
+**做了哪些決定**
+- 保留 `REASON_LABELS` 的預設值供既有 domain 呼叫者使用；API 與批次流程則明確傳入設定值。
+
+**還沒處理的問題**
+- 其餘「開發中發現」項目仍依 `PROGRESS.md` 排程處理。
+
+**下一步**
+- 依 `PROGRESS.md` 的下一個任務處理 M2-19 ADR 確認後的 M2-20、M2-21。
+
+---
+
 ## 2026-11-18｜修正受控對話框焦點
 
 **改了哪些檔案**

@@ -12,17 +12,23 @@ from app.domain.company_rules import Ownership
 
 RECENT_DAYS = 14
 
-# 原因代碼 → 給業務看的中文
-REASON_LABELS: dict[str, str] = {
-    "NOT_APPROVED": "公司還沒審核通過",
-    "NO_CONTACT": "沒有聯絡人",
-    "CONTACT_NOT_IN_COMPANY": "聯絡人不屬於這家公司",
-    "UNSUBSCRIBED": "聯絡人已退訂",
-    "DO_NOT_CONTACT": "公司已設為不再聯絡",
-    "LOCKED_BY_OTHER": "由其他業務負責中",
-    "RECENTLY_SENT": f"{RECENT_DAYS} 天內已經寄過",
-    "RECIPIENT_NOT_ALLOWED": "收件者不在測試白名單（MAIL_ALLOWED_RECIPIENTS）",
-}
+
+def reason_labels(recent_days: int = RECENT_DAYS) -> dict[str, str]:
+    """原因代碼 → 給業務看的中文；最近寄送天數跟著設定更新。"""
+    return {
+        "NOT_APPROVED": "公司還沒審核通過",
+        "NO_CONTACT": "沒有聯絡人",
+        "CONTACT_NOT_IN_COMPANY": "聯絡人不屬於這家公司",
+        "UNSUBSCRIBED": "聯絡人已退訂",
+        "DO_NOT_CONTACT": "公司已設為不再聯絡",
+        "LOCKED_BY_OTHER": "由其他業務負責中",
+        "RECENTLY_SENT": f"{recent_days} 天內已經寄過",
+        "RECIPIENT_NOT_ALLOWED": "收件者不在測試白名單（MAIL_ALLOWED_RECIPIENTS）",
+    }
+
+
+# 預設原因標籤，保留給純 domain 呼叫者使用。
+REASON_LABELS = reason_labels()
 
 
 def parse_allowlist(raw: str) -> tuple[str, ...]:
@@ -87,5 +93,6 @@ def exclusions(
     return reasons
 
 
-def describe(reasons: list[str]) -> str:
-    return "、".join(REASON_LABELS.get(r, r) for r in reasons)
+def describe(reasons: list[str], recent_days: int = RECENT_DAYS) -> str:
+    labels = reason_labels(recent_days)
+    return "、".join(labels.get(r, r) for r in reasons)
