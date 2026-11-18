@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-11-18｜修正 Windows PowerShell 5.1 一鍵啟動
+
+**改了哪些檔案**
+- `start-dev.ps1`：改成 Windows PowerShell 5.1 可辨識的 UTF-8 BOM，並讓一鍵模式固定使用 Docker PostgreSQL 的 `127.0.0.1:5432`。
+- `README.md`：補充一鍵模式不會改寫既有 `.env`，但會使用 Docker 資料庫連線。
+- `PROGRESS.md`：記錄一鍵啟動修正完成。
+
+**解決了什麼問題**
+- Windows PowerShell 5.1 原本把無 BOM 的 UTF-8 中文字串錯誤解析，導致 `api`、`PostgreSQL` 等位置出現語法錯誤。
+- 使用者的 `backend/.env` 指向舊的內嵌 PostgreSQL 埠 `53260`，一鍵腳本啟動 Docker 後仍會連錯資料庫，migration 因而卡住。
+
+**做了哪些決定**
+- 不覆蓋使用者既有 `.env`；一鍵啟動時只在目前 PowerShell 程序設定 Docker PostgreSQL 的 `DATABASE_URL`。
+- 個別 `-Service api|worker|frontend` 仍沿用 `.env` 的設定，方便手動使用既有資料庫。
+
+**還沒處理的問題**
+- Windows 終端機若不是 UTF-8 code page，中文輸出可能仍顯示亂碼，但不影響腳本執行；腳本語法與服務啟動已驗證。
+
+**下一步**
+- 在專案根目錄重新執行 `powershell -ExecutionPolicy Bypass -File .\start-dev.ps1`。
+
+---
+
 ## 2026-11-18｜M1-03 Docker 驗證完成
 
 **改了哪些檔案**
