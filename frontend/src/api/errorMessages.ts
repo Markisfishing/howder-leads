@@ -35,6 +35,8 @@ const MESSAGES: Record<string, string> = {
   NO_TARGETS: "請至少選一家公司",
   TOO_MANY_TARGETS: "一個批次最多 200 家",
   DUPLICATE_TARGET: "同一家公司只能選一次",
+  INVALID_SENTIMENT: "客戶態度只能是有興趣、中性或不感興趣",
+  UPDATE_NOT_FOUND: "找不到這筆回填紀錄",
   GEN_MODE_NOT_AVAILABLE: "不支援這種生成方式",
   TEMPLATE_NO_AI_PARAGRAPH: "這份模板的內文沒有 {{ai_paragraph}}，不能用「模板＋AI 段落」",
   AI_BAD_JSON: "AI 回覆的格式不正確，請按「重新產生」",

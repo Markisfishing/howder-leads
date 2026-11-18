@@ -6,6 +6,7 @@ import type {
   CaseUpdateInput,
   ReminderItem,
   SalesCase,
+  Sentiment,
   Campaign,
   CampaignCreated,
   Candidate,
@@ -241,6 +242,9 @@ export const addTracking = (companyIds: number[]) =>
   api<SalesCase[]>("/cases", { method: "POST", json: { company_ids: companyIds } });
 export const addCaseUpdate = (id: number, body: CaseUpdateInput) =>
   api<CaseDetail>(`/cases/${id}/updates`, { method: "POST", json: body });
+/** 業務手動修正客戶態度（M4-07c） */
+export const setSentiment = (caseId: number, updateId: number, sentiment: Sentiment) =>
+  api<CaseDetail>(`/cases/${caseId}/updates/${updateId}/sentiment`, { method: "PATCH", json: { sentiment } });
 export const unsubscribeCase = (id: number, contactId?: number | null, wholeCompany = false) =>
   api<CaseDetail>(`/cases/${id}/unsubscribe`, {
     method: "POST",

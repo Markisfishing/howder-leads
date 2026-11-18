@@ -2,7 +2,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import * as ep from "./endpoints";
-import type { Campaign, CaseUpdateInput, OverviewQuery, PerfBreakdown } from "./types";
+import type { Campaign, CaseUpdateInput, OverviewQuery, PerfBreakdown, Sentiment } from "./types";
 import type { ListFilters } from "../lib/filters";
 
 export const keys = {
@@ -208,6 +208,10 @@ function useCaseMutation<TArgs, TResult>(fn: (args: TArgs) => Promise<TResult>) 
 }
 export const useAddCaseUpdate = () =>
   useCaseMutation(({ id, body }: { id: number; body: CaseUpdateInput }) => ep.addCaseUpdate(id, body));
+export const useSetSentiment = () =>
+  useCaseMutation(({ caseId, updateId, sentiment }: { caseId: number; updateId: number; sentiment: Sentiment }) =>
+    ep.setSentiment(caseId, updateId, sentiment),
+  );
 export const useUnsubscribeCase = () =>
   useCaseMutation(
     ({ id, contactId, wholeCompany }: { id: number; contactId?: number | null; wholeCompany?: boolean }) =>
