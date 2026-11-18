@@ -21,7 +21,7 @@ from app.db import get_engine
 from app.models import Job
 from app.services import generator, jobs, reminder_service, send_service, sentiment_service, site_service
 from app.services.llm import LlmClient, get_llm_client
-from app.services.mailer import GraphMailer, Mailer, SandboxMailer
+from app.services.mailer import GraphMailer, Mailer, SandboxMailer, SmtpMailer
 
 log = logging.getLogger("howder.worker")
 
@@ -39,6 +39,15 @@ def build_mailer(settings: Settings, session_factory: Callable[[], Session]) -> 
     """sandbox 一律不寄；live 才用 Graph，而且只用寄件人本人的權杖（ADR 0005）。"""
     if settings.mail_mode != "live":
         return SandboxMailer()
+    if settings.mail_transport == "smtp":  # 共用測試信箱（ADR 0008），不需要連結 Outlook
+        return SmtpMailer(
+            host=settings.smtp_host,
+            port=settings.smtp_port,
+            username=settings.smtp_username,
+            password=settings.smtp_password,
+            from_name=settings.smtp_from_name,
+            timeout=settings.smtp_timeout_seconds,
+        )
     from app.services import mail_token
 
     cipher = mail_token.TokenCipher(settings.mail_token_key)

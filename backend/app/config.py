@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     # live 寄信用（ADR 0005）：機密用戶端密碼、權杖快取加密金鑰（Fernet，逗號分隔可放多把以便換金鑰）
     entra_client_secret: str = ""
     mail_token_key: str = ""
+    # 寄信方式（ADR 0008）：graph = 業務本人的 Outlook（ADR 0005）
+    # smtp = 共用測試信箱（Outlook.com SMTP＋密碼，只限開發環境）
+    mail_transport: Literal["graph", "smtp"] = "graph"
+    smtp_host: str = "smtp-mail.outlook.com"
+    smtp_port: int = 587
+    smtp_username: str = ""  # 共用測試信箱的完整地址，也是寄件人
+    smtp_password: str = ""  # 只放 .env，不 commit、不印進 log
+    smtp_from_name: str = "厚達電子"
+    smtp_timeout_seconds: float = 30.0
     # 寄送限制（F-MAIL-6、F-MAIL-7）；「一天」以台灣時間計算
     daily_send_limit: int = 50
     send_per_minute: int = 10
@@ -61,10 +70,16 @@ class Settings(BaseSettings):
             raise ValueError("測試環境不可以設定 MAIL_MODE=live")
         if self.mail_mode == "live" and self.env == "development" and not self.allowlist:
             raise ValueError("開發環境設定 MAIL_MODE=live 前，必須先填 MAIL_ALLOWED_RECIPIENTS（只寄到自己的測試信箱）")
-        if self.mail_mode == "live" and not (self.entra_client_secret and self.mail_token_key):
-            raise ValueError("MAIL_MODE=live 需要 ENTRA_CLIENT_SECRET 與 MAIL_TOKEN_KEY（ADR 0005）")
-        if self.mail_mode == "live" and self.auth_mode != "entra":
-            raise ValueError("MAIL_MODE=live 需要 AUTH_MODE=entra")
+        if self.mail_transport == "smtp" and self.env == "production":
+            raise ValueError("MAIL_TRANSPORT=smtp（共用測試信箱）只能在開發環境使用（ADR 0008）")
+        smtp_live = self.mail_mode == "live" and self.mail_transport == "smtp"
+        if smtp_live and not (self.smtp_username and self.smtp_password):
+            raise ValueError("MAIL_TRANSPORT=smtp 需要 SMTP_USERNAME 與 SMTP_PASSWORD（ADR 0008）")
+        if self.mail_mode == "live" and self.mail_transport == "graph":
+            if not (self.entra_client_secret and self.mail_token_key):
+                raise ValueError("MAIL_MODE=live 需要 ENTRA_CLIENT_SECRET 與 MAIL_TOKEN_KEY（ADR 0005）")
+            if self.auth_mode != "entra":
+                raise ValueError("MAIL_MODE=live 需要 AUTH_MODE=entra")
         if self.llm_provider == "claude" and not self.anthropic_api_key:
             raise ValueError("LLM_PROVIDER=claude 需要 ANTHROPIC_API_KEY")
         if self.llm_concurrency < 1 or self.llm_timeout_seconds <= 0:
