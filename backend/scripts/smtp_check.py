@@ -23,6 +23,17 @@ AUTH_HINT = (
     "這條路就不能用了，請改走 Graph 授權（ADR 0007）；另外也確認帳號有沒有開兩步驟驗證、"
     "或 Outlook.com 設定裡有沒有關掉 POP/IMAP/SMTP。"
 )
+# 伺服器回的原因（不含密碼）→ 白話說明。Outlook.com 個人信箱 2024-09-16 起停用密碼登入
+REASON_HINTS = [
+    ("basic authentication is disabled", "Microsoft 已停用這個信箱的密碼登入（含應用程式密碼），使用者無法自己打開。"),
+    ("smtpclientauthentication is disabled", "這個信箱關閉 SMTP 登入，連 OAuth 的 SMTP 也不行；只能走 Graph。"),
+    ("5.7.3", "帳號或密碼不正確，或帳號被要求驗證／鎖定，請先用瀏覽器登入 outlook.com 確認。"),
+]
+
+
+def _reason(e: smtplib.SMTPAuthenticationError) -> str:
+    raw = e.smtp_error.decode("utf-8", "replace") if isinstance(e.smtp_error, bytes) else str(e.smtp_error)
+    return " ".join(raw.split())[:300]
 
 
 def main() -> int:
@@ -42,8 +53,11 @@ def main() -> int:
         server.login(s.smtp_username, s.smtp_password)
         server.quit()
     except smtplib.SMTPAuthenticationError as e:
+        reason = _reason(e)
         print(f"失敗：SMTP_AUTH_FAILED（{e.smtp_code}）")
-        print(AUTH_HINT)
+        print(f"伺服器回覆：{reason}")
+        hint = next((h for key, h in REASON_HINTS if key in reason.lower()), AUTH_HINT)
+        print(f"說明：{hint}")
         return 1
     except (OSError, smtplib.SMTPException) as e:
         print(f"失敗：連不上 SMTP 伺服器（{type(e).__name__}）")
