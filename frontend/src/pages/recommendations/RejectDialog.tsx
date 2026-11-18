@@ -15,7 +15,7 @@ interface Props {
   onDone: (count: number) => void;
 }
 
-/** 區塊：排除對話框 · 排除一定要選原因，原因會進名單品質報表（F-REC-3、F-MLE-1） */
+/** 區塊：排除對話框 · 排除一定要選原因，原因會進名單品質報表（F-REC-3） */
 export function RejectDialog({ open, companyIds, onClose, onDone }: Props) {
   const review = useReview();
   const { data: dims } = useDimensions();

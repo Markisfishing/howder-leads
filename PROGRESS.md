@@ -5,8 +5,8 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 最後更新 | 2026-11-18（M4 併入 feat/m1-mvp） |
-| 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 b（業務盲評）、g（`CLAUDE.md` 指令補充）、l（完整 sandbox 50 封驗收）。M3 全部完成。M2 剩真實寄信（先用個人 Microsoft 帳號：M2-19～M2-21 → M2-15；M2-22 已完成）；M1 只剩 M1-03 Docker 驗證 |
+| 最後更新 | 2026-11-18（複核 M2-17、M2-23；M4 併入 feat/m1-mvp） |
+| 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 b（業務盲評）、g（`CLAUDE.md` 指令補充）、l（完整 sandbox 50 封驗收）。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（先用個人 Microsoft 帳號：M2-19～M2-21 → M2-15）；M1 只剩 M1-03 Docker 驗證 |
 | 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。**等負責人確認 ADR 0007**，再做 M2-20、M2-21；M4-06b 業務盲評（要業務來做）；M4-06g 問使用者後補 `CLAUDE.md` 第 3 節指令；M4-06l 完整 sandbox 驗收；之後 M5 |
 | 卡住 / 待確認 | 個人帳號能不能註冊應用程式（M2-19）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）、Docker Desktop 無法啟動（M1-03）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
 
@@ -40,8 +40,8 @@
 ### 建議順序與分工
 | 順序 | 任務 | 誰 | 備註 |
 |---|---|---|---|
-| 1 | M2-23 介面拿掉「模型」用語 | 開發者 | 小、獨立，適合先熟悉專案 |
-| 1 | M2-17 每天最晚寄送時間 | 開發者 | 獨立 |
+| 已完成 | M2-23 介面拿掉「模型」用語 | 開發者 | 2026-11-18 |
+| 已完成 | M2-17 每天最晚寄送時間 | 開發者 | 2026-11-18 |
 | 1 | 「開發中發現」的小修（mypy、焦點、防呆文字） | 開發者 | 每項一個 commit |
 | 2 | M2-19 ADR 0007 個人帳號 | 開發者查資料＋負責人決定 | 要負責人用寄件帳號登入 Azure 入口網站註冊應用程式 |
 | 3 | M2-20 登入支援個人帳號 → M2-21 連結 Outlook | 開發者 | 依 M2-19 的結論 |
@@ -52,28 +52,15 @@
 | — | M1-03 Docker 驗證 | 有 Docker 的電腦 | 這台的 Docker Desktop 起不來 |
 | 之後 | M5 | 先拆細 | CLAUDE.md 第 13 節：開始前拆成和 M1 一樣細 |
 
-### M2-23 介面拿掉「模型」用語
-- **為什麼**：系統沒有模型，名單是在系統外整理好的 Excel／CSV（CLAUDE.md 開頭、名詞表「匯入批次」）。
-- **要改的地方**（行號是 2026-11-18 的，改之前再 grep `模型\|MLE` 確認）：
-  - `frontend/src/pages/AdminImportsPage.tsx`：第 40 行提示「模型版本 run #」→「匯入批次 #」；第 141、158 行表頭與 `data-label`「模型版本」→「匯入批次」；第 212、215 行「MLE 提供」的漏斗區塊標題（這一塊要不要整個拿掉見「開發中發現」的漏斗項目，先只改字）。
-  - `frontend/src/pages/recommendations/CompanyDetailPanel.tsx`：第 95 行「模型版本 run #」→「匯入批次 #」；第 147 行「模型沒有提供理由」→「匯入資料沒有提供推薦理由」；第 213 行「模型原判」→「匯入時的產業」。
-  - `frontend/src/pages/recommendations/ReviewWorkspace.tsx` 第 156 行：「模型沒有提供推薦理由…」→「匯入資料沒有提供推薦理由…」。
-  - `frontend/src/pages/recommendations/RejectDialog.tsx` 第 58 行：「這會用來改善推薦模型。」→「原因會列入名單品質報表。」
-  - `frontend/src/pages/performance/AdminModelPage.tsx` 第 31 行標籤「匯入批次（模型版本）」→「匯入批次」，第 10 行註解；**同時改** `Performance.test.tsx` 第 118 行用到的標籤文字。
-  - 註解：`components/Stars.tsx` 第 7、11 行、`lib/labels.ts` 第 229 行、`recommendations/AddCompanyDialog.tsx` 第 15 行，「MLE／模型」改成「整理好的名單」。
-  - **不要改**：`api/errorMessages.ts` 的 `LLM_*` 訊息（那裡的「模型」指 AI 寫信的 LLM，是對的）；`Campaigns.test.tsx` 的 AI 模型與 prompt 版本；資料庫與 API 欄位名稱 `model_run`、`run_id`、`model_name`、路由 `/admin/model`。
-- **驗收**：`grep -rn "模型\|MLE" frontend/src` 只剩 LLM 相關；前端四項檢查通過；瀏覽器看匯入頁、公司側欄、審核畫面、排除對話框、名單品質頁（375px／1280px）。
-- **Commit**：`style:` 或 `refactor:`（純文字），進度更新放同一個 commit。
+### M2-23 介面拿掉「模型」用語（已完成）
+- `AdminImportsPage`、公司詳情、審核工作區、排除對話框與名單品質頁已改用「匯入批次／匯入資料／名單品質報表」。
+- 保留 AI 寫信的 `LLM_*` 訊息、AI 草稿的模型與提示詞版本，以及資料庫／API 的 `model_run`、`run_id`、`model_name` 欄位；這些是不同語境，不能混用。
+- 驗收結果：前端剩餘的「模型」只出現在 AI 錯誤訊息與 AI 草稿測試；非 AI 的 MLE 註解已改成一般使用者可理解的名詞。
 
-### M2-17 每天最晚寄送時間 `SEND_DAY_END_HOUR`（F-MAIL-6、SPEC 7.5）
-- **現況**：`backend/app/domain/send_limits.py` 的 `plan_send_times()` 只管每日上限（超過排到隔天 `day_start_hour`）和每分鐘限速；沒有「幾點以後不寄」。呼叫的地方：`backend/app/services/send_service.py` 第 127～133 行（按寄出時排時間）、第 193 行（worker 寄出前發現今天已滿 → `jobs.Reschedule` 到隔天）。
-- **步驟**：
-  1. `backend/app/config.py` 加 `send_day_end_hour: int = 18`；在 `_guard_production` 檢查 `0 <= send_day_start_hour < send_day_end_hour <= 24`，不合法啟動失敗。`.env.example` 加說明（台灣時間）。
-  2. `plan_send_times()` 加參數 `day_end_hour: int = 24`：排到的時間（當地時間）`>= day_end_hour` 點就跳到隔天 `day_start_hour`，並重新計數。
-  3. 一併處理「早於上班時間」：排到的時間早於當天 `day_start_hour` 就延到當天 `day_start_hour`。**這會改變現在的行為**（目前半夜按寄出會立刻寄），先跟負責人確認；確認後 SPEC 7.5 寫清楚。注意之前 sandbox 示範是用 `SEND_DAY_START_HOUR=0` 繞過，之後示範要再加 `SEND_DAY_END_HOUR=24`。
-  4. `send_service.py` 兩個地方都帶入設定；worker 寄出前如果現在已超過 `send_day_end_hour`（例如 job 延遲），也 `Reschedule` 到隔天上班時間。
-- **測試**（名稱帶 `test_f_mail_6_`）：`tests/test_mail_domain.py` 加單元測試——17:59 照排、18:00 跳隔天 9:00、跨日同時碰到每日上限、早於 9 點延到 9 點、台灣時區跨 UTC 日；設定不合法時啟動失敗；worker 超過時間會改期（可參考 `tests/test_campaigns.py` 寄出相關測試的寫法）。
-- **文件**：SPEC 7.5、`.env.example`、CLAUDE.md 不用改。
+### M2-17 每天最晚寄送時間 `SEND_DAY_END_HOUR`（已完成）
+- `SEND_DAY_END_HOUR` 預設為 18，排程與 worker 寄出前都會檢查台灣時間；18:00 之後會排到隔天 `SEND_DAY_START_HOUR`。
+- `plan_send_times()` 已整合每日上限、每分鐘限速、跨日重算與下班時間；設定會驗證 `0 <= start < end <= 24`。
+- 已補上 domain、設定與 campaign 寄送流程測試。刻意未把「早於上班時間的寄送」延後，避免改變目前行為；若要改，需另行確認需求並新增測試。
 
 ### M2-19 ADR 0007：先用個人 Microsoft 帳號登入與寄信
 - **背景**：公司 Microsoft 365 帳號之後再說（SPEC 11-4）。先用一個專門測試用的個人 outlook.com 帳號當寄件人，寄到負責人自己的信箱（實際地址只寫在 `.env` 的 `MAIL_ALLOWED_RECIPIENTS`，已設定好）。系統不會、也不可以用信箱密碼；寄件帳號的擁有人要自己在 Microsoft 頁面登入、按同意。
