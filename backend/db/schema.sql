@@ -406,12 +406,27 @@ FROM company c
 JOIN classification cl ON cl.company_id = c.company_id AND cl.is_current
 GROUP BY cl.priority;
 
-CREATE VIEW v_reject_reasons AS                     -- 給 MLE 的回饋
-SELECT r.reject_reason, cl.run_id, count(*) AS n
+CREATE VIEW v_reject_reasons AS                     -- 名單品質：各批次的排除原因（0013 加 share）
+SELECT r.reject_reason, cl.run_id, count(*) AS n,
+       round(count(*)::numeric / sum(count(*)) OVER (PARTITION BY cl.run_id), 4) AS share
 FROM review r
 JOIN classification cl ON cl.company_id = r.company_id AND cl.is_current
 WHERE r.decision = 'rejected'
 GROUP BY r.reject_reason, cl.run_id;
+
+CREATE VIEW v_case_perf AS                         -- 0013：績效頁（M4-01a），建在 v_case_fact 之上
+SELECT f.case_id, f.owner_id, u.display_name AS owner_name,
+       f.is_sent, f.is_replied, f.is_won, f.won_amount, f.sent_at,
+       f.priority, r.stars, f.fit_stars, f.source, r.tags,
+       t.family_id AS template_family_id, t.name AS template_name, t.version AS template_version
+FROM v_case_fact f
+JOIN app_user u ON u.user_id = f.owner_id
+JOIN v_recommendation r ON r.company_id = f.company_id
+LEFT JOIN sales_case sc ON sc.case_id = f.case_id
+LEFT JOIN email_message m ON m.message_id = sc.message_id
+LEFT JOIN email_draft d ON d.draft_id = m.draft_id
+LEFT JOIN campaign c ON c.campaign_id = d.campaign_id
+LEFT JOIN email_template t ON t.template_id = c.template_id;
 
 CREATE VIEW v_case_reminder AS                      -- 0007：待辦提醒（F-CASE-3），條件只在這裡定義
 WITH c AS (

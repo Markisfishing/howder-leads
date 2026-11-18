@@ -26,6 +26,7 @@ from app.models.tables import (
     SalesCase,
     UserMailCredential,
     v_case_fact,
+    v_case_perf,
     v_case_reminder,
     v_company_fact,
     v_kpi_summary,
@@ -65,5 +66,6 @@ __all__ = [
     "v_company_fact",
     "v_kpi_summary",
     "v_recommendation",
+    "v_case_perf",
     "v_reject_reasons",
 ]
