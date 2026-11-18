@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-11-18｜修正受控對話框焦點
+
+**改了哪些檔案**
+- `frontend/src/components/Modal.tsx`：開啟時聚焦關閉鈕，關閉時恢復到開啟前的元素，並支援明確指定回焦點元素。
+- `frontend/src/components/Button.tsx`、`frontend/src/pages/recommendations/CompanyDetailPanel.tsx`、`RejectDialog.tsx`：讓公司詳情的排除動作保留原觸發按鈕焦點。
+- `frontend/src/components/Modal.test.tsx`：新增開啟與關閉焦點測試；`PROGRESS.md`：標記焦點小修完成。
+
+**解決了什麼問題**
+- 公司詳情與其他受控對話框開啟後不會把鍵盤焦點落在危險操作按鈕。
+- 關閉對話框後，鍵盤焦點會回到原本開啟對話框的按鈕。
+
+**做了哪些決定**
+- `Modal` 預設使用開啟前的 `document.activeElement` 還原焦點；特殊情境可透過 `returnFocusRef` 覆寫。
+
+**還沒處理的問題**
+- 開發中發現的防呆文字仍待處理。
+
+**下一步**
+- 將「14 天內已經寄過」改成使用 `RECENT_SEND_DAYS` 的實際設定值。
+
+---
+
 ## 2026-11-18｜修正 campaigns API 的 mypy 錯誤
 
 **改了哪些檔案**
