@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-11-18｜補齊本機測試 PostgreSQL 執行檔
+
+**改了哪些檔案**
+- `backend/scripts/pg_local.py`：檢查 `postgres.exe`、`pg_ctl.exe`、`initdb.exe`、`psql.exe` 是否都存在；缺少時重新複製 `pgserver` 的完整執行檔。
+- `PROGRESS.md`：記錄本機測試環境修正完成。
+
+**解決了什麼問題**
+- 測試不再因 `%LOCALAPPDATA%\\howder\\pginstall` 只有部分 PostgreSQL 執行檔而找不到 `pg_ctl.exe`。
+- 已確認測試資料庫能啟動並執行 Alembic migrations。
+
+**做了哪些決定**
+- 不手動維護使用者電腦上的執行檔；由既有 `pg_local.py` 在啟動測試時自動檢查並修復。
+
+**還沒處理的問題**
+- PostgreSQL 補齊後，完整測試進一步遇到既有 FastAPI／TestClient 的 `/api/v1/reviews` 404，需另開修正項目處理。
+
+**下一步**
+- 釐清 FastAPI 版本與 TestClient 路由註冊問題，再重新執行完整後端測試。
+
+---
+
 ## 2026-11-18｜測試階段改用共用 Outlook.com 信箱 SMTP 寄信（M2-24、ADR 0008）
 
 **改了哪些檔案**

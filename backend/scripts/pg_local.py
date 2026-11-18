@@ -24,12 +24,14 @@ def _ensure_ascii_binaries() -> None:
         return
     dst = HOWDER_HOME / "pginstall"
     marker = dst / ".copied-from"
-    if not marker.exists() or marker.read_text(encoding="utf-8") != str(src):
+    required_binaries = ("postgres.exe", "pg_ctl.exe", "initdb.exe", "psql.exe")
+    bin_path = dst / "bin"
+    has_required_binaries = all((bin_path / name).is_file() for name in required_binaries)
+    if not marker.exists() or marker.read_text(encoding="utf-8") != str(src) or not has_required_binaries:
         if dst.exists():
             shutil.rmtree(dst)
         shutil.copytree(src, dst)
         marker.write_text(str(src), encoding="utf-8")
-    bin_path = dst / "bin"
     pg_commands.POSTGRES_BIN_PATH = bin_path
     pg_server_mod.POSTGRES_BIN_PATH = bin_path  # type: ignore[attr-defined]
 
