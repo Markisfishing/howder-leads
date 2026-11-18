@@ -1,6 +1,8 @@
 # 開發用：PostgreSQL 16（背景工作佇列也放在 PostgreSQL，不需要 Redis，見 docs/adr/0003）
 # 啟動：docker compose up -d
 # Docker 不能用的話，改用 backend/scripts/dev_db.py 的內嵌 Postgres
+# 專案資料夾名稱是中文，compose 推不出專案名稱（會報 project name must not be empty），所以寫死
+name: howder
 services:
   postgres:
     image: postgres:16
@@ -9,7 +11,8 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: howder
     ports:
-      - "5432:5432"
+      # 只開給本機；開發密碼很弱，不要讓區網連得到
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
