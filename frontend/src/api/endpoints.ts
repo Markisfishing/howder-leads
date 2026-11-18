@@ -22,6 +22,9 @@ import type {
   ImportBatchDetail,
   Kpis,
   Overview,
+  PerfBreakdown,
+  PerfTable,
+  RejectReport,
   OverviewQuery,
   MailConnection,
   RejectReason,
@@ -126,6 +129,16 @@ export const submitReview = (body: ReviewBody) =>
   api<{ updated: number; status: string }>("/reviews", { method: "POST", json: body });
 
 export const getKpis = () => api<Kpis>("/metrics/kpis");
+/** 績效表（M4-01b）：from／to 是寄出日（台灣日期） */
+export const getPerformance = (by: PerfBreakdown, range: { from: string | null; to: string | null }) => {
+  const query = { from: range.from, to: range.to };
+  if (by === "template") return api<PerfTable>("/metrics/templates", { query });
+  if (by === "rep") return api<PerfTable>("/metrics/reps", { query });
+  return api<PerfTable>("/metrics/win-rate", { query: { by, ...query } });
+};
+export const getRejectReport = (runId: number | null) =>
+  api<RejectReport>("/metrics/reject-reasons", { query: { run_id: runId } });
+
 export const getOverview = (q: OverviewQuery) => api<Overview>("/metrics/overview", { query: { ...q } });
 export const getDimensions = () => api<Dimensions>("/dimensions");
 

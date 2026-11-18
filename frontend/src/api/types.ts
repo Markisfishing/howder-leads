@@ -413,3 +413,30 @@ export interface ReminderItem {
   label: string;
   count: number;
 }
+
+// ---------- 績效與名單品質（M4-01、M4-02）----------
+export interface PerfRow {
+  key: string;
+  label: string;
+  sent: number;
+  replied: number;
+  reply_rate: string | null; // 寄出少於 10 件為 null（樣本不足）
+  won: number;
+  win_rate: string | null;
+  won_amount_twd: string;
+  insufficient: boolean;
+}
+
+export interface PerfTable {
+  scope_owner_id: number | null; // null = 全團隊
+  items: PerfRow[];
+}
+
+export type PerfBreakdown = "stars" | "source" | "tag" | "template" | "rep";
+
+export interface RejectReport {
+  run_id: number | null;
+  runs: { run_id: number; model_name: string; created_at: string }[];
+  total: number;
+  items: { reason: string | null; count: number; share: string | null }[];
+}
