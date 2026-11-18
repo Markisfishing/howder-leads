@@ -76,6 +76,11 @@ UI 文字用繁體中文；程式識別字（變數、函式、資料表、API �
 
 指令（專案骨架建好後補上實際指令；**新增或修改指令時一併更新這一段**）：
 
+```powershell
+# 一鍵啟動開發環境（Docker PostgreSQL、API、Worker、前端，並開啟瀏覽器）
+powershell -ExecutionPolicy Bypass -File .\start-dev.ps1
+```
+
 ```bash
 # 原型預覽：http://127.0.0.1:5510/prototypes/recommendations.html
 python -m http.server 5510 --bind 127.0.0.1 --directory frontend

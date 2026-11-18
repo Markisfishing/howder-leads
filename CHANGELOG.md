@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-11-18｜新增一鍵啟動開發環境
+
+**改了哪些檔案**
+- `start-dev.ps1`（新增）：啟動 Docker PostgreSQL、migration、初版模板、API、Worker 與前端；可選擇只啟動單一服務。
+- `README.md`（新增）：記錄一鍵啟動、停止、個別服務與 Docker 不可用時的操作方式。
+- `CLAUDE.md`：補上根目錄一鍵啟動指令。
+- `PROGRESS.md`：記錄一鍵啟動工具完成。
+
+**解決了什麼問題**
+- 不需要再手動開多個 PowerShell 視窗與逐一輸入資料庫、migration、API、Worker、前端指令。
+- 第一次啟動會建立開發用 `.env`、安裝缺少的套件並開啟瀏覽器；既有 `.env` 不會被覆蓋。
+
+**做了哪些決定**
+- 使用 PowerShell 腳本作為 Windows 開發環境的單一入口；Docker 只負責 PostgreSQL，其他服務仍在本機執行。
+- 腳本保留 `-Service api|worker|frontend` 與 `-NoBrowser` 選項，方便排查個別服務。
+
+**還沒處理的問題**
+- 尚未在本機完整執行一鍵啟動流程；本次已完成 PowerShell 語法檢查，未替使用者啟動服務或修改資料庫內容。
+
+**下一步**
+- 執行 `powershell -ExecutionPolicy Bypass -File .\start-dev.ps1`，確認 Docker、API、Worker 與前端全部正常啟動。
+
+---
+
 ## 2026-11-18｜寄信給客戶的方針：等公司 Microsoft 365＋Graph，先問 IT
 
 **改了哪些檔案**
