@@ -105,6 +105,9 @@ export const patchContact = (id: number, body: ContactPatch) =>
   api<Contact>(`/contacts/${id}`, { method: "PATCH", json: body });
 export const unsubscribeContact = (id: number, note?: string, wholeCompany = false) =>
   api<Contact>(`/contacts/${id}/unsubscribe`, { method: "POST", json: { note, whole_company: wholeCompany } });
+/** 取消退訂（M3-18）：主管／管理員，一定要填原因 */
+export const resubscribeContact = (id: number, reason: string) =>
+  api<Contact>(`/contacts/${id}/resubscribe`, { method: "POST", json: { reason } });
 /** 個資刪除：主管／管理員，一定要填原因 */
 export const deleteContact = (id: number, reason: string) =>
   api<void>(`/contacts/${id}`, { method: "DELETE", json: { reason } });

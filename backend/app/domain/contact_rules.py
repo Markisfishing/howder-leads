@@ -47,3 +47,11 @@ def check_delete_reason(reason: str | None) -> str:
     if not text:
         raise DomainError("DELETE_REASON_REQUIRED", "刪除個資要填寫原因", 422)
     return text
+
+
+def check_resubscribe_reason(reason: str | None) -> str:
+    """M3-18 取消退訂一定要寫原因（例如客戶來信同意恢復聯絡），留在 activity_log 備查。"""
+    text = (reason or "").strip()
+    if not text:
+        raise DomainError("RESUBSCRIBE_REASON_REQUIRED", "取消退訂要填寫原因", 422)
+    return text

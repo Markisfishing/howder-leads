@@ -69,6 +69,8 @@ export const useUnsubscribeContact = () =>
   useCompanyMutation(({ id, note, wholeCompany }: { id: number; note?: string; wholeCompany?: boolean }) =>
     ep.unsubscribeContact(id, note, wholeCompany),
   );
+export const useResubscribeContact = () =>
+  useCompanyMutation(({ id, reason }: { id: number; reason: string }) => ep.resubscribeContact(id, reason));
 export const useDeleteContact = () =>
   useCompanyMutation(({ id, reason }: { id: number; reason: string }) => ep.deleteContact(id, reason));
 

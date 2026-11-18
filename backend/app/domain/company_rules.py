@@ -71,6 +71,16 @@ def transition(current: str, target: str) -> str:
     return target
 
 
+def status_after_resubscribe(current: str) -> str | None:
+    """M3-18：主管取消聯絡人退訂後，公司的狀態怎麼退回。
+
+    - 「不再聯絡」是狀態機的終點，一般轉換出不去；只有取消退訂可以回到「已通過」，
+      重新進入候選名單（先前的寄信／回覆進度不帶回來，要重新產生草稿、重新寄）。
+    - 其他狀態（進行中、成交…）公司本來就可以聯絡，不改。
+    """
+    return "approved" if current == "do_not_contact" else None
+
+
 # ---------- 審核 ----------
 REJECT_REASONS = (
     "wrong_industry",
