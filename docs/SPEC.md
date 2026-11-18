@@ -326,7 +326,7 @@ PostgreSQL 16，完整的 DDL 在 [`backend/db/schema.sql`](../backend/db/schema
 | 回饋 | `review`、`gold_label` | 業務審核（排除一定要有原因）；`gold_label` 是原本盲標用的表，盲標已取消（2026-11-18），表保留未使用 |
 | 聯絡 | `contact` | 聯絡人、來源（website／business_card／referral／exhibition／manual）和退訂狀態；同一家公司 email 不重複 |
 | 郵件 | `email_template`、`campaign`、`email_draft`、`email_message`、`email_event` | 模板（`family_id` 串起各版本，修改就新增版本）→ 批次 → 草稿（業務編輯純文字 `body_text`，系統轉成 `body_html`；含原稿、排程時間、寄送嘗試次數、最後錯誤、產生方式／模型／prompt 版本）→ 實際寄出 → 事件 |
-| 成果 | `sales_case`、`case_update`、`activity_log` | 案件（編號 `case_no` C-0001；來源 `email`／`tracking`；狀態 sent／tracking／replied／negotiating／no_response／won／lost；下次追蹤日、成交金額；同一家公司同時只有一件未結案）→ 回填紀錄（管道、結果、備註、下次追蹤日、金額；系統事件管道為 `system`）；所有變更的稽核紀錄。原 `opportunity` 在 0006 移除 |
+| 成果 | `sales_case`、`case_update`、`activity_log` | 案件（編號 `case_no` C-0001；來源 `email`／`tracking`；狀態 sent／tracking／replied／negotiating／no_response／won／lost；下次追蹤日、成交金額；同一家公司同時只有一件未結案）→ 回填紀錄（管道、結果、備註、下次追蹤日、金額、客戶態度 `sentiment`／來源 `sentiment_source`〔ai 判斷或業務手動修正，0014〕；系統事件管道為 `system`）；所有變更的稽核紀錄。原 `opportunity` 在 0006 移除 |
 | 背景工作 | `job` | PostgreSQL 佇列（ADR 0003）：`kind`、`status`、`run_after`（排程與重試）、`attempts`；新增時 `NOTIFY job_queued` |
 | 寄信權杖 | `user_mail_credential` | 每位業務一筆 Fernet 加密的 MSAL 權杖快取與連結狀態（ADR 0005） |
 | 指標 | `v_recommendation`（0009 起含 `fit_stars`，沒給時用優先級星等）、`v_case_fact`（每件案件一列：是否寄出、回覆、成交、金額，0010）、`v_company_fact`（每家公司一列，名單漏斗，0010）、`v_kpi_summary`（0010 起回覆率 = 已寄出且有回覆的案件 ÷ 已寄出的案件，不讀 `email_event`）、`v_case_perf`（績效頁：每件案件一列，建在 `v_case_fact` 之上，帶負責業務、星等、標籤、寄出用的模板版本，0013）、`v_case_reminder`（待辦提醒，0007）、`v_funnel`、`v_win_rate_by_priority`、`v_reject_reasons`（0013 起含各原因占比 `share`） | **KPI 只在這些 view 定義一次** |
