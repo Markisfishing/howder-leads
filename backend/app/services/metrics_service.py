@@ -14,7 +14,7 @@ from datetime import date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, select, text
 from sqlalchemy.orm import Session
 
 from app.domain.send_limits import TAIPEI
@@ -24,7 +24,7 @@ from app.services import reminder_service
 
 F = v_case_fact.c
 C = v_company_fact.c
-MIN_SAMPLE = 10  # 和 v_kpi_summary 一樣：寄出少於 10 件不算比例，標「樣本不足」
+_min_sample_cache: list[int] = []
 NO_SOURCE_LABEL = "未標示"
 
 
@@ -42,7 +42,14 @@ def scoped_owner(user: AppUser, requested: int | None) -> int | None:
     return requested if company_svc.is_manager(user) else user.user_id
 
 
-def rate(n: int, d: int, min_sample: int = MIN_SAMPLE) -> Decimal | None:
+def min_sample(db: Session) -> int:
+    """比例的樣本門檻：只在資料庫函式 kpi_min_sample() 定義一次（CLAUDE.md 第 4 節），這裡讀出來快取。"""
+    if not _min_sample_cache:
+        _min_sample_cache.append(int(db.scalar(text("SELECT kpi_min_sample()")) or 1))
+    return _min_sample_cache[0]
+
+
+def rate(n: int, d: int, min_sample: int) -> Decimal | None:
     if d < min_sample or d == 0:
         return None
     return (Decimal(n) / Decimal(d)).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
@@ -97,7 +104,7 @@ def kpis(db: Session, f: OverviewFilter) -> dict[str, Any]:
         "high_priority": int(pool[1]),
         "sent": sent,
         "replied": replied,
-        "reply_rate": rate(replied, sent),
+        "reply_rate": rate(replied, sent, min_sample(db)),
         "won": won,
         "won_amount_twd": amount,
     }
@@ -138,13 +145,14 @@ def by_source(db: Session, f: OverviewFilter) -> list[dict[str, Any]]:
             f,
         )
     ).all()
+    ms = min_sample(db)
     items: list[dict[str, Any]] = [
         {
             "source": str(src),
             "sent": int(s),
             "replied": int(r),
-            "reply_rate": rate(int(r), int(s)),
-            "insufficient": int(s) < MIN_SAMPLE,
+            "reply_rate": rate(int(r), int(s), ms),
+            "insufficient": int(s) < ms,
         }
         for src, s, r in rows
     ]
