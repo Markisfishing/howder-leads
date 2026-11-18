@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { RefObject } from "react";
 
 import { useDimensions, useReview } from "../../api/hooks";
 import type { RejectReason } from "../../api/types";
@@ -13,10 +14,11 @@ interface Props {
   companyIds: number[];
   onClose: () => void;
   onDone: (count: number) => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }
 
 /** 區塊：排除對話框 · 排除一定要選原因，原因會進名單品質報表（F-REC-3） */
-export function RejectDialog({ open, companyIds, onClose, onDone }: Props) {
+export function RejectDialog({ open, companyIds, onClose, onDone, returnFocusRef }: Props) {
   const review = useReview();
   const { data: dims } = useDimensions();
   const [reason, setReason] = useState<RejectReason | "">("");
@@ -56,6 +58,7 @@ export function RejectDialog({ open, companyIds, onClose, onDone }: Props) {
       onOpenChange={(o) => !o && close()}
       title={`排除 ${companyIds.length} 家公司`}
       description="請選擇排除原因，原因會列入名單品質報表。"
+      returnFocusRef={returnFocusRef}
       footer={
         <>
           <Button onClick={close}>取消</Button>

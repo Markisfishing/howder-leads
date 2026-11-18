@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useClaim, useCompany, useDimensions, usePatchCompany, useRelease, useReview } from "../../api/hooks";
@@ -41,6 +41,7 @@ function Detail({ company: c, showPageLink }: { company: CompanyDetail; showPage
   const release = useRelease();
   const patch = usePatchCompany();
   const [rejectOpen, setRejectOpen] = useState(false);
+  const rejectTriggerRef = useRef<HTMLButtonElement>(null);
   const [editing, setEditing] = useState(false);
   const [website, setWebsite] = useState(c.website_url ?? "");
   const [industryId, setIndustryId] = useState(c.industry_id ? String(c.industry_id) : "");
@@ -115,7 +116,7 @@ function Detail({ company: c, showPageLink }: { company: CompanyDetail; showPage
           </Button>
         )}
         {canReject && (
-          <Button variant="danger" disabled={!canAct} onClick={() => setRejectOpen(true)}>
+          <Button ref={rejectTriggerRef} variant="danger" disabled={!canAct} onClick={() => setRejectOpen(true)}>
             排除…
           </Button>
         )}
@@ -274,6 +275,7 @@ function Detail({ company: c, showPageLink }: { company: CompanyDetail; showPage
         companyIds={[c.company_id]}
         onClose={() => setRejectOpen(false)}
         onDone={() => setRejectOpen(false)}
+        returnFocusRef={rejectTriggerRef}
       />
     </div>
   );
