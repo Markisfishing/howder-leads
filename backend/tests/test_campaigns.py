@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import Settings, get_settings
 from app.db import get_engine
-from app.domain import template_rules
+from app.domain import send_limits, template_rules
 from app.models import Company, EmailDraft, EmailMessage, Job
 from app.services.llm import FakeLlmClient
 from app.services.mailer import MailAuthError, MailSendError, OutgoingMail, SandboxMailer, SendResult
@@ -554,6 +554,20 @@ def test_f_mail_6_daily_limit_moves_extra_to_next_day(world: World) -> None:
     assert len(third) == 1 and third[0]["scheduled_at"] is not None
     world.worker(advance=timedelta(days=1, hours=12))  # 隔天
     assert len(world.mailer.sent) == 3
+
+
+def test_f_mail_6_after_end_hour_waits_until_next_morning(world: World) -> None:
+    """M2-17：已過下班時間（end_hour=0 代表一直都是）不立刻寄，排到隔天上班時間。"""
+    world.settings = world.settings.model_copy(update={"send_day_end_hour": 0})
+    world.app.dependency_overrides[get_settings] = lambda: world.settings
+    cid, _ = _approved(world, 1)
+    world.client.post(f"/api/v1/campaigns/{cid}/send", json={}, headers=world.sales1)
+    world.worker()
+    assert world.mailer.sent == []
+    draft = world.drafts(cid)[0]
+    at = datetime.fromisoformat(draft["scheduled_at"]).astimezone(send_limits.TAIPEI)
+    assert (at.hour, at.minute) == (world.settings.send_day_start_hour, 0)
+    assert at.date() > datetime.now(send_limits.TAIPEI).date()
 
 
 def test_f_mail_6_schedule_in_future(world: World) -> None:

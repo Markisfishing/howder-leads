@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-11-18｜合併 M4；M2-23 拿掉「模型」用語；M2-17 每天最晚寄送時間
+
+**改了哪些檔案**
+- 合併 M4 分支（`ac245bf`）；`PROGRESS.md`／`CHANGELOG.md` 衝突兩邊都保留
+- 前端（匯入頁、公司側欄、排除對話框、審核畫面、名單品質頁與註解）：「模型版本／模型原判」等改成「匯入批次／匯入時的產業」（M2-23）
+- `backend/app/domain/send_limits.py`、`config.py`、`services/send_service.py`、`.env.example`：新增 `SEND_DAY_END_HOUR`（預設 18）；排程與 worker 寄出前都檢查（M2-17）
+- `backend/tests/conftest.py`：測試固定 `SEND_DAY_END_HOUR=24`、清空 `MAIL_ALLOWED_RECIPIENTS`、固定寄送上限，不受執行時間與本機 `.env` 影響
+- `docs/SPEC.md` 7.5：寄送時段
+
+**解決了什麼問題**
+- 介面不再出現沒有的「模型」說法。
+- 18 點以後按寄出的信不會立刻寄，改排隔天 9 點。
+- 本機 `.env` 設了測試白名單時，後端測試會失敗的問題（測試現在自己固定設定）。
+
+**做了哪些決定**
+- 「早於上班時間延到上班時間」沒做：會改變現有行為，PROGRESS 卡片要求先確認。
+
+**還沒處理的問題**
+- M2-19～M2-21、M2-15：要負責人註冊 Azure 應用程式與填 secret；M4-06b／g／l；M1-03。
+- `mypy` 仍有 1 個既有錯誤（`api/v1/campaigns.py`）。
+
+**下一步**
+- M2-19 ADR（要先查 Microsoft 文件並請負責人確認）。
+
+---
+
 ## 2026-11-18｜PROGRESS 加上交接說明；測試寄信的白名單設定
 
 **改了哪些檔案**
