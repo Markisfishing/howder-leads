@@ -6,7 +6,7 @@ import type { ImportBatchDetail } from "../api/types";
 import { Button } from "../components/Button";
 import { Empty, ErrorState, InlineError, Loading } from "../components/StateView";
 import { Tag } from "../components/Tag";
-import { formatDateTime, funnelEntries } from "../lib/labels";
+import { formatDateTime } from "../lib/labels";
 import styles from "./Page.module.css";
 
 const ACTION_LABELS = { create: "新增", update: "更新", unchanged: "沒變", skip: "略過（網址無效）" } as const;
@@ -208,21 +208,6 @@ function PreviewCard({
           </div>
         ))}
       </div>
-
-      {/* 區塊：匯入檔附的漏斗前段數字（只顯示，不重算） */}
-      {b.funnel && Object.keys(b.funnel).length > 0 && (
-        <>
-          <h3 className={styles.label}>漏斗前段（匯入檔提供）</h3>
-          <div className={styles.counts}>
-            {funnelEntries(b.funnel).map(([label, value]) => (
-              <div key={label} className={styles.count}>
-                <p className={styles.countLabel}>{label}</p>
-                <p className={styles.countValue}>{value.toLocaleString("zh-TW")}</p>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
 
       {/* 區塊：不擋匯入的提示（看不懂的欄位、沒有資料來源欄） */}
       {b.warnings.length > 0 && (

@@ -18,7 +18,7 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.domain.send_limits import TAIPEI
-from app.models import AppUser, ImportBatch, v_case_fact, v_company_fact
+from app.models import AppUser, v_case_fact, v_company_fact
 from app.services import company_service as company_svc
 from app.services import reminder_service
 
@@ -152,20 +152,6 @@ def by_source(db: Session, f: OverviewFilter) -> list[dict[str, Any]]:
     return items
 
 
-def mle_funnel(db: Session) -> dict[str, int] | None:
-    """最近一次確認匯入、而且有附漏斗數字的批次（MLE 提供，只顯示）。"""
-    batches = db.scalars(
-        select(ImportBatch)
-        .where(ImportBatch.status == "committed", ImportBatch.funnel.is_not(None))
-        .order_by(ImportBatch.batch_id.desc())
-    )
-    # PostgreSQL JSONB 的 JSON null 不是 SQL NULL，is_not(None) 仍可能撈到它。
-    for batch in batches:
-        if isinstance(batch.funnel, dict) and batch.funnel:
-            return dict(batch.funnel)
-    return None
-
-
 def overview(db: Session, user: AppUser, f: OverviewFilter) -> dict[str, Any]:
     current = kpis(db, f)
     comparison = None
@@ -189,7 +175,6 @@ def overview(db: Session, user: AppUser, f: OverviewFilter) -> dict[str, Any]:
         "kpis": current,
         "comparison": comparison,
         "funnel": funnel(db, f),
-        "mle_funnel": mle_funnel(db),
         "by_source": by_source(db, f),
         "reminders": reminder_service.summary(db, user),
     }

@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import AppUser, CaseUpdate, Company, ImportBatch, SalesCase
+from app.models import AppUser, CaseUpdate, Company, SalesCase
 from app.services.metrics_service import rate
 
 Headers = Callable[[str], dict[str, str]]
@@ -83,7 +83,6 @@ def seeded(db: Session, client: TestClient, as_user: Headers) -> dict[str, dict[
         d.case(s1, ["sent"], "sent", source="b2b", at=NOV10)
     d.case(s2, ["sent"], "sent")
     db.add(Company(tax_id="91009999", name="待審公司", status="pending_review"))
-    db.add(ImportBatch(status="committed", funnel={"資料庫總數": 39000, "產品命中": 900}))
     db.commit()
     return heads
 
@@ -128,16 +127,6 @@ def test_f_dash_2_funnel_with_retention(client: TestClient, seeded: dict[str, di
     assert stages["sent"] == (16, "1.0000")
     assert stages["replied"] == (4, "0.2500")
     assert stages["won"] == (1, "0.2500")
-    assert body["mle_funnel"] == {"資料庫總數": 39000, "產品命中": 900}
-
-
-def test_f_dash_2_ignores_json_null_mle_funnel(
-    client: TestClient, seeded: dict[str, dict[str, str]], db: Session
-) -> None:
-    db.add(ImportBatch(status="committed", funnel=None))
-    db.commit()
-
-    assert _get(client, seeded["mgr"])["mle_funnel"] == {"資料庫總數": 39000, "產品命中": 900}
 
 
 def test_f_dash_2_sales_funnel_counts_own_cases(client: TestClient, seeded: dict[str, dict[str, str]]) -> None:
