@@ -10,7 +10,8 @@ def _company(db: Session) -> int:
     return int(
         db.execute(
             text(
-                "INSERT INTO company (tax_id, name, status) VALUES ('93000001', '摘要測試公司', 'pending_review') RETURNING company_id"
+                "INSERT INTO company (tax_id, name, status) "
+                "VALUES ('93000001', '摘要測試公司', 'pending_review') RETURNING company_id"
             )
         ).scalar_one()
     )
