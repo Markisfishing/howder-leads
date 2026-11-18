@@ -120,6 +120,11 @@ export function hostname(url: string): string {
   }
 }
 
+/** 模板名稱移除歷史開發註記，正式 UI 不顯示內部規格文字。 */
+export function displayTemplateName(name: string): string {
+  return name.replace("（佔位文字，待 SPEC 11-5 確認）", "").trim() || name;
+}
+
 // ---------- 邀請信（M2-03～M2-07）----------
 export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
   draft: "建立中",

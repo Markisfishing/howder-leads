@@ -156,6 +156,7 @@
     background: var(--color-surface);
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius);
+    min-height: max-content;
     overflow: hidden;
   }
   .listHead, .row {
