@@ -162,7 +162,6 @@ export interface Overview {
     reply_rate_target: string;
   } | null;
   funnel: { key: string; label: string; count: number; rate: string | null }[];
-  mle_funnel: Record<string, number> | null;
   by_source: { source: string; sent: number; replied: number; reply_rate: string | null; insufficient: boolean }[];
   reminders: { kind: string; label: string; count: number }[];
 }
@@ -215,7 +214,6 @@ export interface ImportBatch {
   rows_unchanged: number;
   rows_error: number;
   created_at: string;
-  funnel: Record<string, number> | null;
 }
 
 export interface ImportBatchDetail extends ImportBatch {

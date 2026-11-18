@@ -61,7 +61,6 @@ class Overview(BaseModel):
     kpis: OverviewKpis
     comparison: OverviewComparison | None
     funnel: list[FunnelStage]
-    mle_funnel: dict[str, int] | None
     by_source: list[SourceRate]
     reminders: list[ReminderCount]
 

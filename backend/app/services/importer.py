@@ -357,7 +357,6 @@ def create_batch(
     source: str,
     model_name: str | None,
     user: AppUser | None,
-    funnel: dict[str, int] | None = None,
 ) -> ImportBatch:
     rows = build_preview(db, parsed)
     batch = ImportBatch(
@@ -365,7 +364,6 @@ def create_batch(
         source=source,
         model_name=model_name,
         rows_total=len(rows) + len({e["row"] for e in parsed.errors}),
-        funnel=funnel,
         rows_created=sum(r["action"] == "create" for r in rows),
         rows_updated=sum(r["action"] == "update" for r in rows),
         rows_unchanged=sum(r["action"] == "unchanged" for r in rows),
