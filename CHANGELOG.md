@@ -5,6 +5,81 @@
 
 ---
 
+## 2026-11-18｜M2-15 真實寄信驗收（Gmail）、M4-06l、M4-06g、前端小修
+
+**改了哪些檔案**
+- `frontend/src/App.tsx`：頁面改成依路由延遲載入（`React.lazy`），登入頁照常直接載入
+- `frontend/src/components/AppLayout.tsx`：內容區加 `Suspense`，頁面下載時只在內容區顯示「載入中」，導覽列不動
+- `frontend/src/auth/AuthProvider.tsx`：MSAL 改成動態 `import()`，dev 模式完全不下載
+- `frontend/src/pages/AdminImportsPage.test.tsx`：新增 7 個元件測試（預覽差異、略過錯誤列匯入、全部錯誤不能匯入、取消、中文錯誤訊息、紀錄的空／錯誤重試／列表）
+- `docs/adr/0006-local-llm-first.md`：M4-06l 完整流程實測結果
+- `CLAUDE.md`：第 3 節指令加上 `smtp_check`、`ollama serve`、`llm_smoke`、`llm_bench`（負責人同意）
+- `PROGRESS.md`：M2-15、M4-06g、M4-06l 與開發中發現的三項打勾，更新狀態表
+
+**解決了什麼問題**
+- M2-15：outlook.com 不能用密碼登入 SMTP（M2-25），改用 Gmail＋應用程式密碼，程式不用改，只改 `.env` 的 `SMTP_HOST`。全新空資料庫、10 家測試公司＋1 家 `blocked@example.com`：blocked 在建立批次時就被「收件者不在測試白名單」排除；10 封模板信每分鐘 1 封寄出、0 失敗，每封結尾有退訂說明。
+- M4-06l：sandbox、全新空資料庫、`qwen3:8b`、`LLM_CONCURRENCY=2`，從按建立批次到 50 封 `template_ai` 草稿都進預覽佇列共 84 秒、0 失敗，達到 F-MAIL-3「50 封 3 分鐘」。
+- 前端 bundle：主程式 766 kB → 309 kB，不再出現 500 kB 警告；MSAL（273 kB）只在 entra 模式下載。
+- 手機版篩選列：審核工作台（cc42fa6）早就改成「篩選」按鈕開側欄，這次在 375px 確認後直接打勾，沒有改程式。
+
+**做了哪些決定**
+- 驗收時台灣時間已過 18:00（`SEND_DAY_END_HOUR`），這次啟動 API／worker 時用環境變數 `SEND_DAY_END_HOUR=24`，`.env` 沒有改；`MAIL_MODE=live` 也只在這次啟動時用環境變數設定，`.env` 維持 `sandbox`。
+- 驗收用的資料庫放在 `C:\howder-wt\pg-m215`（真實寄信）與 `C:\howder-wt\pg-m406l`（sandbox），和平常的開發資料庫分開。
+
+**還沒處理的問題**
+- 寄件備份與收件匣要由負責人在 Gmail 確認 10 封都到了。
+- 信件署名用的是系統登入者的 email（這次是 `admin@example.com`），但實際寄件人是共用 Gmail，客戶回信會回到 Gmail。正式改成業務本人的信箱（Graph）就一致；只要還用共用信箱寄客戶，署名要不要改成共用信箱，需要負責人決定。
+- ADR 0008、`CLAUDE.md`、`config.py` 註解都還寫「Outlook.com SMTP」，實際測試用的是 Gmail；要不要改成「共用 SMTP 信箱」的說法，等負責人決定。
+- AI 草稿會加上「穩定的接觸性能與耐用性」這類一般性的產品形容，沒有捏造價格、認證或交期，但業務盲評（M4-06b）時要一起看。
+
+**下一步**
+- M2-26 等 IT 回覆；M4-06b 業務盲評；之後 M5 先拆細。
+
+---
+
+## 2026-11-18｜修正 Windows PowerShell 5.1 一鍵啟動
+
+**改了哪些檔案**
+- `start-dev.ps1`：改成 Windows PowerShell 5.1 可辨識的 UTF-8 BOM，並讓一鍵模式固定使用 Docker PostgreSQL 的 `127.0.0.1:5432`。
+- `README.md`：補充一鍵模式不會改寫既有 `.env`，但會使用 Docker 資料庫連線。
+- `PROGRESS.md`：記錄一鍵啟動修正完成。
+
+**解決了什麼問題**
+- Windows PowerShell 5.1 原本把無 BOM 的 UTF-8 中文字串錯誤解析，導致 `api`、`PostgreSQL` 等位置出現語法錯誤。
+- 使用者的 `backend/.env` 指向舊的內嵌 PostgreSQL 埠 `53260`，一鍵腳本啟動 Docker 後仍會連錯資料庫，migration 因而卡住。
+
+**做了哪些決定**
+- 不覆蓋使用者既有 `.env`；一鍵啟動時只在目前 PowerShell 程序設定 Docker PostgreSQL 的 `DATABASE_URL`。
+- 個別 `-Service api|worker|frontend` 仍沿用 `.env` 的設定，方便手動使用既有資料庫。
+
+**還沒處理的問題**
+- Windows 終端機若不是 UTF-8 code page，中文輸出可能仍顯示亂碼，但不影響腳本執行；腳本語法與服務啟動已驗證。
+
+**下一步**
+- 在專案根目錄重新執行 `powershell -ExecutionPolicy Bypass -File .\start-dev.ps1`。
+
+---
+
+## 2026-11-18｜修正前端 127.0.0.1 無法開啟
+
+**改了哪些檔案**
+- `frontend/vite.config.ts`：將 Vite 開發伺服器固定綁定 `127.0.0.1`。
+- `PROGRESS.md`：記錄前端本機網址修正。
+
+**解決了什麼問題**
+- Vite 原本只監聽 IPv6 的 `::1:5173`，但啟動訊息與 README 使用 IPv4 `127.0.0.1:5173`，造成瀏覽器連線被拒絕。
+
+**做了哪些決定**
+- 保留既有網址 `http://127.0.0.1:5173`，由 Vite 設定直接固定 IPv4 綁定，不要求使用者改成 `localhost`。
+
+**還沒處理的問題**
+- production build 仍有既有 bundle 超過 500 kB 的警告，不影響本次開發環境啟動。
+
+**下一步**
+- 開啟 `http://127.0.0.1:5173/`，從登入頁開始操作。
+
+---
+
 ## 2026-11-18｜M1-03 Docker 驗證完成
 
 **改了哪些檔案**

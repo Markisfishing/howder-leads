@@ -1,21 +1,23 @@
-import type { ReactNode } from "react";
+import { lazy, type ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuth } from "./auth/AuthProvider";
 import { AppLayout } from "./components/AppLayout";
 import { Empty, Loading } from "./components/StateView";
-import { AdminImportsPage } from "./pages/AdminImportsPage";
-import { AdminTemplatesPage } from "./pages/AdminTemplatesPage";
-import { CasesPage } from "./pages/cases/CasesPage";
-import { CampaignNewPage } from "./pages/campaigns/CampaignNewPage";
-import { CampaignReviewPage } from "./pages/campaigns/CampaignReviewPage";
-import { CampaignsPage } from "./pages/campaigns/CampaignsPage";
-import { CompanyPage } from "./pages/CompanyPage";
-import { OverviewPage } from "./pages/overview/OverviewPage";
-import { AdminModelPage } from "./pages/performance/AdminModelPage";
-import { PerformancePage } from "./pages/performance/PerformancePage";
 import { LoginPage } from "./pages/LoginPage";
-import { RecommendationsPage } from "./pages/RecommendationsPage";
+
+// 頁面依路由切分（M1 開發中發現：bundle 超過 500 kB），進到該頁才下載
+const AdminImportsPage = lazy(() => import("./pages/AdminImportsPage").then((m) => ({ default: m.AdminImportsPage })));
+const AdminTemplatesPage = lazy(() => import("./pages/AdminTemplatesPage").then((m) => ({ default: m.AdminTemplatesPage })));
+const CasesPage = lazy(() => import("./pages/cases/CasesPage").then((m) => ({ default: m.CasesPage })));
+const CampaignNewPage = lazy(() => import("./pages/campaigns/CampaignNewPage").then((m) => ({ default: m.CampaignNewPage })));
+const CampaignReviewPage = lazy(() => import("./pages/campaigns/CampaignReviewPage").then((m) => ({ default: m.CampaignReviewPage })));
+const CampaignsPage = lazy(() => import("./pages/campaigns/CampaignsPage").then((m) => ({ default: m.CampaignsPage })));
+const CompanyPage = lazy(() => import("./pages/CompanyPage").then((m) => ({ default: m.CompanyPage })));
+const OverviewPage = lazy(() => import("./pages/overview/OverviewPage").then((m) => ({ default: m.OverviewPage })));
+const AdminModelPage = lazy(() => import("./pages/performance/AdminModelPage").then((m) => ({ default: m.AdminModelPage })));
+const PerformancePage = lazy(() => import("./pages/performance/PerformancePage").then((m) => ({ default: m.PerformancePage })));
+const RecommendationsPage = lazy(() => import("./pages/RecommendationsPage").then((m) => ({ default: m.RecommendationsPage })));
 
 /** 路由守衛：沒登入看登入頁；/admin/* 只有管理員能進（後端也會再檢查一次） */
 function RequireAdmin({ children }: { children: ReactNode }) {

@@ -4,10 +4,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { configureAuth } from "../api/client";
 import { getMe } from "../api/endpoints";
 import type { User } from "../api/types";
-import { entraLogin, entraLogout, entraToken, initEntra } from "./msal";
 
 export const AUTH_MODE = import.meta.env.VITE_AUTH_MODE === "entra" ? "entra" : "dev";
 const DEV_KEY = "howder.devUser";
+
+// MSAL 很大，只有 entra 模式才下載（dev 模式完全不載入）
+const loadMsal = () => import("./msal");
 
 type Status = "loading" | "signedOut" | "signedIn";
 
@@ -58,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     configureAuth(async (): Promise<Record<string, string>> => {
       if (AUTH_MODE === "dev") return devEmail ? { "X-Dev-User": devEmail } : {};
-      return { Authorization: `Bearer ${await entraToken()}` };
+      return { Authorization: `Bearer ${await (await loadMsal()).entraToken()}` };
     }, signOutLocal);
   }, [devEmail, signOutLocal]);
 
@@ -82,7 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         else setStatus("signedOut");
         return;
       }
-      const account = await initEntra().catch(() => null);
+      const account = await loadMsal()
+        .then((m) => m.initEntra())
+        .catch(() => null);
       if (cancelled) return;
       if (account) await loadMe();
       else setStatus("signedOut");
@@ -103,10 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus("loading");
         setDevEmail(clean);
       },
-      loginEntra: entraLogin,
+      loginEntra: async () => (await loadMsal()).entraLogin(),
       logout: () => {
         signOutLocal();
-        if (AUTH_MODE === "entra") void entraLogout();
+        if (AUTH_MODE === "entra") void loadMsal().then((m) => m.entraLogout());
       },
       isManager: user?.role === "manager" || user?.role === "admin",
       isAdmin: user?.role === "admin",
