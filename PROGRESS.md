@@ -267,12 +267,12 @@
 - [ ] M4-07c 案件時間軸顯示態度標籤（附文字，不只靠顏色），業務可以手動修正並寫 `activity_log`；前端測試
 
 ### 名單品質（M4-02；F-MLE-1，內部用，不回傳給 MLE）
-- [ ] M4-02a 排除原因 API：讀 `v_reject_reasons`，依匯入批次（model run）篩選；不在後端重算比例；權限：管理員、主管
+- [x] M4-02a 排除原因 API：讀 `v_reject_reasons`，依匯入批次（model run）篩選；不在後端重算比例；權限：管理員、主管 — 2026-11-18
 - [ ] M4-02b `/admin/model` 頁「名單品質」：依批次切換排除原因分布；四種狀態；前端測試
 
 ### 績效頁（M4-01；F-TRK-5）
-- [ ] M4-01a 績效 view：各星級回覆率／成交率、各資料來源與產品標籤回覆率、各模板回覆率、業務排行，都以 `v_case_fact` 為基礎（migration 單獨 commit；KPI 只定義在 view）
-- [ ] M4-01b API `GET /metrics/{funnel|win-rate|templates|reps}`：業務只看自己的，主管可看全團隊；日期與篩選同總覽
+- [x] M4-01a 績效 view：各星級回覆率／成交率、各資料來源與產品標籤回覆率、各模板回覆率、業務排行，都以 `v_case_fact` 為基礎（migration 單獨 commit；KPI 只定義在 view） — 2026-11-18
+- [x] M4-01b API `GET /metrics/{funnel|win-rate|templates|reps}`：業務只看自己的，主管可看全團隊；日期與篩選同總覽 — 2026-11-18
 - [ ] M4-01c `/performance` 頁：表格為主、比例附件數、樣本不足標示；四種狀態；前端測試
 
 ### 收尾
