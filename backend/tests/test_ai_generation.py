@@ -194,15 +194,14 @@ def test_m4_06j_regenerate_failed_ai_draft_uses_same_path(world: World) -> None:
     assert again.gen_model == "fake-model"
 
 
-def test_m4_06j_no_llm_configured_marks_drafts_failed_without_network(world: World) -> None:  # noqa: F811
+def test_m4_06j_no_llm_injected_fails_without_network(world: World) -> None:  # noqa: F811
+    """沒有注入假的 LLM 時，測試環境會直接失敗，不會連本機 Ollama（CLAUDE.md 第 6 節第 4 點）。"""
     cid = _create(world, "full_ai", [world.ids["10000001"]])
-    # provider=claude 還沒實作：明確失敗，不默默改連別的服務；也不會嘗試連本機 Ollama
-    world.settings = world.settings.model_copy(update={"llm_provider": "claude"})
     deps = WorkerDeps(settings=world.settings, mailer=world.mailer, now=lambda: world.clock[0])
     run_until_idle(sessionmaker(bind=get_engine(), expire_on_commit=False), deps)
     world.db.expire_all()
     d = _draft(world, cid)
-    assert (d.status, d.last_error) == ("failed", "LLM_PROVIDER_NOT_AVAILABLE")
+    assert (d.status, d.last_error) == ("failed", "LLM_DISABLED_IN_TEST")
 
 
 def test_m4_06j_ai_drafts_never_skip_review(world: World) -> None:  # noqa: F811

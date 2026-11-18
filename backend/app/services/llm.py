@@ -141,7 +141,12 @@ class LocalLlmClient:
 
 
 def get_llm_client(settings: Settings) -> LlmClient:
-    """依設定建立 client（ADR 0006）。claude 要等 M4-06d；先明確報錯，不默默改用別的。"""
+    """依設定建立 client（ADR 0006）。claude 要等 M4-06d；先明確報錯，不默默改用別的。
+
+    自動化測試（ENV=test）一律不准建立真實 client：測試要自己注入 FakeLlmClient（CLAUDE.md 第 6 節第 4 點）。
+    """
+    if settings.env == "test":
+        raise LlmError("LLM_DISABLED_IN_TEST")
     if settings.llm_provider == "local":
         return LocalLlmClient(settings.local_llm_base_url, settings.local_llm_model, settings.llm_timeout_seconds)
     raise LlmError("LLM_PROVIDER_NOT_AVAILABLE")

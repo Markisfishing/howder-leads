@@ -262,8 +262,8 @@
 - [ ] M4-08e 寫信接上摘要（M4-06c 的輸入加官網摘要，沒有就用推薦理由）；公司側欄顯示摘要和抓取時間，業務可以按「重新抓取」
 
 ### 回覆態度（M4-07；F-TRK-2）
-- [ ] M4-07a migration：`case_update` 加 `sentiment`（positive／neutral／negative，CHECK）與 `sentiment_source`（ai／manual），`job.kind` 加 `classify_reply`（單獨 commit）
-- [ ] M4-07b 回填有備註時排 worker `classify_reply`，用本機 LLM 判斷態度（prompt `prompts/reply_sentiment_v1.md`）；失敗不影響回填；`FakeLlmClient` 測試
+- [x] M4-07a migration：`case_update` 加 `sentiment`（positive／neutral／negative，CHECK）與 `sentiment_source`（ai／manual），`job.kind` 加 `classify_reply`（單獨 commit） — 2026-11-18
+- [x] M4-07b 回填有備註時排 worker `classify_reply`，用本機 LLM 判斷態度（prompt `prompts/reply_sentiment_v1.md`）；失敗不影響回填；`FakeLlmClient` 測試 — 2026-11-18
 - [ ] M4-07c 案件時間軸顯示態度標籤（附文字，不只靠顏色），業務可以手動修正並寫 `activity_log`；前端測試
 
 ### 名單品質（M4-02；F-MLE-1，內部用，不回傳給 MLE）

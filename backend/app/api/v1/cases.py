@@ -17,8 +17,8 @@ from app.config import Settings, get_settings
 from app.db import get_db
 from app.domain import case_rules
 from app.domain.company_rules import DomainError
-from app.models import AppUser, Company, Contact, SalesCase
-from app.services import case_service, contact_service, reminder_service
+from app.models import AppUser, CaseUpdate, Company, Contact, SalesCase
+from app.services import case_service, contact_service, reminder_service, sentiment_service
 
 router = APIRouter()
 
@@ -69,6 +69,8 @@ class UpdateOut(BaseModel):
     next_follow_up: date | None
     amount_twd: Decimal | None
     created_at: datetime
+    sentiment: str | None = None  # positive / neutral / negative；沒備註或判斷失敗為 null（M4-07）
+    sentiment_source: str | None = None  # ai / manual
 
 
 class ContactOption(BaseModel):
@@ -156,6 +158,8 @@ def _detail(db: Session, case: SalesCase) -> CaseDetail:
             next_follow_up=u.next_follow_up,
             amount_twd=u.amount_twd,
             created_at=u.created_at,
+            sentiment=u.sentiment,
+            sentiment_source=u.sentiment_source,
         )
         for u in case_service.timeline(db, case.case_id)
     ]
@@ -311,6 +315,27 @@ def unsubscribe(
         db, user, contact, f"案件 {case.case_no} 客戶要求退訂", whole_company=bool(body and body.whole_company)
     )
     db.refresh(case)
+    return _detail(db, case)
+
+
+class SentimentBody(BaseModel):
+    sentiment: str  # positive / neutral / negative；合法值由 domain 檢查（INVALID_SENTIMENT）
+
+
+@router.patch("/cases/{case_id}/updates/{update_id}/sentiment", response_model=CaseDetail)
+def correct_sentiment(
+    case_id: int,
+    update_id: int,
+    body: SentimentBody,
+    user: AppUser = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> CaseDetail:
+    """M4-07c：業務手動修正客戶態度（寫 activity_log）。只有看得到這件案件的人可以改。"""
+    case = case_service.get_case(db, user, case_id)
+    update = db.get(CaseUpdate, update_id)
+    if update is None or update.case_id != case.case_id:
+        raise DomainError("UPDATE_NOT_FOUND", "找不到這筆回填紀錄", 404)
+    sentiment_service.set_manual(db, user, update, body.sentiment, case.company_id)
     return _detail(db, case)
 
 

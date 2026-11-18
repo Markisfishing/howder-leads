@@ -104,3 +104,34 @@ def parse_mail(raw: str) -> AiMail:
     body = _text_field(data, "body_text", BODY_MIN, BODY_MAX, "AI_TOO_SHORT", "AI_TOO_LONG")
     _ensure_traditional(subject, body)
     return AiMail(subject, body)
+
+
+# ---------- 回覆態度（M4-07b、F-TRK-2）----------
+SENTIMENTS = ("positive", "neutral", "negative")
+SENTIMENT_LABELS = {"positive": "有興趣", "neutral": "中性", "negative": "不感興趣"}
+# 模型有時會回中文，照意思對應；對不上的一律當作不合格
+_SENTIMENT_ALIASES = {
+    "正面": "positive",
+    "有興趣": "positive",
+    "中性": "neutral",
+    "負面": "negative",
+    "不感興趣": "negative",
+}
+
+
+def parse_sentiment(raw: str) -> str:
+    """從模型回覆取出 sentiment；不是三個合法值就報 AI_BAD_SENTIMENT。"""
+    value = extract_json(raw).get("sentiment")
+    if isinstance(value, str):
+        key = value.strip().lower()
+        key = _SENTIMENT_ALIASES.get(value.strip(), key)
+        if key in SENTIMENTS:
+            return key
+    raise DomainError("AI_BAD_SENTIMENT", "AI 沒有給出有效的客戶態度", 422)
+
+
+def check_sentiment(value: str) -> str:
+    """業務手動修正：只接受三個合法值。"""
+    if value not in SENTIMENTS:
+        raise DomainError("INVALID_SENTIMENT", "客戶態度只能是有興趣、中性或不感興趣", 422)
+    return value
