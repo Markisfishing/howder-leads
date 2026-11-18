@@ -1,5 +1,6 @@
 """CSV 欄位規格 v1 匯入（M3-06b、SPEC 8.4、F-REC-7）。"""
 
+import codecs
 from collections.abc import Callable
 from decimal import Decimal
 from pathlib import Path
@@ -118,3 +119,10 @@ def test_m3_06b_api_import_tags_list_and_funnel(client: TestClient, db: Session)
     cl = db.scalars(select(Classification).where(Classification.company_id == company.company_id)).one()
     assert company.country == "VN"
     assert (cl.fit_stars, sorted(cl.tags)) == (Decimal("3.3"), ["自動化", "電箱"])
+
+
+def test_m3_06b_sample_csv_has_utf8_bom() -> None:
+    """範例檔要帶 UTF-8 BOM：Excel 雙擊開啟時才不會把中文顯示成亂碼。"""
+    raw = SAMPLE.read_bytes()
+    assert raw.startswith(codecs.BOM_UTF8)
+    assert "統編" in raw.decode("utf-8-sig").splitlines()[0]

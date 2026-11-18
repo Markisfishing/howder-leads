@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.domain import company_rules as rules
 from app.domain.company_rules import DomainError, Ownership
 from app.models import ActivityLog, AppUser, Company, DimIndustry, Review
+from app.services import site_service
 
 
 def now() -> datetime:
@@ -159,8 +160,12 @@ def update_company(
     if clear_website or website_url is not None:
         new_url = None if clear_website else website_url
         log(db, company, user, "update_website", company.website_url, new_url)
+        if new_url != company.website_url:
+            site_service.invalidate(db, company.company_id)  # 官網換了，舊摘要不再可信（M4-08c）
         company.website_url = new_url
         company.website_verified = True
+        db.flush()
+        site_service.schedule_if_needed(db, company, user.user_id)
     if industry_id is not None:
         _check_industry(db, industry_id)
         log(db, company, user, "update_industry", str(company.industry_override_id or ""), str(industry_id))
@@ -169,6 +174,11 @@ def update_company(
         log(db, company, user, "note", note=note)
     db.commit()
     return company
+
+
+def ensure_can_act(company: Company, user: AppUser) -> None:
+    """鎖定規則：被其他業務認領中的公司只有主管能動（和 update_company 同一套）。"""
+    rules.ensure_can_act(_ownership(company), user.user_id, now(), is_manager(user))
 
 
 # ---------- 手動加入（F-REC-6）----------

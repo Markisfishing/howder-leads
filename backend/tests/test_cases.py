@@ -87,7 +87,9 @@ def test_f_case_2_update_moves_company_through_states(world: World) -> None:
     assert body["status"] == "won" and body["closed_at"] and body["amount_twd"] == "120000"
     assert world.status(company) == "won"
     changes = world.db.scalars(
-        select(ActivityLog.to_value).where(ActivityLog.company_id == company, ActivityLog.action == "status_change")
+        select(ActivityLog.to_value)
+        .where(ActivityLog.company_id == company, ActivityLog.action == "status_change")
+        .order_by(ActivityLog.log_id)  # 沒有排序時順序不保證，偶爾會讓這個測試不穩
     ).all()
     assert changes[-3:] == ["replied", "meeting", "won"]  # 每一步都留紀錄
     assert _update(world, case_id).json()["error"]["code"] == "CASE_CLOSED"

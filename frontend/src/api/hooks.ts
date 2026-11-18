@@ -2,7 +2,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import * as ep from "./endpoints";
-import type { Campaign, CaseUpdateInput, OverviewQuery } from "./types";
+import type { Campaign, CaseUpdateInput, OverviewQuery, PerfBreakdown, Sentiment } from "./types";
 import type { ListFilters } from "../lib/filters";
 
 export const keys = {
@@ -58,6 +58,7 @@ export const useReview = () => useCompanyMutation(ep.submitReview);
 export const usePatchCompany = () =>
   useCompanyMutation(({ id, body }: { id: number; body: ep.CompanyPatch }) => ep.patchCompany(id, body));
 export const useCreateCompany = () => useCompanyMutation(ep.createCompany);
+export const useRefreshSiteSummary = () => useCompanyMutation(ep.refreshSiteSummary);
 export const useClaim = () => useCompanyMutation(ep.claimCompany);
 export const useRelease = () => useCompanyMutation(ep.releaseCompany);
 
@@ -188,6 +189,10 @@ export const useCases = (q: ep.CaseQuery) =>
   useQuery({ queryKey: keys.cases(q), queryFn: () => ep.listCases(q), placeholderData: keepPreviousData });
 export const useCase = (id: number) => useQuery({ queryKey: keys.case(id), queryFn: () => ep.getCase(id) });
 export const useReminders = () => useQuery({ queryKey: keys.reminders, queryFn: ep.getReminders });
+export const usePerformance = (by: PerfBreakdown, range: { from: string | null; to: string | null }) =>
+  useQuery({ queryKey: ["performance", by, range], queryFn: () => ep.getPerformance(by, range) });
+export const useRejectReport = (runId: number | null) =>
+  useQuery({ queryKey: ["reject-report", runId], queryFn: () => ep.getRejectReport(runId) });
 export const useOverview = (q: OverviewQuery) =>
   useQuery({ queryKey: keys.overview(q), queryFn: () => ep.getOverview(q) });
 
@@ -204,6 +209,10 @@ function useCaseMutation<TArgs, TResult>(fn: (args: TArgs) => Promise<TResult>) 
 }
 export const useAddCaseUpdate = () =>
   useCaseMutation(({ id, body }: { id: number; body: CaseUpdateInput }) => ep.addCaseUpdate(id, body));
+export const useSetSentiment = () =>
+  useCaseMutation(({ caseId, updateId, sentiment }: { caseId: number; updateId: number; sentiment: Sentiment }) =>
+    ep.setSentiment(caseId, updateId, sentiment),
+  );
 export const useUnsubscribeCase = () =>
   useCaseMutation(
     ({ id, contactId, wholeCompany }: { id: number; contactId?: number | null; wholeCompany?: boolean }) =>

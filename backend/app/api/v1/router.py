@@ -11,6 +11,7 @@ from app.api.v1 import (
     mail_connection,
     meta,
     overview,
+    performance,
     reminders,
     reviews,
     templates,
@@ -29,4 +30,5 @@ api_router.include_router(mail_connection.router, tags=["mail"])
 api_router.include_router(cases.router, tags=["cases"])
 api_router.include_router(reminders.router, tags=["reminders"])
 api_router.include_router(overview.router, tags=["overview"])
+api_router.include_router(performance.router, tags=["performance"])
 api_router.include_router(meta.router, tags=["meta"])

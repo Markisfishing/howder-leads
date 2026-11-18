@@ -14,7 +14,8 @@ import styles from "../Page.module.css";
 import c from "./Campaigns.module.css";
 
 const MAX_TARGETS = 200;
-const AI_MODES: GenMode[] = ["template_ai", "full_ai"]; // M4 開放
+const GEN_MODES: GenMode[] = ["template_only", "template_ai", "full_ai"];
+const AI_PARAGRAPH = "{{ai_paragraph}}";
 
 function today(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Taipei" }).format(new Date());
@@ -39,12 +40,16 @@ export function CampaignNewPage() {
 
   const [name, setName] = useState(`${today()} 邀請信`);
   const [templateId, setTemplateId] = useState<number | null>(null);
+  const [genMode, setGenMode] = useState<GenMode>("template_only");
   // 勾選的公司 → 選定的聯絡人
   const [selected, setSelected] = useState<Map<number, number | null>>(new Map());
 
   const eligible = useMemo(() => (candidates.data ?? []).filter((x) => x.reasons.length === 0), [candidates.data]);
   const blocked = useMemo(() => (candidates.data ?? []).filter((x) => x.reasons.length > 0), [candidates.data]);
   const tplId = templateId ?? templates.data?.[0]?.template_id ?? null;
+  const currentTemplate = templates.data?.find((t) => t.template_id === tplId);
+  // 「模板＋AI 段落」要求模板內文有 {{ai_paragraph}}，不然 AI 寫的段落不會出現在信裡（後端也會擋）
+  const templateLacksAiParagraph = genMode === "template_ai" && !!currentTemplate && !currentTemplate.body_text.includes(AI_PARAGRAPH);
 
   const toggle = (cand: Candidate) => {
     const next = new Map(selected);
@@ -67,7 +72,7 @@ export function CampaignNewPage() {
       {
         name: name.trim(),
         template_id: tplId,
-        gen_mode: "template_only",
+        gen_mode: genMode,
         targets: [...selected].map(([company_id, contact_id]) => ({ company_id, contact_id })),
       },
       {
@@ -123,15 +128,23 @@ export function CampaignNewPage() {
         <fieldset className={styles.field}>
           <legend className={styles.label}>生成方式</legend>
           <div className={c.radioRow}>
-            <label className={c.radio}>
-              <input type="radio" name="gen_mode" checked readOnly /> {GEN_MODE_LABELS.template_only}
-            </label>
-            {AI_MODES.map((m) => (
+            {GEN_MODES.map((m) => (
               <label key={m} className={c.radio}>
-                <input type="radio" name="gen_mode" disabled /> {GEN_MODE_LABELS[m]}（M4 開放）
+                <input type="radio" name="gen_mode" checked={genMode === m} onChange={() => setGenMode(m)} />{" "}
+                {GEN_MODE_LABELS[m]}
               </label>
             ))}
           </div>
+          {genMode !== "template_only" && (
+            <span className={styles.hint}>
+              AI 只根據公司資料寫稿，可能有不精確的地方；每封信都要你預覽、核對事實後才能核准，系統不會自動寄出。
+            </span>
+          )}
+          {templateLacksAiParagraph && (
+            <span className={c.error} role="alert">
+              這份模板的內文沒有 {AI_PARAGRAPH}，AI 寫的段落不會出現在信裡。請換一份模板，或請管理員在模板加上 {AI_PARAGRAPH}。
+            </span>
+          )}
         </fieldset>
       </section>
 
@@ -277,7 +290,9 @@ export function CampaignNewPage() {
         </span>
         <Button
           variant="primary"
-          disabled={selected.size === 0 || selected.size > MAX_TARGETS || !name.trim() || tplId == null}
+          disabled={
+            selected.size === 0 || selected.size > MAX_TARGETS || !name.trim() || tplId == null || templateLacksAiParagraph
+          }
           busy={create.isPending}
           onClick={submit}
         >

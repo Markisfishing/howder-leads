@@ -110,6 +110,16 @@ export interface CompanyDetail extends CompanyRow {
   contacts: Contact[];
   reviews: ReviewRecord[];
   activities: Activity[];
+  /** 官網摘要（M4-08）：還沒抓過為 null；status = failed 時看 error_code */
+  site_summary?: SiteSummary | null;
+}
+
+export interface SiteSummary {
+  status: "ok" | "failed";
+  summary: string | null;
+  error_code: string | null;
+  source_url: string | null;
+  fetched_at: string;
 }
 
 export interface Kpis {
@@ -318,6 +328,10 @@ export interface Draft {
   send_attempts: number;
   last_error: string | null;
   approved_at: string | null;
+  /** AI 產生才有（M4-06h）；只用模板時是 null */
+  gen_provider?: string | null;
+  gen_model?: string | null;
+  prompt_version?: string | null;
 }
 
 export interface DraftPage {
@@ -388,7 +402,12 @@ export interface CaseTimelineItem {
   next_follow_up: string | null;
   amount_twd: string | null;
   created_at: string;
+  /** 客戶態度（M4-07）：AI 依備註判斷或業務手動修正；沒備註或判斷失敗為 null */
+  sentiment?: Sentiment | null;
+  sentiment_source?: "ai" | "manual" | null;
 }
+
+export type Sentiment = "positive" | "neutral" | "negative";
 
 export interface CaseDetail extends SalesCase {
   timeline: CaseTimelineItem[];
@@ -408,4 +427,31 @@ export interface ReminderItem {
   kind: ReminderKind | "pending_review";
   label: string;
   count: number;
+}
+
+// ---------- 績效與名單品質（M4-01、M4-02）----------
+export interface PerfRow {
+  key: string;
+  label: string;
+  sent: number;
+  replied: number;
+  reply_rate: string | null; // 寄出少於 10 件為 null（樣本不足）
+  won: number;
+  win_rate: string | null;
+  won_amount_twd: string;
+  insufficient: boolean;
+}
+
+export interface PerfTable {
+  scope_owner_id: number | null; // null = 全團隊
+  items: PerfRow[];
+}
+
+export type PerfBreakdown = "stars" | "source" | "tag" | "template" | "rep";
+
+export interface RejectReport {
+  run_id: number | null;
+  runs: { run_id: number; model_name: string; created_at: string }[];
+  total: number;
+  items: { reason: string | null; count: number; share: string | null }[];
 }

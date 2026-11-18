@@ -17,6 +17,7 @@ from app.domain.company_rules import DomainError, Ownership
 from app.domain.send_limits import TAIPEI
 from app.models import AppUser, CaseUpdate, Company, Contact, EmailMessage, SalesCase
 from app.services import company_service as company_svc
+from app.services import sentiment_service
 
 TRACKABLE = frozenset({"approved"})  # 加入追蹤只限「已通過」還沒寄信的公司
 MAX_TRACK = 200
@@ -169,19 +170,20 @@ def add_update(
     case.status = new_status
     case.closed_at = now if new_status in case_rules.CLOSED else None
 
-    db.add(
-        CaseUpdate(
-            case_id=case.case_id,
-            user_id=user.user_id,
-            channel=clean.channel,
-            contact_id=contact_id or case.contact_id,
-            result=clean.result,
-            note=clean.note,
-            next_follow_up=clean.next_follow_up,
-            amount_twd=clean.amount_twd,
-            created_at=now,
-        )
+    new_update = CaseUpdate(
+        case_id=case.case_id,
+        user_id=user.user_id,
+        channel=clean.channel,
+        contact_id=contact_id or case.contact_id,
+        result=clean.result,
+        note=clean.note,
+        next_follow_up=clean.next_follow_up,
+        amount_twd=clean.amount_twd,
+        created_at=now,
     )
+    db.add(new_update)
+    db.flush()
+    sentiment_service.enqueue(db, new_update, user.user_id)  # 有備註才排；判斷失敗不影響這次回填（M4-07b）
     case.last_update_at = now
     case.next_follow_up = clean.next_follow_up
     if clean.result in case_rules.CLOSED:

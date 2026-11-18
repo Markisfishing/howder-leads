@@ -12,6 +12,8 @@ import { CampaignReviewPage } from "./pages/campaigns/CampaignReviewPage";
 import { CampaignsPage } from "./pages/campaigns/CampaignsPage";
 import { CompanyPage } from "./pages/CompanyPage";
 import { OverviewPage } from "./pages/overview/OverviewPage";
+import { AdminModelPage } from "./pages/performance/AdminModelPage";
+import { PerformancePage } from "./pages/performance/PerformancePage";
 import { LoginPage } from "./pages/LoginPage";
 import { RecommendationsPage } from "./pages/RecommendationsPage";
 
@@ -19,6 +21,12 @@ import { RecommendationsPage } from "./pages/RecommendationsPage";
 function RequireAdmin({ children }: { children: ReactNode }) {
   const { isAdmin } = useAuth();
   return isAdmin ? children : <Empty title="沒有權限使用這個頁面">這個頁面只有管理員可以使用。</Empty>;
+}
+
+/** 名單品質只給主管與管理員（後端也會再檢查一次） */
+function RequireManager({ children }: { children: ReactNode }) {
+  const { isManager } = useAuth();
+  return isManager ? children : <Empty title="沒有權限使用這個頁面">這個頁面只有主管或管理員可以使用。</Empty>;
 }
 
 export function App() {
@@ -36,6 +44,7 @@ export function App() {
         <Route path="campaigns/new" element={<CampaignNewPage />} />
         <Route path="campaigns/:id" element={<CampaignReviewPage />} />
         <Route path="overview" element={<OverviewPage />} />
+        <Route path="performance" element={<PerformancePage />} />
         <Route path="cases" element={<CasesPage />} />
         <Route path="cases/:id" element={<CasesPage />} />
         <Route
@@ -52,6 +61,14 @@ export function App() {
             <RequireAdmin>
               <AdminTemplatesPage />
             </RequireAdmin>
+          }
+        />
+        <Route
+          path="admin/model"
+          element={
+            <RequireManager>
+              <AdminModelPage />
+            </RequireManager>
           }
         />
         <Route path="home" element={<Navigate to="/overview" replace />} />

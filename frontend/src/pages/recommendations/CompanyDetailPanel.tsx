@@ -22,6 +22,7 @@ import {
 import { isLockedByOther } from "../../lib/ownership";
 import styles from "./CompanyDetail.module.css";
 import { ContactsSection } from "./ContactsSection";
+import { SiteSummarySection } from "./SiteSummarySection";
 import { RejectDialog } from "./RejectDialog";
 
 /** 區塊：公司詳情 · 完整理由、官網、登記產品、往來紀錄；可修正官網與產業（F-REC-4） */
@@ -224,6 +225,9 @@ function Detail({ company: c, showPageLink }: { company: CompanyDetail; showPage
           </dl>
         )}
       </section>
+
+      {/* 區塊：官網摘要（M4-08e） */}
+      <SiteSummarySection company={c} canAct={canAct} />
 
       {/* 區塊：聯絡人（M2-01b） */}
       <ContactsSection company={c} canAct={canAct} isManager={isManager} />

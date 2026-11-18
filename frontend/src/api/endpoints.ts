@@ -6,6 +6,7 @@ import type {
   CaseUpdateInput,
   ReminderItem,
   SalesCase,
+  Sentiment,
   Campaign,
   CampaignCreated,
   Candidate,
@@ -22,6 +23,9 @@ import type {
   ImportBatchDetail,
   Kpis,
   Overview,
+  PerfBreakdown,
+  PerfTable,
+  RejectReport,
   OverviewQuery,
   MailConnection,
   RejectReason,
@@ -113,6 +117,9 @@ export const deleteContact = (id: number, reason: string) =>
   api<void>(`/contacts/${id}`, { method: "DELETE", json: { reason } });
 
 export const claimCompany = (id: number) => api<CompanyDetail>(`/companies/${id}/claim`, { method: "POST" });
+/** 重新抓取官網摘要（M4-08e）：先清掉舊的，排進背景工作 */
+export const refreshSiteSummary = (id: number) =>
+  api<CompanyDetail>(`/companies/${id}/site-summary/refresh`, { method: "POST" });
 export const releaseCompany = (id: number) => api<CompanyDetail>(`/companies/${id}/release`, { method: "POST" });
 
 export interface ReviewBody {
@@ -126,6 +133,16 @@ export const submitReview = (body: ReviewBody) =>
   api<{ updated: number; status: string }>("/reviews", { method: "POST", json: body });
 
 export const getKpis = () => api<Kpis>("/metrics/kpis");
+/** 績效表（M4-01b）：from／to 是寄出日（台灣日期） */
+export const getPerformance = (by: PerfBreakdown, range: { from: string | null; to: string | null }) => {
+  const query = { from: range.from, to: range.to };
+  if (by === "template") return api<PerfTable>("/metrics/templates", { query });
+  if (by === "rep") return api<PerfTable>("/metrics/reps", { query });
+  return api<PerfTable>("/metrics/win-rate", { query: { by, ...query } });
+};
+export const getRejectReport = (runId: number | null) =>
+  api<RejectReport>("/metrics/reject-reasons", { query: { run_id: runId } });
+
 export const getOverview = (q: OverviewQuery) => api<Overview>("/metrics/overview", { query: { ...q } });
 export const getDimensions = () => api<Dimensions>("/dimensions");
 
@@ -228,6 +245,9 @@ export const addTracking = (companyIds: number[]) =>
   api<SalesCase[]>("/cases", { method: "POST", json: { company_ids: companyIds } });
 export const addCaseUpdate = (id: number, body: CaseUpdateInput) =>
   api<CaseDetail>(`/cases/${id}/updates`, { method: "POST", json: body });
+/** 業務手動修正客戶態度（M4-07c） */
+export const setSentiment = (caseId: number, updateId: number, sentiment: Sentiment) =>
+  api<CaseDetail>(`/cases/${caseId}/updates/${updateId}/sentiment`, { method: "PATCH", json: { sentiment } });
 export const unsubscribeCase = (id: number, contactId?: number | null, wholeCompany = false) =>
   api<CaseDetail>(`/cases/${id}/unsubscribe`, {
     method: "POST",

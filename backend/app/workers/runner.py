@@ -19,7 +19,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config import Settings, get_settings
 from app.db import get_engine
 from app.models import Job
-from app.services import generator, jobs, reminder_service, send_service
+from app.services import generator, jobs, reminder_service, send_service, sentiment_service, site_service
+from app.services.llm import LlmClient, get_llm_client
 from app.services.mailer import GraphMailer, Mailer, SandboxMailer
 
 log = logging.getLogger("howder.worker")
@@ -30,6 +31,8 @@ class WorkerDeps:
     settings: Settings
     mailer: Mailer
     now: Callable[[], datetime] = lambda: datetime.now(UTC)
+    llm: LlmClient | None = None  # 測試放 FakeLlmClient；沒放就依設定建立（ADR 0006）
+    site_fetcher: site_service.SiteFetcherLike | None = None  # 測試放假的抓取器（M4-08）
 
 
 def build_mailer(settings: Settings, session_factory: Callable[[], Session]) -> Mailer:
@@ -50,9 +53,24 @@ def build_mailer(settings: Settings, session_factory: Callable[[], Session]) -> 
 
 def _handle(db: Session, job: Job, deps: WorkerDeps) -> None:
     if job.kind == "generate_drafts":
-        generator.run_generate_job(db, job.payload)
+        generator.run_generate_job(
+            db,
+            job.payload,
+            llm_factory=lambda: deps.llm or get_llm_client(deps.settings),
+            concurrency=deps.settings.llm_concurrency,
+        )
     elif job.kind == "send_email":
         send_service.send_one(db, int(job.payload["draft_id"]), deps.mailer, deps.settings, deps.now())
+    elif job.kind == site_service.KIND:
+        site_service.run_fetch_job(
+            db,
+            int(job.payload["company_id"]),
+            lambda: deps.site_fetcher or site_service.build_fetcher(deps.settings),
+            lambda: deps.llm or get_llm_client(deps.settings),
+            deps.now(),
+        )
+    elif job.kind == sentiment_service.KIND:
+        sentiment_service.classify_update(db, int(job.payload["update_id"]), deps.llm or get_llm_client(deps.settings))
     elif job.kind == reminder_service.DAILY_KIND:
         reminder_service.run_daily(db, deps.now())
     else:

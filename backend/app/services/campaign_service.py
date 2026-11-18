@@ -18,7 +18,7 @@ from app.models import AppUser, Campaign, Company, Contact, EmailDraft, EmailMes
 from app.services import company_service as company_svc
 from app.services import jobs
 
-AVAILABLE_MODES = frozenset({"template_only"})  # template_ai / full_ai 在 M4（ADR 0006）
+AVAILABLE_MODES = frozenset({"template_only", "template_ai", "full_ai"})  # AI 模式見 ADR 0006
 MAX_TARGETS = 200
 
 
@@ -172,7 +172,7 @@ def create_campaign(
 ) -> tuple[Campaign, int, list[Excluded]]:
     """建立批次。回傳 (批次, job_id, 被排除的公司與原因)。全部被排除時報錯，不建立空批次。"""
     if gen_mode not in AVAILABLE_MODES:
-        raise DomainError("GEN_MODE_NOT_AVAILABLE", "AI 生成模式在 M4 開放，目前只能用模板", 422)
+        raise DomainError("GEN_MODE_NOT_AVAILABLE", "不支援這種生成方式", 422)
     if not name.strip():
         raise DomainError("CAMPAIGN_NAME_REQUIRED", "請填寫批次名稱", 422)
     if not targets:

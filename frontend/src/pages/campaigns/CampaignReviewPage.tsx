@@ -349,6 +349,12 @@ function DraftEditor({
         {draft.contact_email}
         {draft.scheduled_at && ` · 排程 ${formatDateTime(draft.scheduled_at)}`}
       </p>
+      {draft.gen_model && (
+        <p className={styles.hint}>
+          AI 產生：{draft.gen_model}
+          {draft.prompt_version && `（提示詞 ${draft.prompt_version}）`}。AI 只根據公司資料寫稿，請核對內容是否有不實或誇大之處再核准。
+        </p>
+      )}
       {errText && (
         <p className={c.error} role="alert">
           {errText}

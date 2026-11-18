@@ -1,5 +1,5 @@
 // 程式代碼 → UI 中文（CLAUDE.md 第 2 節的專有名詞）
-import type { CampaignStatus, CaseChannel, CaseResult, CaseStatus, CompanyStatus, ContactSource, DraftStatus, GenMode, RejectReason } from "../api/types";
+import type { CampaignStatus, CaseChannel, CaseResult, CaseStatus, CompanyStatus, ContactSource, DraftStatus, GenMode, RejectReason, Sentiment } from "../api/types";
 import { errorMessage } from "../api/errorMessages";
 
 export const STATUS_LABELS: Record<CompanyStatus, string> = {
@@ -66,6 +66,7 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   contact_add: "新增聯絡人",
   contact_update: "修改聯絡人",
   contact_unsubscribe: "聯絡人退訂",
+  case_sentiment: "修正客戶態度",
   contact_resubscribe: "取消聯絡人退訂",
   contact_delete: "刪除聯絡人個資",
 };
@@ -173,6 +174,10 @@ export function draftErrorText(code: string | null, reasons: Record<string, stri
   }
   return errorMessage(code, `錯誤代碼 ${code}`);
 }
+
+// ---------- 客戶態度（M4-07）----------
+export const SENTIMENT_LABELS: Record<Sentiment, string> = { positive: "有興趣", neutral: "中性", negative: "不感興趣" };
+export const SENTIMENT_TONE: Record<Sentiment, Tone> = { positive: "success", neutral: "neutral", negative: "danger" };
 
 // ---------- 案件（M3）----------
 export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
