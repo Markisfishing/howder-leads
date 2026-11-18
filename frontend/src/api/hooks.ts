@@ -2,7 +2,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import * as ep from "./endpoints";
-import type { Campaign, CaseUpdateInput, OverviewQuery } from "./types";
+import type { Campaign, CaseUpdateInput, OverviewQuery, PerfBreakdown } from "./types";
 import type { ListFilters } from "../lib/filters";
 
 export const keys = {
@@ -188,6 +188,10 @@ export const useCases = (q: ep.CaseQuery) =>
   useQuery({ queryKey: keys.cases(q), queryFn: () => ep.listCases(q), placeholderData: keepPreviousData });
 export const useCase = (id: number) => useQuery({ queryKey: keys.case(id), queryFn: () => ep.getCase(id) });
 export const useReminders = () => useQuery({ queryKey: keys.reminders, queryFn: ep.getReminders });
+export const usePerformance = (by: PerfBreakdown, range: { from: string | null; to: string | null }) =>
+  useQuery({ queryKey: ["performance", by, range], queryFn: () => ep.getPerformance(by, range) });
+export const useRejectReport = (runId: number | null) =>
+  useQuery({ queryKey: ["reject-report", runId], queryFn: () => ep.getRejectReport(runId) });
 export const useOverview = (q: OverviewQuery) =>
   useQuery({ queryKey: keys.overview(q), queryFn: () => ep.getOverview(q) });
 
