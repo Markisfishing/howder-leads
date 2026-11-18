@@ -15,7 +15,7 @@ from app.domain import ai_rules
 from app.domain.company_rules import DomainError
 from app.services.llm import LlmClient, LlmError, LlmRequest, LlmResult
 
-PROMPT_VERSION = "invite_v1"
+PROMPT_VERSION = "invite_v2"
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 MAX_ATTEMPTS = 2  # 第一次＋重試一次
 

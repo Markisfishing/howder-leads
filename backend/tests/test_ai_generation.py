@@ -69,7 +69,7 @@ def test_m4_06c_template_ai_inserts_paragraph_and_records_generation_info(world:
     assert d.body_text.startswith("窗口0 您好")
     assert d.body_text.endswith(template_rules.UNSUBSCRIBE_TEXT)
     assert d.subject == "測試自動化股份有限公司 合作邀請"
-    assert (d.gen_provider, d.gen_model, d.prompt_version) == ("fake", "fake-model", "invite_v1")
+    assert (d.gen_provider, d.gen_model, d.prompt_version) == ("fake", "fake-model", "invite_v2")
     assert d.ai_original == d.body_text  # F-MAIL-8
     # 送給 AI 的只有公司層級資料，沒有聯絡人 email
     sent = llm.requests[0]
@@ -115,7 +115,7 @@ def test_m4_06i_full_ai_writes_subject_body_and_system_adds_unsubscribe(world: W
     assert d.body_text.startswith(AI_BODY)
     assert d.body_text.endswith(template_rules.UNSUBSCRIBE_TEXT)  # AI 沒寫，系統補
     assert d.ai_original == d.body_text
-    assert d.prompt_version == "invite_v1"
+    assert d.prompt_version == "invite_v2"
     assert "窗口0" in llm.requests[0].user and "@example.com" not in llm.requests[0].user
 
 
