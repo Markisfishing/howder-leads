@@ -16,14 +16,14 @@
 - 不知道該先聯絡誰。
 - 不同業務可能寄給同一家公司。
 - 寄出去之後沒有紀錄。
-- MLE 拿不到「哪些推薦其實是錯的」這種回饋。
+- 不知道哪一批名單品質比較好、業務最常因為什麼原因排除。
 
 ### 1.2 系統要做到的事
 1. 把模型評分後的名單，以**星級排序**呈現給業務。
 2. 讓業務**審核**誰值得合作（通過或排除，排除時要寫原因）。
 3. 對通過的名單**批次產生邀請信**（套模板，或模板加上 AI 個人化），業務**預覽、修改、核准**後才寄出。
 4. 用業務本人的 Outlook 帳號寄出；**每封開發信開成一個案件**，業務人工回填客戶回覆與結果，系統**逾期催辦**，證明名單真的帶來回覆與成交。
-5. 把審核結果和成效**回饋給 MLE**，讓 MLE 重新調整模型。
+5. 用審核結果和成效**評估各批名單的品質**（排除原因、回覆率、成交率）。MLE 只負責產生名單 CSV，之後的作業都在本系統完成，結果**不回傳給 MLE**（2026-11-18 決定）。
 
 ### 1.3 不在這一版的範圍
 - 自動找聯絡人 email（先手動輸入，或從官網抓到後由人確認）
@@ -40,7 +40,7 @@
 |---|---|
 | 業務 `sales` | 看推薦清單、審核、認領公司、產生和核准自己的郵件、更新自己的商機 |
 | 主管 `manager` | 業務能做的全部，再加上看全團隊的績效、重新分派公司 |
-| 管理員 / MLE `admin` | 匯入名單、管理模板、管理使用者、看模型品質和回饋報表 |
+| 管理員 `admin` | 匯入名單（MLE 產生的 CSV）、管理模板、管理使用者、看名單品質報表 |
 
 登入方式：用公司的 Microsoft 帳號登入（Microsoft Entra ID 的 OIDC），**不另外建立帳號密碼**。
 
@@ -141,13 +141,12 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 | F-TRK-4 | 商機 | 併入案件（F-CASE-2 的結果與金額），不另外維護 `opportunity` |
 | F-TRK-5 | 績效頁 | 顯示漏斗、**各星級的回覆率和成交率**、**各資料來源與各產品標籤的回覆率**、各模板的回覆率、業務排行 |
 
-### 4.5 MLE 回饋與模型品質（管理員）
+### 4.5 名單品質（管理員、主管）
+MLE 只負責產生名單 CSV，結果不回傳給 MLE；原本的 F-MLE-2 匯出訓練資料、F-MLE-3 盲標工作台、F-MLE-4 模型品質在 2026-11-18 取消。
+
 | ID | 需求 | 驗收條件 |
 |---|---|---|
-| F-MLE-1 | 排除原因報表 | 依 model run 統計排除原因的分布 |
-| F-MLE-2 | 匯出訓練資料 | `GET /api/v1/feedback/export?run_id=` 下載 CSV，內含模型預測、業務決策、修正值和最後成果 |
-| F-MLE-3 | 盲標工作台 | 只顯示公司名、登記產品和官網；**API 回應不包含任何模型欄位** |
-| F-MLE-4 | 模型品質 | 各 run 的產業準確率、混淆矩陣、潛在客戶判斷的 Precision 和 Recall（以 gold label 為準） |
+| F-MLE-1 | 排除原因報表 | 依匯入批次（model run）統計排除原因的分布，讓主管判斷哪一批名單品質比較差 |
 
 ### 4.6 總覽（業務與主管的第一眼）
 | ID | 需求 | 驗收條件 |
@@ -213,8 +212,7 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 | `/performance` | 績效：漏斗、各星級成交率、各來源／標籤／模板回覆率 | 全部（主管可看全團隊） |
 | `/admin/imports` | 匯入與預覽 | admin |
 | `/admin/templates` | 模板管理 | admin |
-| `/admin/model` | 模型品質、排除原因、匯出回饋資料 | admin |
-| `/admin/labeling` | 盲標工作台 | admin |
+| `/admin/model` | 名單品質：各匯入批次的排除原因 | admin、主管 |
 | `/admin/sources`、`/admin/tags` | 來源管理、產品標籤（延伸） | admin |
 
 ### 6.3 版面與視覺
@@ -234,7 +232,7 @@ FastAPI、Pydantic v2、SQLAlchemy 2 和 Alembic（資料庫 migration）、Post
 ### 7.2 模組切分
 ```
 backend/app/
-  api/v1/        路由：auth, companies, reviews, imports, campaigns, drafts, messages, metrics, feedback
+  api/v1/        路由：auth, companies, reviews, imports, campaigns, drafts, messages, metrics
   domain/        商業規則：狀態機轉換、寄送防呆、鎖定規則（不依賴 FastAPI，方便單元測試）
   services/
     importer.py   解析 CSV/XLSX → 驗證 → 產生預覽差異 → 確認後寫入
@@ -290,9 +288,7 @@ backend/app/
 | GET | `/metrics/kpis` | 推薦清單頁的 KPI 卡（讀 `v_kpi_summary`） |
 | GET | `/metrics/{funnel\|win-rate\|templates\|reps}` | 績效資料（M4） |
 | GET | `/dimensions` | 下拉選單用：產業、優先級、排除原因、狀態、業務名單 |
-| GET | `/admin/reviews/export` | 審核紀錄 CSV（含當時模型判斷），給 MLE 用 |
-| GET | `/feedback/export?run_id=` | 匯出給 MLE 的資料 |
-| GET | `/labeling/next` / POST `/labeling` | 盲標 |
+| GET | `/admin/reviews/export` | 審核紀錄 CSV（含當時模型判斷），內部備查用 |
 
 統一的錯誤格式：`{ "error": { "code": "DRAFT_NOT_APPROVED", "message": "…" } }`
 
@@ -324,7 +320,7 @@ PostgreSQL 16，完整的 DDL 在 [`backend/db/schema.sql`](../backend/db/schema
 | 維度 | `dim_industry`、`dim_priority` | 18 類產業；A–D 優先級和星級的對照（取代 Excel 裡混在資料欄的圖例） |
 | 名單 | `import_batch`、`company` | 匯入批次（預覽時把解析好的資料暫存在 `payload`，確認後才寫入）；公司主檔（統編唯一）、目前狀態、負責業務、業務修正的產業 `industry_override_id`；0009 起加上國別 `country`、網址狀態 `url_status`、資料來源 `source`，批次加上 MLE 附的漏斗數字 `funnel` |
 | 模型 | `model_run`、`classification` | 每次模型 run 都保留一份分類結果，`is_current` 標示目前生效的那一份；0009 起加上適合度星等 `fit_stars`（1.0～5.0）、產品類型 `product_type`、命中標籤 `tags` |
-| 回饋 | `review`、`gold_label` | 業務審核（排除一定要有原因）；盲標的標準答案 |
+| 回饋 | `review`、`gold_label` | 業務審核（排除一定要有原因）；`gold_label` 是原本盲標用的表，盲標已取消（2026-11-18），表保留未使用 |
 | 聯絡 | `contact` | 聯絡人、來源（website／business_card／referral／exhibition／manual）和退訂狀態；同一家公司 email 不重複 |
 | 郵件 | `email_template`、`campaign`、`email_draft`、`email_message`、`email_event` | 模板（`family_id` 串起各版本，修改就新增版本）→ 批次 → 草稿（業務編輯純文字 `body_text`，系統轉成 `body_html`；含原稿、排程時間、寄送嘗試次數、最後錯誤）→ 實際寄出 → 事件 |
 | 成果 | `sales_case`、`case_update`、`activity_log` | 案件（編號 `case_no` C-0001；來源 `email`／`tracking`；狀態 sent／tracking／replied／negotiating／no_response／won／lost；下次追蹤日、成交金額；同一家公司同時只有一件未結案）→ 回填紀錄（管道、結果、備註、下次追蹤日、金額；系統事件管道為 `system`）；所有變更的稽核紀錄。原 `opportunity` 在 0006 移除 |
@@ -398,7 +394,7 @@ company 1─* activity_log
 | **M1 MVP** | SSO、匯入（CSV + 預覽）、推薦清單、審核、詳情側欄 | 業務能用 50 家測試名單完成審核，排除原因可以匯出 |
 | **M2 寄信** | 模板、`template_only` 生成、預覽佇列、Graph 寄送（只用 `Mail.Send`）、防呆、限速 | 一位業務從核准到寄出 10 封信，全部出現在他的 Outlook 寄件備份 |
 | **M3 案件追蹤與總覽（閉環）** | CSV v1 欄位、自動開案、人工回填、逾期催辦、總覽頁、欄位自選與匯出 | 用 100 筆名單寄出後，模擬一位客戶回覆並回填到成交，總覽頁的回覆率、成交數、待辦提醒都正確 |
-| **M4 AI 寫信、績效與回饋** | `template_ai` / `full_ai`、回覆態度分類、績效頁、模型品質頁、盲標工作台、回饋匯出 | MLE 能拿回饋資料重新訓練，並在模型品質頁比較兩個 run |
+| **M4 AI 寫信、績效與名單品質** | `template_ai` / `full_ai`（本機地端 LLM）、官網摘要、回覆態度分類、績效頁、排除原因報表 | 用本機 LLM 產生 50 封草稿並審核寄出（sandbox）；績效頁與排除原因報表可以比較各批名單 |
 | **M5 延伸** | 來源管理、產品標籤維護、專用信箱轉寄自動比對回覆、BI 儀表板 | 依需要再定 |
 
 ---
