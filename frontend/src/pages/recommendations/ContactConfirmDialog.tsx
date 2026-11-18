@@ -30,18 +30,10 @@ export function ContactConfirmDialog({ kind, contact, onClose }: Props) {
   const canSubmit = isDelete ? text.trim() !== "" && understood : true;
 
   const submit = () => {
-    if (isDelete)
-      remove.mutate(
-        { id: contact.contact_id, reason: text.trim() },
-        { onSuccess: onClose },
-      );
+    if (isDelete) remove.mutate({ id: contact.contact_id, reason: text.trim() }, { onSuccess: onClose });
     else
       unsubscribe.mutate(
-        {
-          id: contact.contact_id,
-          note: text.trim() || undefined,
-          wholeCompany,
-        },
+        { id: contact.contact_id, note: text.trim() || undefined, wholeCompany },
         { onSuccess: onClose },
       );
   };
@@ -59,12 +51,7 @@ export function ContactConfirmDialog({ kind, contact, onClose }: Props) {
       footer={
         <>
           <Button onClick={onClose}>取消</Button>
-          <Button
-            variant="danger"
-            disabled={!canSubmit}
-            busy={mutation.isPending}
-            onClick={submit}
-          >
+          <Button variant="danger" disabled={!canSubmit} busy={mutation.isPending} onClick={submit}>
             {isDelete ? "永久刪除" : "確認退訂"}
           </Button>
         </>
@@ -72,37 +59,25 @@ export function ContactConfirmDialog({ kind, contact, onClose }: Props) {
     >
       <div className={styles.form}>
         <label className={styles.field}>
-          <span className={styles.label}>
-            {isDelete ? "刪除原因（必填）" : "備註（選填，例如：電話告知）"}
-          </span>
+          <span className={styles.label}>{isDelete ? "刪除原因（必填）" : "備註（選填，例如：電話告知）"}</span>
           <textarea
             className={styles.input}
             rows={2}
             maxLength={500}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={
-              isDelete ? "例如：客戶來信要求刪除個人資料" : undefined
-            }
+            placeholder={isDelete ? "例如：客戶來信要求刪除個人資料" : undefined}
           />
         </label>
         {!isDelete && (
           <label className={styles.check}>
-            <input
-              type="checkbox"
-              checked={wholeCompany}
-              onChange={(e) => setWholeCompany(e.target.checked)}
-            />
+            <input type="checkbox" checked={wholeCompany} onChange={(e) => setWholeCompany(e.target.checked)} />
             客戶表示整家公司都不要再聯絡（公司改成「不再聯絡」，進行中的案件結案為失敗）
           </label>
         )}
         {isDelete && (
           <label className={styles.check}>
-            <input
-              type="checkbox"
-              checked={understood}
-              onChange={(e) => setUnderstood(e.target.checked)}
-            />
+            <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
             我了解刪除後無法復原
           </label>
         )}
