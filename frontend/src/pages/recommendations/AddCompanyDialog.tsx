@@ -12,7 +12,7 @@ interface Props {
   onCreated: (companyId: number) => void;
 }
 
-/** 區塊：手動加入公司 · 業務自己找到、模型漏掉的公司（F-REC-6） */
+/** 區塊：手動加入公司 · 業務自己找到、名單裡沒有的公司（F-REC-6） */
 export function AddCompanyDialog({ open, onClose, onCreated }: Props) {
   const create = useCreateCompany();
   const { data: dims } = useDimensions();

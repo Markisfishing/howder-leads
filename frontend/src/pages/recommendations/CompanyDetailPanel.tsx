@@ -92,7 +92,7 @@ function Detail({ company: c, showPageLink }: { company: CompanyDetail; showPage
         </div>
         <p className={styles.meta}>
           統編 <span className="mono">{c.tax_id}</span>
-          {c.run_id && <> · 模型版本 run #{c.run_id}</>}
+          {c.run_id && <> · 匯入批次 #{c.run_id}</>}
           {showPageLink && (
             <>
               {" · "}
@@ -144,7 +144,7 @@ function Detail({ company: c, showPageLink }: { company: CompanyDetail; showPage
       {/* 區塊：推薦理由 */}
       <section className={styles.block}>
         <h3 className={styles.blockTitle}>推薦理由</h3>
-        <p>{c.reason ?? "模型沒有提供理由"}</p>
+        <p>{c.reason ?? "匯入資料沒有提供推薦理由"}</p>
         {c.priority_definition && (
           <p className={styles.hint}>
             {c.priority} {c.priority_label}：{c.priority_definition}（建議：{c.suggested_action}）
@@ -210,7 +210,7 @@ function Detail({ company: c, showPageLink }: { company: CompanyDetail; showPage
               <dd>
                 {c.industry ?? "未分類"}
                 {c.model_industry_id !== null && c.model_industry_id !== c.industry_id && (
-                  <span className={styles.verified}>（模型原判：{modelIndustry ?? "—"}）</span>
+                  <span className={styles.verified}>（匯入時的產業：{modelIndustry ?? "—"}）</span>
                 )}
               </dd>
             </div>

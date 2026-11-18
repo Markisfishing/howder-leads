@@ -55,7 +55,7 @@ export function RejectDialog({ open, companyIds, onClose, onDone }: Props) {
       open={open}
       onOpenChange={(o) => !o && close()}
       title={`排除 ${companyIds.length} 家公司`}
-      description="請選擇排除原因，這會用來改善推薦模型。"
+      description="請選擇排除原因，原因會列入名單品質報表。"
       footer={
         <>
           <Button onClick={close}>取消</Button>

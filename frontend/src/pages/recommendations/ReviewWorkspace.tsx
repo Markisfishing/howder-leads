@@ -153,7 +153,7 @@ export function ReviewWorkspace({
 
           <section className={styles.reason} aria-labelledby="review-reason-title">
             <h3 id="review-reason-title">推薦理由</h3>
-            <p>{company.reason ?? "模型沒有提供推薦理由，請查看完整資料後判斷。"}</p>
+            <p>{company.reason ?? "匯入資料沒有提供推薦理由，請查看完整資料後判斷。"}</p>
           </section>
 
           <button

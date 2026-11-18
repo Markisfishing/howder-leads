@@ -4,11 +4,11 @@ import styles from "./Stars.module.css";
 interface Props {
   stars: number;
   priority: string | null;
-  /** 適合度星等（MLE 提供，可到小數一位，例如 "4.5"）；有給就顯示數字，星星依四捨五入（F-REC-1） */
+  /** 適合度星等（匯入資料提供，可到小數一位，例如 "4.5"）；有給就顯示數字，星星依四捨五入（F-REC-1） */
   fitStars?: string | number | null;
 }
 
-/** 星級旁邊一定附等級文字（CLAUDE.md 第 7 節第 7 點）；模型沒評分的公司顯示「未評分」 */
+/** 星級旁邊一定附等級文字（CLAUDE.md 第 7 節第 7 點）；匯入資料沒評分的公司顯示「未評分」 */
 export function Stars({ stars, priority, fitStars }: Props) {
   const fit = fitStars === null || fitStars === undefined ? null : Number(fitStars);
   if (!priority || (stars === 0 && !fit)) {
