@@ -193,6 +193,41 @@ def test_m3_04a_unsubscribe_from_case_closes_it(world: World) -> None:
     assert rem["overdue_report"] == 0
 
 
+def _second_contact(world: World, company: int) -> int:
+    res = world.client.post(
+        "/api/v1/contacts",
+        json={"company_id": company, "email": "other@example.com", "source": "manual"},
+        headers=world.sales1,
+    )
+    assert res.status_code == 201, res.text
+    return int(res.json()["contact_id"])
+
+
+def test_m3_17_case_unsubscribe_keeps_case_when_other_contact_left(world: World) -> None:
+    [company] = _send(world)
+    other = _second_contact(world, company)
+    case_id = _cases(world)["items"][0]["case_id"]
+    res = world.client.post(f"/api/v1/cases/{case_id}/unsubscribe", json={}, headers=world.sales1)
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["status"] == "sent" and body["closed_at"] is None  # 案件照常，可以改用其他聯絡人
+    flags = {c["contact_id"]: c["unsubscribed"] for c in body["contacts"]}
+    assert flags[other] is False and list(flags.values()).count(True) == 1
+    assert world.status(company) != "do_not_contact"
+
+
+def test_m3_17_case_unsubscribe_whole_company_closes_case(world: World) -> None:
+    [company] = _send(world)
+    other = _second_contact(world, company)
+    case_id = _cases(world)["items"][0]["case_id"]
+    res = world.client.post(f"/api/v1/cases/{case_id}/unsubscribe", json={"whole_company": True}, headers=world.sales1)
+    body = res.json()
+    assert body["status"] == "lost" and body["closed_at"]
+    assert world.status(company) == "do_not_contact"
+    # 其他聯絡人沒有被標成退訂（只是公司不再聯絡）
+    assert {c["contact_id"]: c["unsubscribed"] for c in body["contacts"]}[other] is False
+
+
 def test_m3_04a_unsubscribe_via_contact_api_also_closes_case(world: World) -> None:
     [company] = _send(world)
     case = _cases(world)["items"][0]

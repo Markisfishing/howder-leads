@@ -143,7 +143,12 @@ function UpdateForm({ data, open, onOpenChange }: { data: CaseDetail; open: bool
 function MoreActions({ data }: { data: CaseDetail }) {
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [wholeCompany, setWholeCompany] = useState(false);
   const mutation = useUnsubscribeCase();
   if (!data.contact_id) return null;
-  return <div className={c.moreActions}><Button size="sm" aria-expanded={open} onClick={() => setOpen((value) => !value)}>更多操作 ⋯</Button>{open && <div className={c.actionMenu}><button type="button" onClick={() => { setConfirming(true); setOpen(false); }}>客戶要求停止聯絡</button></div>}{confirming && <div className={c.danger} role="alert"><p>標記後，{data.contact_name ?? data.contact_email} 會改成已退訂，{data.company_name} 改成「不再聯絡」，這件案件會結案為失敗。</p><div className={styles.actions}><Button variant="danger" busy={mutation.isPending} onClick={() => mutation.mutate({ id: data.case_id }, { onSuccess: () => setConfirming(false) })}>確定標記退訂</Button><Button onClick={() => setConfirming(false)}>取消</Button></div><InlineError error={mutation.error} /></div>}</div>;
+  // 只用來決定說明文字；公司要不要改「不再聯絡」由後端 domain 判斷（F-CASE-5、M3-17）
+  const othersLeft = data.contacts.some((x) => x.contact_id !== data.contact_id && !x.unsubscribed);
+  const stops = wholeCompany || !othersLeft;
+  const who = data.contact_name ?? data.contact_email;
+  return <div className={c.moreActions}><Button size="sm" aria-expanded={open} onClick={() => setOpen((value) => !value)}>更多操作 ⋯</Button>{open && <div className={c.actionMenu}><button type="button" onClick={() => { setConfirming(true); setOpen(false); }}>客戶要求停止聯絡</button></div>}{confirming && <div className={c.danger} role="alert"><p>{stops ? `標記後，${who} 會改成已退訂，${data.company_name} 改成「不再聯絡」，這件案件會結案為失敗。` : `標記後，只有 ${who} 改成已退訂；${data.company_name} 還有其他聯絡人，案件照常進行，可以改用其他聯絡人。`}</p>{othersLeft && <label className={c.checkRow}><input type="checkbox" checked={wholeCompany} onChange={(event) => setWholeCompany(event.target.checked)} />客戶表示整家公司都不要再聯絡</label>}<div className={styles.actions}><Button variant="danger" busy={mutation.isPending} onClick={() => mutation.mutate({ id: data.case_id, wholeCompany }, { onSuccess: () => setConfirming(false) })}>確定標記退訂</Button><Button onClick={() => setConfirming(false)}>取消</Button></div><InlineError error={mutation.error} /></div>}</div>;
 }

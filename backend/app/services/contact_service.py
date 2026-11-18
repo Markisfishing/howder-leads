@@ -5,7 +5,7 @@ activity_log 只記聯絡人編號，不記姓名或 email（CLAUDE.md 第 8 節
 
 from datetime import UTC, datetime
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.domain import company_rules as rules
@@ -102,18 +102,36 @@ def update_contact(
     return contact
 
 
-def unsubscribe(db: Session, user: AppUser, contact: Contact, note: str | None = None) -> Contact:
-    """F-CASE-5：聯絡人改成退訂，公司改成 do_not_contact。
+def reachable_left(db: Session, company_id: int) -> int:
+    """公司還沒退訂的聯絡人數。"""
+    stmt = select(func.count()).where(Contact.company_id == company_id, Contact.unsubscribed.is_(False))
+    return int(db.scalar(stmt) or 0)
 
+
+def unsubscribe(
+    db: Session, user: AppUser, contact: Contact, note: str | None = None, *, whole_company: bool = False
+) -> Contact:
+    """F-CASE-5：只有這位聯絡人改成退訂。
+
+    整家公司不要聯絡（whole_company），或公司已沒有其他沒退訂的聯絡人時，公司才改成 do_not_contact，
+    進行中的案件一起結案（規則在 domain/contact_rules.company_stops_contact）。
     退訂一定要能生效，所以不檢查認領鎖定：任何業務收到退訂都可以標記。
     公司已經是 won（終點）時，只標記聯絡人，不改公司狀態。
     """
     company = company_svc.get_company(db, contact.company_id)
     if not contact.unsubscribed:
         contact.unsubscribed = True
-        company_svc.log(db, company, user, "contact_unsubscribe", to_value=str(contact.contact_id), note=note)
-    if rules.can_transition(company.status, "do_not_contact"):
-        company_svc.change_status(db, company, "do_not_contact", user, "聯絡人退訂")
+        why = note
+        if whole_company:
+            why = f"{note}（整家公司不再聯絡）" if note else "整家公司不再聯絡"
+        company_svc.log(db, company, user, "contact_unsubscribe", to_value=str(contact.contact_id), note=why)
+        db.flush()
+    stop = contact_rules.company_stops_contact(
+        whole_company=whole_company, reachable_left=reachable_left(db, company.company_id)
+    )
+    if stop and rules.can_transition(company.status, "do_not_contact"):
+        reason = "客戶要求整家公司不再聯絡" if whole_company else "所有聯絡人都已退訂"
+        company_svc.change_status(db, company, "do_not_contact", user, reason)
         # 不再聯絡 → 進行中的案件一起結案（M3-04a），之後也不會再出現催辦
         case = case_service.open_case(db, company.company_id, lock=True)
         if case is not None:
