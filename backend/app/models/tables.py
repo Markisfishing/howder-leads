@@ -451,5 +451,29 @@ v_reject_reasons = Table(
     Column("reject_reason", Text),
     Column("run_id", BigInteger),
     Column("n", BigInteger),
+    Column("share", Numeric(5, 4)),  # 0013
+    info={"is_view": True},
+)
+
+# 0013：績效頁（M4-01a）；寄出、回覆、成交的定義仍然只在 v_case_fact
+v_case_perf = Table(
+    "v_case_perf",
+    Base.metadata,
+    Column("case_id", BigInteger, primary_key=True),
+    Column("owner_id", BigInteger),
+    Column("owner_name", Text),
+    Column("is_sent", Boolean),
+    Column("is_replied", Boolean),
+    Column("is_won", Boolean),
+    Column("won_amount", Numeric(14, 0)),
+    Column("sent_at", DateTime(timezone=True)),
+    Column("priority", String(1)),
+    Column("stars", SmallInteger),
+    Column("fit_stars", Numeric(2, 1)),
+    Column("source", Text),
+    Column("tags", ARRAY(Text)),
+    Column("template_family_id", BigInteger),
+    Column("template_name", Text),
+    Column("template_version", Integer),
     info={"is_view": True},
 )

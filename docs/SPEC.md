@@ -283,6 +283,9 @@ backend/app/
 | POST | `/cases/{id}/updates` | 人工回填一筆紀錄 |
 | POST | `/cases/{id}/unsubscribe` | 客戶要求退訂：聯絡人退訂；整家公司不要聯絡（`whole_company`）或已沒有其他聯絡人時，公司改 `do_not_contact`、案件結案為失敗（F-CASE-5） |
 | GET | `/reminders` | 目前使用者的待辦提醒件數（讀 `v_case_reminder`）＋新名單待審核 |
+| GET | `/metrics/win-rate?by=stars\|source\|tag&from=&to=&owner=` | 績效：各星級／資料來源／產品標籤的回覆率與成交率（讀 `v_case_perf`）；寄出少於 10 件標「樣本不足」不算比例；業務只看自己，`owner` 只有主管能指定（M4-01b） |
+| GET | `/metrics/templates`、`/metrics/reps` | 各模板（含版本）的回覆率與成交率；業務排行（業務只會看到自己那一列，主管看全團隊）。參數同上 |
+| GET | `/metrics/reject-reasons?run_id=` | 名單品質：各批次（model run）的排除原因分布，只限主管／管理員；占比由 view 算好（M4-02a） |
 | GET | `/metrics/overview?from=&to=&industry=&product_type=&owner=` | 總覽：KPI、漏斗（含 MLE 附的前段數字）、各來源回覆率、待辦件數（讀 `v_case_fact`、`v_company_fact`）。業務只看自己的案件，`owner` 只有主管能指定；名單數是共用名單池；日期以寄出日（台灣時間）計算 |
 | GET | `/companies/export?…&columns=` | 依目前篩選條件匯出 CSV（UTF-8 BOM）；`columns` 指定欄位與順序（和畫面的欄位自選同一組 key），沒給用預設欄位；不含聯絡人 email |
 | GET | `/metrics/kpis` | 推薦清單頁的 KPI 卡（讀 `v_kpi_summary`） |
@@ -326,7 +329,7 @@ PostgreSQL 16，完整的 DDL 在 [`backend/db/schema.sql`](../backend/db/schema
 | 成果 | `sales_case`、`case_update`、`activity_log` | 案件（編號 `case_no` C-0001；來源 `email`／`tracking`；狀態 sent／tracking／replied／negotiating／no_response／won／lost；下次追蹤日、成交金額；同一家公司同時只有一件未結案）→ 回填紀錄（管道、結果、備註、下次追蹤日、金額；系統事件管道為 `system`）；所有變更的稽核紀錄。原 `opportunity` 在 0006 移除 |
 | 背景工作 | `job` | PostgreSQL 佇列（ADR 0003）：`kind`、`status`、`run_after`（排程與重試）、`attempts`；新增時 `NOTIFY job_queued` |
 | 寄信權杖 | `user_mail_credential` | 每位業務一筆 Fernet 加密的 MSAL 權杖快取與連結狀態（ADR 0005） |
-| 指標 | `v_recommendation`（0009 起含 `fit_stars`，沒給時用優先級星等）、`v_case_fact`（每件案件一列：是否寄出、回覆、成交、金額，0010）、`v_company_fact`（每家公司一列，名單漏斗，0010）、`v_kpi_summary`（0010 起回覆率 = 已寄出且有回覆的案件 ÷ 已寄出的案件，不讀 `email_event`）、`v_case_reminder`（待辦提醒，0007）、`v_funnel`、`v_win_rate_by_priority`、`v_reject_reasons` | **KPI 只在這些 view 定義一次** |
+| 指標 | `v_recommendation`（0009 起含 `fit_stars`，沒給時用優先級星等）、`v_case_fact`（每件案件一列：是否寄出、回覆、成交、金額，0010）、`v_company_fact`（每家公司一列，名單漏斗，0010）、`v_kpi_summary`（0010 起回覆率 = 已寄出且有回覆的案件 ÷ 已寄出的案件，不讀 `email_event`）、`v_case_perf`（績效頁：每件案件一列，建在 `v_case_fact` 之上，帶負責業務、星等、標籤、寄出用的模板版本，0013）、`v_case_reminder`（待辦提醒，0007）、`v_funnel`、`v_win_rate_by_priority`、`v_reject_reasons`（0013 起含各原因占比 `share`） | **KPI 只在這些 view 定義一次** |
 
 ### 8.2 ER 關係（簡化）
 ```
