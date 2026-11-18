@@ -66,6 +66,7 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   contact_add: "新增聯絡人",
   contact_update: "修改聯絡人",
   contact_unsubscribe: "聯絡人退訂",
+  contact_resubscribe: "取消聯絡人退訂",
   contact_delete: "刪除聯絡人個資",
 };
 

@@ -12,6 +12,7 @@ type Open =
   | { kind: "add" }
   | { kind: "edit"; contact: Contact }
   | { kind: "unsubscribe"; contact: Contact }
+  | { kind: "resubscribe"; contact: Contact }
   | { kind: "delete"; contact: Contact }
   | null;
 
@@ -23,7 +24,7 @@ interface Props {
   isManager: boolean;
 }
 
-/** 區塊：聯絡人 · 新增、編輯、退訂、個資刪除（M2-01b）。退訂不受鎖定限制，收到就要能標記 */
+/** 區塊：聯絡人 · 新增、編輯、退訂、取消退訂（主管，M3-18）、個資刪除（M2-01b）。退訂不受鎖定限制，收到就要能標記 */
 export function ContactsSection({ company: c, canAct, isManager }: Props) {
   const [open, setOpen] = useState<Open>(null);
   const close = () => setOpen(null);
@@ -75,6 +76,15 @@ export function ContactsSection({ company: c, canAct, isManager }: Props) {
                     退訂
                   </Button>
                 )}
+                {p.unsubscribed && isManager && (
+                  <Button
+                    size="sm"
+                    aria-label={`取消 ${p.name ?? p.email} 的退訂`}
+                    onClick={() => setOpen({ kind: "resubscribe", contact: p })}
+                  >
+                    取消退訂
+                  </Button>
+                )}
                 {isManager && (
                   <Button
                     size="sm"
@@ -93,7 +103,7 @@ export function ContactsSection({ company: c, canAct, isManager }: Props) {
 
       {open?.kind === "add" && <ContactDialog companyId={c.company_id} contact={null} onClose={close} />}
       {open?.kind === "edit" && <ContactDialog companyId={c.company_id} contact={open.contact} onClose={close} />}
-      {(open?.kind === "unsubscribe" || open?.kind === "delete") && (
+      {(open?.kind === "unsubscribe" || open?.kind === "resubscribe" || open?.kind === "delete") && (
         <ContactConfirmDialog kind={open.kind} contact={open.contact} onClose={close} />
       )}
     </section>

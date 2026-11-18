@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from app.domain import contact_rules
+from app.domain import company_rules, contact_rules
 from app.domain.company_rules import DomainError
 from app.models import ActivityLog, Company
 from tests.factories import csv_bytes
@@ -386,3 +386,102 @@ def test_m2_01a_delete_unknown_contact(client: TestClient, ids: dict[str, int], 
         "DELETE", "/api/v1/contacts/999999", json={"reason": "x"}, headers=as_user("admin@example.com")
     )
     assert res.status_code == 404
+
+
+# ---------- 取消退訂（M3-18、F-CASE-5）----------
+@pytest.mark.parametrize(
+    ("current", "expected"),
+    [("do_not_contact", "approved"), ("sent", None), ("replied", None), ("won", None), ("approved", None)],
+)
+def test_m3_18_status_after_resubscribe_rule(current: str, expected: str | None) -> None:
+    assert company_rules.status_after_resubscribe(current) == expected
+
+
+def test_m3_18_do_not_contact_stays_terminal_in_state_machine() -> None:
+    # 只有取消退訂能離開 do_not_contact，一般狀態轉換仍然不行
+    assert company_rules.can_transition("do_not_contact", "approved") is False
+
+
+@pytest.mark.parametrize("reason", [None, "", "   "])
+def test_m3_18_resubscribe_reason_required(reason: str | None) -> None:
+    with pytest.raises(DomainError) as e:
+        contact_rules.check_resubscribe_reason(reason)
+    assert e.value.code == "RESUBSCRIBE_REASON_REQUIRED"
+
+
+def test_m3_18_resubscribe_restores_contact_and_company(
+    client: TestClient, db: Session, cid: int, sales1: dict[str, str], as_user: Headers
+) -> None:
+    created = _add(client, sales1, cid)
+    url = f"/api/v1/contacts/{created['contact_id']}"
+    client.post(f"{url}/unsubscribe", headers=sales1)
+    db.expire_all()
+    assert db.get(Company, cid).status == "do_not_contact"  # type: ignore[union-attr]
+
+    res = client.post(
+        f"{url}/resubscribe", json={"reason": "客戶來信同意恢復聯絡"}, headers=as_user("manager@example.com")
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["unsubscribed"] is False
+
+    db.expire_all()
+    assert db.get(Company, cid).status == "approved"  # type: ignore[union-attr]
+    [log] = _logs(db, "contact_resubscribe")
+    assert log.note == "客戶來信同意恢復聯絡"
+    assert log.to_value == str(created["contact_id"])
+    assert [entry.to_value for entry in _logs(db, "status_change")][-1] == "approved"
+
+
+def test_m3_18_resubscribe_keeps_company_status_when_not_do_not_contact(
+    client: TestClient, db: Session, cid: int, sales1: dict[str, str], as_user: Headers
+) -> None:
+    first = _add(client, sales1, cid)
+    _add(client, sales1, cid, email="second@example.com")
+    client.post(f"/api/v1/contacts/{first['contact_id']}/unsubscribe", headers=sales1)  # 還有另一位，公司不變
+    before = db.get(Company, cid).status  # type: ignore[union-attr]
+    res = client.post(
+        f"/api/v1/contacts/{first['contact_id']}/resubscribe",
+        json={"reason": "恢復"},
+        headers=as_user("admin@example.com"),
+    )
+    assert res.status_code == 200
+    db.expire_all()
+    assert db.get(Company, cid).status == before  # type: ignore[union-attr]
+    assert _logs(db, "status_change") == []
+
+
+def test_m3_18_resubscribe_only_manager_or_admin(
+    client: TestClient, db: Session, cid: int, sales1: dict[str, str]
+) -> None:
+    created = _add(client, sales1, cid)
+    url = f"/api/v1/contacts/{created['contact_id']}"
+    client.post(f"{url}/unsubscribe", headers=sales1)
+    res = client.post(f"{url}/resubscribe", json={"reason": "我想恢復"}, headers=sales1)
+    assert res.status_code == 403
+    assert res.json()["error"]["code"] == "FORBIDDEN"
+    db.expire_all()
+    assert db.get(Company, cid).status == "do_not_contact"  # type: ignore[union-attr]
+
+
+def test_m3_18_resubscribe_requires_reason(
+    client: TestClient, cid: int, sales1: dict[str, str], as_user: Headers
+) -> None:
+    created = _add(client, sales1, cid)
+    url = f"/api/v1/contacts/{created['contact_id']}"
+    client.post(f"{url}/unsubscribe", headers=sales1)
+    res = client.post(f"{url}/resubscribe", json={"reason": "  "}, headers=as_user("manager@example.com"))
+    assert res.status_code == 422
+    assert res.json()["error"]["code"] == "RESUBSCRIBE_REASON_REQUIRED"
+
+
+def test_m3_18_resubscribe_contact_not_unsubscribed(
+    client: TestClient, cid: int, sales1: dict[str, str], as_user: Headers
+) -> None:
+    created = _add(client, sales1, cid)
+    res = client.post(
+        f"/api/v1/contacts/{created['contact_id']}/resubscribe",
+        json={"reason": "x"},
+        headers=as_user("manager@example.com"),
+    )
+    assert res.status_code == 409
+    assert res.json()["error"]["code"] == "CONTACT_NOT_UNSUBSCRIBED"
