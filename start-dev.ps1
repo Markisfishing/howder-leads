@@ -1,7 +1,8 @@
 ﻿param(
     [ValidateSet("all", "api", "worker", "frontend")]
     [string]$Service = "all",
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [switch]$NoOllama
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +18,74 @@ function Require-Command {
 function Test-ListeningPort {
     param([int]$Port)
     return $null -ne (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+}
+
+function Get-ConfiguredPath {
+    param(
+        [string]$EnvironmentName,
+        [string]$FallbackPath
+    )
+
+    $configured = [Environment]::GetEnvironmentVariable($EnvironmentName)
+    if (-not [string]::IsNullOrWhiteSpace($configured)) {
+        return $configured
+    }
+    if (Test-Path $FallbackPath) {
+        return $FallbackPath
+    }
+    return $null
+}
+
+function Test-OllamaReady {
+    try {
+        $null = Invoke-RestMethod -Uri "http://127.0.0.1:11434/api/tags" -TimeoutSec 2
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Quote-PowerShellLiteral {
+    param([string]$Value)
+    return "'" + $Value.Replace("'", "''") + "'"
+}
+
+function Start-Ollama {
+    if (Test-OllamaReady) {
+        Write-Host "Ollama 已在 11434 執行，略過重複啟動。" -ForegroundColor Yellow
+        return
+    }
+
+    Require-Command "ollama"
+
+    # 這台開發機的 Ollama home 與模型路徑需要避開失效的 .ollama 符號連結。
+    # 其他電腦可用 HOWDER_OLLAMA_USERPROFILE／HOWDER_OLLAMA_MODELS 覆寫，或直接使用預設路徑。
+    $ollamaUserProfile = Get-ConfiguredPath "HOWDER_OLLAMA_USERPROFILE" "C:\howder-wt\ollama-home"
+    $ollamaModels = Get-ConfiguredPath "HOWDER_OLLAMA_MODELS" "D:\ollama\models"
+    $commandLines = @()
+    if ($null -ne $ollamaUserProfile) {
+        $commandLines += "$" + "env:USERPROFILE = $(Quote-PowerShellLiteral $ollamaUserProfile)"
+    }
+    if ($null -ne $ollamaModels) {
+        $commandLines += "$" + "env:OLLAMA_MODELS = $(Quote-PowerShellLiteral $ollamaModels)"
+    }
+    $commandLines += "ollama serve"
+    $ollamaCommand = $commandLines -join "`r`n"
+    $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($ollamaCommand))
+
+    Write-Host "啟動 Ollama：http://127.0.0.1:11434" -ForegroundColor Cyan
+    Start-Process powershell.exe -WorkingDirectory $Root -ArgumentList @(
+        "-NoExit", "-ExecutionPolicy", "Bypass", "-EncodedCommand", $encodedCommand
+    )
+
+    for ($i = 0; $i -lt 30; $i++) {
+        if (Test-OllamaReady) {
+            Write-Host "Ollama 已就緒。" -ForegroundColor Green
+            return
+        }
+        Start-Sleep -Seconds 1
+    }
+    throw "Ollama 啟動逾時。請確認 ollama serve 視窗沒有錯誤，或使用 -NoOllama 略過。"
 }
 
 function Invoke-ChildService {
@@ -51,6 +120,12 @@ if ($Service -ne "all") {
 Require-Command "docker"
 Require-Command "uv"
 Require-Command "npm"
+
+if (-not $NoOllama) {
+    Start-Ollama
+} else {
+    Write-Host "略過 Ollama 啟動（-NoOllama）；官網摘要與 AI 寫信暫時不可用。" -ForegroundColor Yellow
+}
 
 $backend = Join-Path $Root "backend"
 $frontend = Join-Path $Root "frontend"
