@@ -325,6 +325,7 @@ PostgreSQL 16，完整的 DDL 在 [`backend/db/schema.sql`](../backend/db/schema
 | 模型 | `model_run`、`classification` | 每次模型 run 都保留一份分類結果，`is_current` 標示目前生效的那一份；0009 起加上適合度星等 `fit_stars`（1.0～5.0）、產品類型 `product_type`、命中標籤 `tags` |
 | 回饋 | `review`、`gold_label` | 業務審核（排除一定要有原因）；`gold_label` 是原本盲標用的表，盲標已取消（2026-11-18），表保留未使用 |
 | 聯絡 | `contact` | 聯絡人、來源（website／business_card／referral／exhibition／manual）和退訂狀態；同一家公司 email 不重複 |
+| 官網摘要 | `company_site_summary` | 每家公司一筆：官網網址、摘要、狀態（ok／failed）、錯誤代碼、抓取時間（M4-08、0015）；只存產品與產業描述，不存人名、email、電話 |
 | 郵件 | `email_template`、`campaign`、`email_draft`、`email_message`、`email_event` | 模板（`family_id` 串起各版本，修改就新增版本）→ 批次 → 草稿（業務編輯純文字 `body_text`，系統轉成 `body_html`；含原稿、排程時間、寄送嘗試次數、最後錯誤、產生方式／模型／prompt 版本）→ 實際寄出 → 事件 |
 | 成果 | `sales_case`、`case_update`、`activity_log` | 案件（編號 `case_no` C-0001；來源 `email`／`tracking`；狀態 sent／tracking／replied／negotiating／no_response／won／lost；下次追蹤日、成交金額；同一家公司同時只有一件未結案）→ 回填紀錄（管道、結果、備註、下次追蹤日、金額、客戶態度 `sentiment`／來源 `sentiment_source`〔ai 判斷或業務手動修正，0014〕；系統事件管道為 `system`）；所有變更的稽核紀錄。原 `opportunity` 在 0006 移除 |
 | 背景工作 | `job` | PostgreSQL 佇列（ADR 0003）：`kind`、`status`、`run_after`（排程與重試）、`attempts`；新增時 `NOTIFY job_queued` |
