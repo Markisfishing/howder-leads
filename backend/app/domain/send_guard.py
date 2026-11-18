@@ -21,7 +21,27 @@ REASON_LABELS: dict[str, str] = {
     "DO_NOT_CONTACT": "公司已設為不再聯絡",
     "LOCKED_BY_OTHER": "由其他業務負責中",
     "RECENTLY_SENT": f"{RECENT_DAYS} 天內已經寄過",
+    "RECIPIENT_NOT_ALLOWED": "收件者不在測試白名單（MAIL_ALLOWED_RECIPIENTS）",
 }
+
+
+def parse_allowlist(raw: str) -> tuple[str, ...]:
+    """MAIL_ALLOWED_RECIPIENTS（逗號分隔）→ 小寫清單。完整 email，或 `@網域` 代表整個網域。"""
+    return tuple(x.strip().lower() for x in raw.split(",") if x.strip())
+
+
+def recipient_allowed(email: str | None, allowlist: tuple[str, ...]) -> bool:
+    """真實寄信測試用的收件者白名單（M2-18）。清單是空的就不限制（正式上線）。
+
+    `@example.com` 只比對完整網域，不比對子網域或字尾相同的網域（`@xexample.com` 不算）。
+    """
+    if not allowlist:
+        return True
+    if not email:
+        return False
+    addr = email.strip().lower()
+    domain = addr.rpartition("@")[2]
+    return any(addr == entry if not entry.startswith("@") else domain == entry[1:] for entry in allowlist)
 
 
 @dataclass(frozen=True)
@@ -31,6 +51,7 @@ class GuardInput:
     contact_exists: bool
     contact_unsubscribed: bool
     last_sent_at: datetime | None  # 這家公司最近一次寄出的時間（任何業務寄的都算）
+    contact_email: str | None = None  # 收件者，給白名單檢查用
 
 
 def exclusions(
@@ -40,6 +61,7 @@ def exclusions(
     *,
     stage: Literal["draft", "send"],
     recent_days: int = RECENT_DAYS,
+    allowlist: tuple[str, ...] = (),
 ) -> list[str]:
     """回傳不能寄的原因代碼；空清單代表可以寄。
 
@@ -60,6 +82,8 @@ def exclusions(
         reasons.append("LOCKED_BY_OTHER")
     if g.last_sent_at is not None and g.last_sent_at > now - timedelta(days=recent_days):
         reasons.append("RECENTLY_SENT")
+    if g.contact_exists and not recipient_allowed(g.contact_email, allowlist):
+        reasons.append("RECIPIENT_NOT_ALLOWED")
     return reasons
 
 

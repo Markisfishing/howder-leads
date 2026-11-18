@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-18 |
 | 目前階段 | **M3 全部完成**（含追加任務 M3-16～M3-18；sandbox 閉環示範通過），追加任務中 M2-16 已完成，剩 M2-17；M2 只剩 M2-15 真實 Outlook 驗收；M1 只剩 M1-03 Docker 驗證；M4 已拆細（2026-11-18） |
-| 下一個任務 | M2-17；之後 M4-06a（M4 已拆細，AI 先用本機 Ollama＋qwen3） |
+| 下一個任務 | M2-17；之後 M4-06a（M4 已拆細，AI 先用本機 Ollama＋qwen3）。M2-15 真實寄信需要使用者準備 Microsoft 365 測試租用戶與帳號 |
 | 卡住 / 待確認 | 寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10，等 IT；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -176,6 +176,7 @@
 ### 2026-11-18 使用者決定後追加
 - [x] M2-16 批次「待寄出」狀態（F-MAIL-4）：migration 讓 `campaign.status` CHECK 加上 `ready`（單獨 commit）；草稿都處理完、還沒按寄出時改成 `ready`，按寄出後 `scheduled`；前端狀態文字＋測試 — 2026-11-18（migration 0011；「我的待辦」也算待寄出的批次；既有批次要等下一次草稿動作才會重算狀態）
 - [ ] M2-17 每天最晚寄送時間 `SEND_DAY_END_HOUR`（預設 18，台灣時間；F-MAIL-6）：超過的排到隔天 `SEND_DAY_START_HOUR`；設定、`.env.example`、`domain/send_limits` 單元測試
+- [x] M2-18 測試收件者白名單 `MAIL_ALLOWED_RECIPIENTS`（M2-15 真實寄信前的安全機制）：`domain/send_guard` 加 `RECIPIENT_NOT_ALLOWED`，建立草稿、按寄出、worker 寄出前都檢查；順便修正建立批次時沒讀 `RECENT_SEND_DAYS` — 2026-11-18
 
 ## M3 案件追蹤與總覽（閉環）
 

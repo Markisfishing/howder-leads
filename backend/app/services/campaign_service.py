@@ -6,10 +6,12 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Literal
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.config import Settings
 from app.domain import send_guard
 from app.domain.company_rules import DomainError
 from app.models import AppUser, Campaign, Company, Contact, EmailDraft, EmailMessage, EmailTemplate, v_recommendation
@@ -49,6 +51,28 @@ def guard_input(db: Session, company: Company, contact: Contact | None) -> send_
         contact_exists=contact is not None and contact.company_id == company.company_id,
         contact_unsubscribed=bool(contact and contact.unsubscribed),
         last_sent_at=last_sent_at(db, company.company_id),
+        contact_email=contact.email if contact else None,
+    )
+
+
+def exclusions_for(
+    db: Session,
+    company: Company,
+    contact: Contact | None,
+    user_id: int,
+    now: datetime,
+    settings: Settings,
+    *,
+    stage: Literal["draft", "send"],
+) -> list[str]:
+    """防呆：建立批次、按寄出、worker 寄出前都走這裡，天數與白名單一律讀設定（M2-18）。"""
+    return send_guard.exclusions(
+        guard_input(db, company, contact),
+        user_id,
+        now,
+        stage=stage,
+        recent_days=settings.recent_send_days,
+        allowlist=settings.allowlist,
     )
 
 
@@ -91,7 +115,7 @@ def default_contact(contacts: list[Contact]) -> Contact | None:
 
 
 def candidates(
-    db: Session, user: AppUser, now: datetime, *, company_ids: set[int] | None = None
+    db: Session, user: AppUser, now: datetime, settings: Settings, *, company_ids: set[int] | None = None
 ) -> list[dict[str, object]]:
     """可以選進批次的公司：所有「已通過」的公司，附上聯絡人與不能寄的原因（給前端顯示）。
 
@@ -112,7 +136,7 @@ def candidates(
     for c in companies:
         cts = contacts.get(c.company_id, [])
         default = default_contact(cts)
-        reasons = send_guard.exclusions(guard_input(db, c, default), user.user_id, now, stage="draft")
+        reasons = exclusions_for(db, c, default, user.user_id, now, settings, stage="draft")
         r = rec.get(c.company_id)
         out.append(
             {
@@ -144,6 +168,7 @@ def create_campaign(
     gen_mode: str,
     targets: list[Target],
     now: datetime,
+    settings: Settings,
 ) -> tuple[Campaign, int, list[Excluded]]:
     """建立批次。回傳 (批次, job_id, 被排除的公司與原因)。全部被排除時報錯，不建立空批次。"""
     if gen_mode not in AVAILABLE_MODES:
@@ -176,7 +201,7 @@ def create_campaign(
             contact = db.get(Contact, t.contact_id)
         else:
             contact = default_contact(list(db.scalars(select(Contact).where(Contact.company_id == company.company_id))))
-        reasons = send_guard.exclusions(guard_input(db, company, contact), user.user_id, now, stage="draft")
+        reasons = exclusions_for(db, company, contact, user.user_id, now, settings, stage="draft")
         if contact is not None and contact.company_id != company.company_id:
             reasons = ["CONTACT_NOT_IN_COMPANY", *[r for r in reasons if r != "NO_CONTACT"]]
         if reasons:

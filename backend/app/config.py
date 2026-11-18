@@ -6,6 +6,8 @@ from typing import Literal
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.domain.send_guard import parse_allowlist
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
@@ -29,6 +31,8 @@ class Settings(BaseSettings):
     send_per_minute: int = 10
     send_day_start_hour: int = 9
     recent_send_days: int = 14
+    # 真實寄信測試用的收件者白名單（M2-18）：逗號分隔的 email 或 @網域；空白 = 不限制（正式上線）
+    mail_allowed_recipients: str = ""
     # 背景工作：沒收到 NOTIFY 時多久輪詢一次
     worker_poll_seconds: float = 5.0
 
@@ -53,6 +57,10 @@ class Settings(BaseSettings):
         if self.auth_mode == "entra" and not (self.entra_tenant_id and self.entra_client_id):
             raise ValueError("AUTH_MODE=entra 需要 ENTRA_TENANT_ID 與 ENTRA_CLIENT_ID")
         return self
+
+    @property
+    def allowlist(self) -> tuple[str, ...]:
+        return parse_allowlist(self.mail_allowed_recipients)
 
     @property
     def admin_emails(self) -> set[str]:
