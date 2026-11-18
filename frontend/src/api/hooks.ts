@@ -69,6 +69,8 @@ export const useUnsubscribeContact = () =>
   useCompanyMutation(({ id, note, wholeCompany }: { id: number; note?: string; wholeCompany?: boolean }) =>
     ep.unsubscribeContact(id, note, wholeCompany),
   );
+export const useResubscribeContact = () =>
+  useCompanyMutation(({ id, reason }: { id: number; reason: string }) => ep.resubscribeContact(id, reason));
 export const useDeleteContact = () =>
   useCompanyMutation(({ id, reason }: { id: number; reason: string }) => ep.deleteContact(id, reason));
 
@@ -135,7 +137,8 @@ export const useCampaign = (id: number) =>
   });
 export const useDrafts = (id: number, poll: boolean, params: { q?: string; status?: string; page?: number; page_size?: number } = {}) =>
   useQuery({ queryKey: [...keys.drafts(id), params], queryFn: () => ep.listDrafts(id, params), refetchInterval: poll ? 2000 : false });
-export const useCandidates = () => useQuery({ queryKey: keys.candidates, queryFn: ep.listCandidates });
+export const useCandidates = (filters: ep.CandidateFilters = ep.NO_CANDIDATE_FILTERS) =>
+  useQuery({ queryKey: [...keys.candidates, filters], queryFn: () => ep.listCandidates(filters), placeholderData: keepPreviousData });
 export const useExclusionReasons = () =>
   useQuery({ queryKey: keys.exclusionReasons, queryFn: ep.getExclusionReasons, staleTime: Infinity });
 export const useMailConnection = () => useQuery({ queryKey: keys.mailConnection, queryFn: ep.getMailConnection });

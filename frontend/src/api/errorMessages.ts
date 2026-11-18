@@ -19,6 +19,8 @@ const MESSAGES: Record<string, string> = {
   CONTACT_EXISTS: "這家公司已經有這個 email 的聯絡人",
   CONTACT_NOT_FOUND: "找不到這位聯絡人，可能已被刪除",
   CONTACT_UNSUBSCRIBED: "已退訂的聯絡人不能改 email",
+  RESUBSCRIBE_REASON_REQUIRED: "取消退訂要填寫原因",
+  CONTACT_NOT_UNSUBSCRIBED: "這位聯絡人沒有退訂",
   DELETE_REASON_REQUIRED: "刪除個資要填寫原因",
   TEMPLATE_NOT_FOUND: "找不到這份模板",
   TEMPLATE_NOT_ACTIVE: "只能修改目前使用中的版本",

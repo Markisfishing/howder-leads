@@ -10,7 +10,7 @@ interface Props {
   onChange: (patch: Partial<ListFilters>) => void;
 }
 
-const STAR_OPTIONS = [
+export const STAR_OPTIONS = [
   { value: "5", label: "★★★★★ 第一優先" },
   { value: "4", label: "★★★★ 可開發" },
   { value: "2", label: "★★ 觀察／策略" },

@@ -10,10 +10,11 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import current_user
+from app.api.v1.companies import ListFilters, apply_filters, has_filters, list_filters
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.domain.send_guard import REASON_LABELS
-from app.models import AppUser, Campaign, Company, Contact, EmailDraft, EmailTemplate
+from app.models import AppUser, Campaign, Company, Contact, EmailDraft, EmailTemplate, v_recommendation
 from app.services import campaign_service, draft_service, send_service
 
 router = APIRouter()
@@ -238,8 +239,16 @@ def list_campaigns(user: AppUser = Depends(current_user), db: Session = Depends(
 
 
 @router.get("/campaigns/candidates", response_model=list[Candidate])
-def list_candidates(user: AppUser = Depends(current_user), db: Session = Depends(get_db)) -> list[Candidate]:
-    return [Candidate.model_validate(c) for c in campaign_service.candidates(db, user, _now())]
+def list_candidates(
+    filters: ListFilters = Depends(list_filters),
+    user: AppUser = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> list[Candidate]:
+    """候選公司（M3-16）：沿用推薦清單的篩選參數（q 公司名稱／統編、industry_id、stars、min_stars…）。"""
+    ids: set[int] | None = None
+    if has_filters(filters):
+        ids = set(db.scalars(apply_filters(select(v_recommendation.c.company_id), user, filters)))
+    return [Candidate.model_validate(c) for c in campaign_service.candidates(db, user, _now(), company_ids=ids)]
 
 
 @router.get("/campaigns/exclusion-reasons", response_model=dict[str, str])

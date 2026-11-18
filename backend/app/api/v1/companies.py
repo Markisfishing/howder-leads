@@ -114,10 +114,31 @@ class ListFilters:
     min_stars: float | None = None
 
 
+def has_filters(f: ListFilters) -> bool:
+    """有沒有任何篩選條件（候選公司沒有條件時不用先查一次 view）。"""
+    return any(
+        (
+            f.stars,
+            f.status,
+            f.industry_id is not None,
+            f.owner,
+            f.has_website is not None,
+            f.competitor is not None,
+            f.q and f.q.strip(),
+            f.country,
+            f.source,
+            f.url_status,
+            f.product_type,
+            f.tag,
+            f.min_stars is not None,
+        )
+    )
+
+
 NO_SOURCE = "none"  # source=none 篩選「未標示來源」
 
 
-def _filtered(stmt: Select[Any], user: AppUser, f: ListFilters) -> Select[Any]:
+def apply_filters(stmt: Select[Any], user: AppUser, f: ListFilters) -> Select[Any]:
     stars, status, industry_id, owner = f.stars, f.status, f.industry_id, f.owner
     has_website, competitor, q = f.has_website, f.competitor, f.q
     if f.country:
@@ -208,8 +229,8 @@ def list_companies(
     user: AppUser = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> CompanyPage:
-    total = db.scalar(_filtered(select(func.count()).select_from(v_recommendation), user, filters)) or 0
-    stmt = _filtered(select(v_recommendation), user, filters).order_by(*ORDER[sort])
+    total = db.scalar(apply_filters(select(func.count()).select_from(v_recommendation), user, filters)) or 0
+    stmt = apply_filters(select(v_recommendation), user, filters).order_by(*ORDER[sort])
     rows = db.execute(stmt.offset((page - 1) * page_size).limit(page_size)).mappings()
     return CompanyPage(
         items=[CompanyRow.model_validate(dict(r)) for r in rows], total=total, page=page, page_size=page_size
@@ -269,7 +290,7 @@ def export_companies(
     if unknown:
         raise DomainError("INVALID_EXPORT_COLUMN", f"不能匯出的欄位：{'、'.join(unknown)}", 422)
     cols = list(dict.fromkeys(columns)) or DEFAULT_EXPORT
-    stmt = _filtered(select(v_recommendation), user, filters).order_by(*ORDER[sort]).limit(EXPORT_LIMIT)
+    stmt = apply_filters(select(v_recommendation), user, filters).order_by(*ORDER[sort]).limit(EXPORT_LIMIT)
     rows = [dict(r) for r in db.execute(stmt).mappings()]
     return Response(
         content=export_csv(rows, cols).encode("utf-8"),

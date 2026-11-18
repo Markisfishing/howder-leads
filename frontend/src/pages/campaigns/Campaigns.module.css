@@ -37,6 +37,8 @@
 .campaignSummary strong { overflow-wrap: anywhere; }
 
 /* 區塊：建立批次的候選公司 */
+.filterRow { display: grid; grid-template-columns: 1fr; gap: var(--space-3); align-items: end; }
+.filterSearch { min-width: 0; }
 .candidates { display: grid; gap: var(--space-2); }
 .candidate {
   display: grid;
@@ -121,6 +123,7 @@
 @media (min-width: 768px) {
   .item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
   .candidate { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); }
+  .filterRow { grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto; }
   .contactSelect { grid-column: 3; }
 }
 

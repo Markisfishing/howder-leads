@@ -140,6 +140,28 @@ def unsubscribe(
     return contact
 
 
+def resubscribe(db: Session, user: AppUser, contact: Contact, reason: str | None) -> Contact:
+    """M3-18：取消退訂，只限主管／管理員，原因必填。
+
+    公司若因退訂變成 do_not_contact，會依 domain 規則退回「已通過」（status_after_resubscribe）。
+    """
+    if not company_svc.is_manager(user):
+        raise DomainError("FORBIDDEN", "只有主管或管理員可以取消退訂", 403)
+    why = contact_rules.check_resubscribe_reason(reason)
+    if not contact.unsubscribed:
+        raise DomainError("CONTACT_NOT_UNSUBSCRIBED", "這位聯絡人沒有退訂", 409)
+    company = company_svc.get_company(db, contact.company_id)
+    contact.unsubscribed = False
+    company_svc.log(db, company, user, "contact_resubscribe", to_value=str(contact.contact_id), note=why)
+    target = rules.status_after_resubscribe(company.status)
+    if target is not None:
+        previous = company.status
+        company.status = target
+        company_svc.log(db, company, user, "status_change", previous, target, f"取消退訂：{why}")
+    db.commit()
+    return contact
+
+
 def delete_contact(db: Session, user: AppUser, contact: Contact, reason: str | None) -> None:
     """個資刪除請求：真的刪除聯絡人，連帶刪除寄給他的草稿與信件（事件跟著信件刪）。
 
