@@ -25,6 +25,11 @@ def next_day_start(at: datetime, day_start_hour: int, tz: ZoneInfo = TAIPEI) -> 
     return datetime.combine(tomorrow, time(day_start_hour), tzinfo=tz)
 
 
+def is_after_hours(at: datetime, day_end_hour: int, tz: ZoneInfo = TAIPEI) -> bool:
+    """當地時間是否已到（或超過）下班時間 day_end_hour 點；24 代表不限制。"""
+    return at.astimezone(tz).hour >= day_end_hour
+
+
 def plan_send_times(
     n: int,
     *,
@@ -33,12 +38,14 @@ def plan_send_times(
     daily_limit: int,
     per_minute: int,
     day_start_hour: int = 9,
+    day_end_hour: int = 24,
     tz: ZoneInfo = TAIPEI,
 ) -> list[datetime]:
     """排出 n 封信的寄送時間。
 
     already_today：寄件人在 start 那一天（當地時間）已經寄出或已排定的封數。
     同一天超過 daily_limit 就排到隔天 day_start_hour 點；每封間隔 60 / per_minute 秒。
+    排到的時間（當地時間）到了 day_end_hour 點以後也不寄，改排隔天 day_start_hour 點（M2-17）。
     """
     if daily_limit < 1 or per_minute < 1:
         raise ValueError("daily_limit 與 per_minute 必須大於 0")
@@ -51,7 +58,7 @@ def plan_send_times(
         if local_day(cursor, tz) != day:  # 跨過午夜，新的一天重新計數
             day = local_day(cursor, tz)
             count = 0
-        if count >= daily_limit:
+        if count >= daily_limit or is_after_hours(cursor, day_end_hour, tz):
             cursor = next_day_start(cursor, day_start_hour, tz)
             day = local_day(cursor, tz)
             count = 0

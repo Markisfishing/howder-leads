@@ -131,6 +131,7 @@ def schedule_campaign(
             daily_limit=settings.daily_send_limit,
             per_minute=settings.send_per_minute,
             day_start_hour=settings.send_day_start_hour,
+            day_end_hour=settings.send_day_end_hour,
         )
         for draft, at in zip(ready, times, strict=True):
             draft.scheduled_at = at
@@ -189,7 +190,7 @@ def send_one(db: Session, draft_id: int, mailer: Mailer, settings: Settings, now
             EmailMessage.sent_at < day_end,
         )
     )
-    if int(sent_today or 0) >= settings.daily_send_limit:
+    if int(sent_today or 0) >= settings.daily_send_limit or send_limits.is_after_hours(now, settings.send_day_end_hour):
         run_after = send_limits.next_day_start(now, settings.send_day_start_hour)
         draft.scheduled_at = run_after
         db.commit()

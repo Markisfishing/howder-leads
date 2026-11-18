@@ -191,3 +191,44 @@ def test_f_mail_6_day_is_taiwan_time() -> None:
     late = datetime(2026, 11, 17, 15, 59, tzinfo=UTC)  # 台灣 23:59
     assert send_limits.local_day(late).isoformat() == "2026-11-17"
     assert send_limits.local_day(late + timedelta(minutes=2)).isoformat() == "2026-11-18"
+
+
+def test_f_mail_6_before_end_hour_sends_as_planned() -> None:
+    at = datetime(2026, 11, 17, 9, 59, tzinfo=UTC)  # 台灣 17:59
+    times = send_limits.plan_send_times(1, start=at, already_today=0, daily_limit=50, per_minute=10, day_end_hour=18)
+    assert times == [at]
+
+
+def test_f_mail_6_at_end_hour_moves_to_next_morning() -> None:
+    at = datetime(2026, 11, 17, 10, 0, tzinfo=UTC)  # 台灣 18:00
+    times = send_limits.plan_send_times(2, start=at, already_today=0, daily_limit=50, per_minute=60, day_end_hour=18)
+    next_morning = datetime(2026, 11, 18, 1, 0, tzinfo=UTC)  # 台灣 11/18 09:00
+    assert times == [next_morning, next_morning + timedelta(seconds=1)]
+
+
+def test_f_mail_6_end_hour_crossing_utc_day() -> None:
+    at = datetime(2026, 11, 17, 16, 30, tzinfo=UTC)  # 台灣 11/18 00:30，UTC 還是 11/17；未超過下班時間（只看當地時間）
+    times = send_limits.plan_send_times(1, start=at, already_today=0, daily_limit=50, per_minute=10, day_end_hour=18)
+    assert times == [at]
+    late = datetime(2026, 11, 17, 11, 0, tzinfo=UTC)  # 台灣 19:00，UTC 才 11:00
+    moved = send_limits.plan_send_times(1, start=late, already_today=0, daily_limit=50, per_minute=10, day_end_hour=18)
+    assert moved == [datetime(2026, 11, 18, 1, 0, tzinfo=UTC)]
+
+
+def test_f_mail_6_daily_limit_and_end_hour_together() -> None:
+    at = datetime(2026, 11, 17, 9, 59, tzinfo=UTC)  # 台灣 17:59，每分鐘 1 封：第二封 18:00 已過下班時間
+    times = send_limits.plan_send_times(3, start=at, already_today=0, daily_limit=2, per_minute=1, day_end_hour=18)
+    next_morning = datetime(2026, 11, 18, 1, 0, tzinfo=UTC)
+    assert times[0] == at
+    assert times[1] == next_morning
+    assert times[2] == next_morning + timedelta(minutes=1)  # 隔天重新計數，沒有被前一天的 count 影響
+
+
+def test_f_mail_6_settings_reject_invalid_hours() -> None:
+    from app.config import Settings
+
+    with pytest.raises(ValueError):
+        Settings(env="test", send_day_start_hour=18, send_day_end_hour=9)
+    with pytest.raises(ValueError):
+        Settings(env="test", send_day_end_hour=25)
+    assert Settings(env="test", send_day_end_hour=24).send_day_end_hour == 24

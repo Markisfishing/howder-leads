@@ -306,6 +306,7 @@ backend/app/
 - 權杖：業務按「連結 Outlook」時，後端用 On-Behalf-Of 換到 Graph 權杖；權杖快取用 Fernet 加密存在 `user_mail_credential`，worker 只用寄件人本人的那一筆。失效時標成 `needs_reconnect`，暫停寄送並請業務重新連結（ADR 0005）。
 - 不直接使用 SMTP：Exchange Online 正在淘汰 SMTP 基本驗證。
 - 限速：每位寄件人每分鐘最多 N 封，每天最多 50 封，超過的自動排到隔天。
+- 寄送時段：只在台灣時間 `SEND_DAY_START_HOUR`（預設 9）到 `SEND_DAY_END_HOUR`（預設 18，24 = 不限制）之間寄；排到下班時間以後的信，改排隔天上班時間；worker 寄出前發現已過下班時間也會改期。啟動時檢查 `0 <= START < END <= 24`。「早於上班時間延到上班時間」目前不做（待負責人確認）。
 - 每封信的結尾都要有退訂說明。
 - `MAIL_MODE=live` 只有兩種情況可以啟動：正式環境；或開發環境且白名單不是空的（先用個人 Microsoft 帳號測試，只寄到自己的測試信箱，M2-22）。`ENV=test` 一律不可以 live。
 - 真實寄信測試期間設定收件者白名單 `MAIL_ALLOWED_RECIPIENTS`（完整 email 或 `@網域`）：名單外的收件者在建立草稿和 worker 寄出前都會被擋下（原因 `RECIPIENT_NOT_ALLOWED`）。空白代表不限制，正式上線才清空（M2-18）。

@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     daily_send_limit: int = 50
     send_per_minute: int = 10
     send_day_start_hour: int = 9
+    send_day_end_hour: int = 18  # 這個鐘點以後不寄，排到隔天 send_day_start_hour（台灣時間，M2-17）
     recent_send_days: int = 14
     # 真實寄信測試用的收件者白名單（M2-18）：逗號分隔的 email 或 @網域；空白 = 不限制（正式上線）
     mail_allowed_recipients: str = ""
@@ -51,6 +52,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _guard_production(self) -> "Settings":
+        if not 0 <= self.send_day_start_hour < self.send_day_end_hour <= 24:
+            raise ValueError("需要 0 <= SEND_DAY_START_HOUR < SEND_DAY_END_HOUR <= 24")
         if self.env == "production" and self.auth_mode == "dev":
             raise ValueError("正式環境不可以使用 AUTH_MODE=dev")
         # CLAUDE.md 第 6 節第 3 點：測試環境不可以 live；開發環境要先設白名單，只寄到自己的測試信箱（M2-22）
