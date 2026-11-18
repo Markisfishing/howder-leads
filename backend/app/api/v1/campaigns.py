@@ -243,12 +243,14 @@ def list_candidates(
     filters: ListFilters = Depends(list_filters),
     user: AppUser = Depends(current_user),
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> list[Candidate]:
     """候選公司（M3-16）：沿用推薦清單的篩選參數（q 公司名稱／統編、industry_id、stars、min_stars…）。"""
     ids: set[int] | None = None
     if has_filters(filters):
         ids = set(db.scalars(apply_filters(select(v_recommendation.c.company_id), user, filters)))
-    return [Candidate.model_validate(c) for c in campaign_service.candidates(db, user, _now(), company_ids=ids)]
+    rows = campaign_service.candidates(db, user, _now(), settings, company_ids=ids)
+    return [Candidate.model_validate(c) for c in rows]
 
 
 @router.get("/campaigns/exclusion-reasons", response_model=dict[str, str])
@@ -258,7 +260,10 @@ def exclusion_reasons(_: AppUser = Depends(current_user)) -> dict[str, str]:
 
 @router.post("/campaigns", response_model=CreateOut, status_code=201)
 def create_campaign(
-    body: CampaignCreate, user: AppUser = Depends(current_user), db: Session = Depends(get_db)
+    body: CampaignCreate,
+    user: AppUser = Depends(current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> CreateOut:
     campaign, job_id, excluded = campaign_service.create_campaign(
         db,
@@ -268,6 +273,7 @@ def create_campaign(
         gen_mode=body.gen_mode,
         targets=[campaign_service.Target(t.company_id, t.contact_id) for t in body.targets],
         now=_now(),
+        settings=settings,
     )
     return CreateOut(
         campaign=_one(db, campaign),

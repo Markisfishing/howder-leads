@@ -13,7 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.domain import draft_rules, send_guard, send_limits
+from app.domain import draft_rules, send_limits
 from app.domain.company_rules import DomainError, can_transition
 from app.models import ActivityLog, AppUser, Campaign, Company, Contact, EmailDraft, EmailMessage, UserMailCredential
 from app.services import campaign_service, case_service, jobs
@@ -114,13 +114,7 @@ def schedule_campaign(
         draft_rules.ensure_sendable(draft.status)
         company = company_svc.get_company(db, draft.company_id)
         contact = db.get(Contact, draft.contact_id)
-        reasons = send_guard.exclusions(
-            campaign_service.guard_input(db, company, contact),
-            user.user_id,
-            now,
-            stage="send",
-            recent_days=settings.recent_send_days,
-        )
+        reasons = campaign_service.exclusions_for(db, company, contact, user.user_id, now, settings, stage="send")
         if reasons:
             _mark_failed(db, draft, "GUARD:" + ",".join(reasons), user)
             blocked.append({"draft_id": draft.draft_id, "company_name": company.name, "reasons": reasons})
@@ -177,13 +171,8 @@ def send_one(db: Session, draft_id: int, mailer: Mailer, settings: Settings, now
         db.rollback()
         return "skipped"
 
-    reasons = send_guard.exclusions(
-        campaign_service.guard_input(db, company, contact),
-        sender.user_id,
-        now,
-        stage="send",
-        recent_days=settings.recent_send_days,
-    )
+    # 呼叫 Graph 前最後一次檢查（含測試收件者白名單 M2-18）
+    reasons = campaign_service.exclusions_for(db, company, contact, sender.user_id, now, settings, stage="send")
     if reasons or contact is None:
         _mark_failed(db, draft, "GUARD:" + ",".join(reasons or ["NO_CONTACT"]), None)
         campaign_service.refresh_status(db, campaign)

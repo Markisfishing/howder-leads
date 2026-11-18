@@ -12,7 +12,7 @@ from decimal import Decimal
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import Settings, get_settings
@@ -204,6 +204,48 @@ def test_f_mail_7_candidates_show_reasons(world: World) -> None:
     assert set(rows) == {world.ids["10000001"], world.ids["10000002"], world.ids["10000003"]}  # 只有已通過
     assert rows[world.ids["10000002"]]["reasons"] == ["LOCKED_BY_OTHER"]
     assert rows[world.ids["10000001"]]["default_contact_id"] == world.contacts[world.ids["10000001"]]
+
+
+def _use_settings(world: World, **update: object) -> None:
+    world.settings = world.settings.model_copy(update=update)
+    world.app.dependency_overrides[get_settings] = lambda: world.settings
+
+
+def test_m2_18_draft_stage_uses_recent_send_days_setting(world: World) -> None:
+    """bug：建立批次時的「最近寄過」固定用 14 天，沒有讀 RECENT_SEND_DAYS（寄出時才有讀）。"""
+    a = world.ids["10000001"]
+    cid, _ = _approved(world, 1)
+    world.client.post(f"/api/v1/campaigns/{cid}/send", json={}, headers=world.sales1)
+    world.worker()
+    # 寄出後公司是「已寄信」；這裡直接改回已通過，只為了單獨驗證「最近寄過」的天數設定
+    world.db.execute(update(Company).where(Company.company_id == a).values(status="approved"))
+    world.db.execute(update(EmailMessage).values(sent_at=datetime.now(UTC) - timedelta(days=3)))  # 3 天前寄的
+    world.db.commit()
+    rows = {r["company_id"]: r for r in world.client.get("/api/v1/campaigns/candidates", headers=world.sales1).json()}
+    assert rows[a]["reasons"] == ["RECENTLY_SENT"]
+    _use_settings(world, recent_send_days=2)
+    rows = {r["company_id"]: r for r in world.client.get("/api/v1/campaigns/candidates", headers=world.sales1).json()}
+    assert rows[a]["reasons"] == []
+
+
+def test_m2_18_allowlist_excludes_at_create(world: World) -> None:
+    a, b = world.ids["10000001"], world.ids["10000002"]
+    _use_settings(world, mail_allowed_recipients="buyer0@example.com")
+    rows = {r["company_id"]: r for r in world.client.get("/api/v1/campaigns/candidates", headers=world.sales1).json()}
+    assert rows[a]["reasons"] == [] and rows[b]["reasons"] == ["RECIPIENT_NOT_ALLOWED"]
+    out = world.create([a, b])
+    assert {e["company_id"]: e["reasons"] for e in out["excluded"]} == {b: ["RECIPIENT_NOT_ALLOWED"]}
+
+
+def test_m2_18_allowlist_rechecked_before_sending(world: World) -> None:
+    """草稿建立時還沒設白名單、寄出前才設：worker 寄之前再檢查，名單外的不寄。"""
+    cid, _ = _approved(world, 2)
+    world.client.post(f"/api/v1/campaigns/{cid}/send", json={}, headers=world.sales1)
+    _use_settings(world, mail_allowed_recipients="@example.org,buyer1@example.com")
+    world.worker()
+    assert [m.to_email for m in world.mailer.sent] == ["buyer1@example.com"]
+    failed = [d for d in world.drafts(cid) if d["status"] == "failed"]
+    assert len(failed) == 1 and failed[0]["last_error"] == "GUARD:RECIPIENT_NOT_ALLOWED"
 
 
 def _cand_ids(world: World, query: str = "") -> set[int]:

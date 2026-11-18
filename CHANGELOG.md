@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-11-18｜M2-18 測試收件者白名單
+
+**改了哪些檔案**
+- `backend/app/domain/send_guard.py`：`parse_allowlist`、`recipient_allowed`、防呆原因 `RECIPIENT_NOT_ALLOWED`
+- `backend/app/config.py`、`.env.example`：`MAIL_ALLOWED_RECIPIENTS`
+- `backend/app/services/campaign_service.py`：新增 `exclusions_for`，候選清單、建立批次、按寄出、worker 寄出前都走同一個函式，天數與白名單一律讀設定
+- `backend/app/services/send_service.py`、`api/v1/campaigns.py`：改用 `exclusions_for`，建立批次與候選清單帶入設定
+- `docs/SPEC.md` 7.5：白名單說明
+- 測試：`test_mail_domain`（白名單規則）、`test_campaigns`（建立時排除、寄出前再擋、天數設定）
+
+**解決了什麼問題**
+- 真實寄信測試時，就算資料庫裡有真實客戶，名單外的收件者也寄不出去。
+- 修 bug（先補測試）：建立批次時「最近寄過」固定用 14 天，沒讀 `RECENT_SEND_DAYS`，和寄出時的判斷不一致。
+
+**做了哪些決定**
+- `@網域` 只比對完整網域，不含子網域，也不比對字尾相同的網域。
+- 白名單是空的就不限制；沒有聯絡人時只報「沒有聯絡人」，不重複報白名單。
+- 前端不用改：防呆原因的中文由後端 `/campaigns/exclusion-reasons` 提供。
+
+**還沒處理的問題**
+- 「14 天內已經寄過」的中文固定寫 14，`RECENT_SEND_DAYS` 改成其他值時文字不會跟著變。
+- 本機測試用 Postgres 的複製檔（`%LOCALAPPDATA%\howder\pginstall\bin`）有 32 個檔案不見，原因不明，已從 `.venv` 補回。
+- M2-15 真實寄信需要使用者準備 Microsoft 365 測試租用戶、Entra 應用程式與測試帳號。
+
+**下一步**
+- M2-17，之後 M4-06a；帳號準備好後做 M2-15。
+
+---
+
 ## 2026-11-18｜移除側欄收合；M3-18 取消退訂、M3-16 建立批次候選篩選
 
 **改了哪些檔案**

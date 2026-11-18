@@ -306,6 +306,7 @@ backend/app/
 - 不直接使用 SMTP：Exchange Online 正在淘汰 SMTP 基本驗證。
 - 限速：每位寄件人每分鐘最多 N 封，每天最多 50 封，超過的自動排到隔天。
 - 每封信的結尾都要有退訂說明。
+- 真實寄信測試期間設定收件者白名單 `MAIL_ALLOWED_RECIPIENTS`（完整 email 或 `@網域`）：名單外的收件者在建立草稿和 worker 寄出前都會被擋下（原因 `RECIPIENT_NOT_ALLOWED`）。空白代表不限制，正式上線才清空（M2-18）。
 
 ---
 

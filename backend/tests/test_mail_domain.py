@@ -7,7 +7,7 @@ import pytest
 
 from app.domain import draft_rules, send_limits
 from app.domain.company_rules import DomainError, Ownership
-from app.domain.send_guard import GuardInput, describe, exclusions
+from app.domain.send_guard import GuardInput, describe, exclusions, parse_allowlist, recipient_allowed
 
 NOW = datetime(2026, 11, 17, 2, 0, tzinfo=UTC)  # 台灣時間 10:00
 ME, OTHER = 1, 2
@@ -70,6 +70,45 @@ def test_f_mail_7_multiple_reasons_and_description() -> None:
     )
     assert reasons == ["UNSUBSCRIBED", "LOCKED_BY_OTHER", "RECENTLY_SENT"]
     assert describe(reasons) == "聯絡人已退訂、由其他業務負責中、14 天內已經寄過"
+
+
+# ---------- 測試收件者白名單（M2-18）----------
+def test_m2_18_parse_allowlist() -> None:
+    assert parse_allowlist(" Test1@Example.com, @Corp.example.com ,,") == ("test1@example.com", "@corp.example.com")
+    assert parse_allowlist("") == ()
+
+
+@pytest.mark.parametrize(
+    ("email", "expected"),
+    [
+        ("test1@example.com", True),
+        ("TEST1@example.com ", True),
+        ("test2@example.com", False),
+        ("anyone@corp.example.com", True),
+        ("x@sub.corp.example.com", False),  # 子網域不算
+        ("x@xcorp.example.com", False),  # 字尾相同的網域不算
+        (None, False),
+    ],
+)
+def test_m2_18_recipient_allowed(email: str | None, expected: bool) -> None:
+    allow = ("test1@example.com", "@corp.example.com")
+    assert recipient_allowed(email, allow) is expected
+
+
+def test_m2_18_empty_allowlist_allows_everyone() -> None:
+    assert recipient_allowed("buyer@example.com", ()) is True
+    assert exclusions(_g(contact_email="buyer@example.com"), ME, NOW, stage="send") == []
+
+
+def test_m2_18_guard_blocks_recipient_outside_allowlist() -> None:
+    allow = ("test1@example.com",)
+    g = _g(contact_email="buyer@example.com")
+    assert exclusions(g, ME, NOW, stage="draft", allowlist=allow) == ["RECIPIENT_NOT_ALLOWED"]
+    assert exclusions(g, ME, NOW, stage="send", allowlist=allow) == ["RECIPIENT_NOT_ALLOWED"]
+    assert exclusions(_g(contact_email="test1@example.com"), ME, NOW, stage="send", allowlist=allow) == []
+    # 沒有聯絡人時只報「沒有聯絡人」，不重複報白名單
+    assert exclusions(_g(contact_exists=False), ME, NOW, stage="send", allowlist=allow) == ["NO_CONTACT"]
+    assert describe(["RECIPIENT_NOT_ALLOWED"]) == "收件者不在測試白名單（MAIL_ALLOWED_RECIPIENTS）"
 
 
 # ---------- 草稿狀態機 ----------
