@@ -7,6 +7,7 @@ import { draftErrorText } from "../../lib/labels";
 import { CampaignNewPage } from "./CampaignNewPage";
 import { CampaignReviewPage, nextToReview } from "./CampaignReviewPage";
 import { needsAction, progressText } from "./CampaignsPage";
+import { MailConnectionBanner } from "./MailConnectionBanner";
 
 const me = { user_id: 1, display_name: "業務甲", role: "sales" as const, email: "sales1@example.com" };
 vi.mock("../../auth/AuthProvider", () => ({ useAuth: () => ({ user: me, isAdmin: false }) }));
@@ -332,5 +333,22 @@ describe("M2-05 預覽佇列", () => {
     setupReview({ owner_id: 99, owner_name: "業務乙", progress: { ...progress, approved: 2 } });
     expect(await screen.findByText(/只有 業務乙 可以寄/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /寄出已核准/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("M2-24 共用測試信箱", () => {
+  it("test_m2_24_banner_shows_shared_mailbox_without_connect_button：live＋SMTP 不顯示連結 Outlook", async () => {
+    mockFetch((url) => {
+      if (url === "/api/v1/me/mail-connection") return { ...sandbox, mail_mode: "live" };
+      return {};
+    });
+    renderAt("/", <MailConnectionBanner />, "/");
+    expect(await screen.findByText(/共用測試信箱/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /連結 Outlook/ })).not.toBeInTheDocument();
+  });
+
+  it("test_m2_24_smtp_error_codes_have_chinese_text：寄信失敗代碼翻成中文", () => {
+    expect(draftErrorText("SMTP_AUTH_FAILED")).toMatch(/登入失敗/);
+    expect(draftErrorText("SMTP_RECIPIENT_REFUSED")).toMatch(/拒收/);
   });
 });

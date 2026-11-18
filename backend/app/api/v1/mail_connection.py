@@ -46,7 +46,7 @@ def get_cipher(settings: Settings = Depends(get_settings)) -> mail_token.TokenCi
 
 
 def _out(db: Session, user: AppUser, settings: Settings, resumed: int = 0) -> MailConnectionOut:
-    if settings.mail_mode != "live":
+    if settings.mail_mode != "live" or settings.mail_transport == "smtp":  # 共用 SMTP 信箱不用連結（ADR 0008）
         return MailConnectionOut(mail_mode=settings.mail_mode, status="not_required")
     cred = mail_token.status(db, user)
     if cred is None:
@@ -80,6 +80,8 @@ def connect(
 ) -> MailConnectionOut:
     if settings.mail_mode != "live":
         raise DomainError("MAIL_SANDBOX", "目前是測試模式，信不會真的寄出，不需要連結 Outlook", 409)
+    if settings.mail_transport == "smtp":
+        raise DomainError("MAIL_SHARED_MAILBOX", "目前用共用測試信箱寄信，不需要連結 Outlook", 409)
     if cipher is None:
         raise DomainError("MAIL_NOT_CONFIGURED", "系統尚未設定寄信金鑰，請聯絡管理員", 503)
     if not authorization or not authorization.lower().startswith("bearer "):
