@@ -154,13 +154,16 @@ def by_source(db: Session, f: OverviewFilter) -> list[dict[str, Any]]:
 
 def mle_funnel(db: Session) -> dict[str, int] | None:
     """最近一次確認匯入、而且有附漏斗數字的批次（MLE 提供，只顯示）。"""
-    batch = db.scalar(
+    batches = db.scalars(
         select(ImportBatch)
         .where(ImportBatch.status == "committed", ImportBatch.funnel.is_not(None))
         .order_by(ImportBatch.batch_id.desc())
-        .limit(1)
     )
-    return dict(batch.funnel) if batch else None
+    # PostgreSQL JSONB 的 JSON null 不是 SQL NULL，is_not(None) 仍可能撈到它。
+    for batch in batches:
+        if isinstance(batch.funnel, dict) and batch.funnel:
+            return dict(batch.funnel)
+    return None
 
 
 def overview(db: Session, user: AppUser, f: OverviewFilter) -> dict[str, Any]:

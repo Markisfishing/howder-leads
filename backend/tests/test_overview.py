@@ -131,6 +131,15 @@ def test_f_dash_2_funnel_with_retention(client: TestClient, seeded: dict[str, di
     assert body["mle_funnel"] == {"資料庫總數": 39000, "產品命中": 900}
 
 
+def test_f_dash_2_ignores_json_null_mle_funnel(
+    client: TestClient, seeded: dict[str, dict[str, str]], db: Session
+) -> None:
+    db.add(ImportBatch(status="committed", funnel=None))
+    db.commit()
+
+    assert _get(client, seeded["mgr"])["mle_funnel"] == {"資料庫總數": 39000, "產品命中": 900}
+
+
 def test_f_dash_2_sales_funnel_counts_own_cases(client: TestClient, seeded: dict[str, dict[str, str]]) -> None:
     """M3-14 發現的 bug：寄信沒認領公司時，業務的漏斗「已寄信」變成 0。"""
     stages = {s["key"]: s["count"] for s in _get(client, seeded["s1"])["funnel"]}
