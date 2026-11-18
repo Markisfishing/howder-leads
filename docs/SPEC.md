@@ -323,9 +323,9 @@ PostgreSQL 16，完整的 DDL 在 [`backend/db/schema.sql`](../backend/db/schema
 |---|---|---|
 | 使用者 | `app_user` | 業務、主管、管理員 |
 | 維度 | `dim_industry`、`dim_priority` | 18 類產業；A–D 優先級和星級的對照（取代 Excel 裡混在資料欄的圖例） |
-| 名單 | `import_batch`、`company` | 匯入批次（預覽時把解析好的資料暫存在 `payload`，確認後才寫入）；公司主檔（統編唯一）、目前狀態、負責業務、業務修正的產業 `industry_override_id`；0009 起加上國別 `country`、網址狀態 `url_status`、資料來源 `source`，批次加上 MLE 附的漏斗數字 `funnel` |
+| 名單 | `import_batch`、`company` | 匯入批次（預覽時把解析好的資料暫存在 `payload`，確認後才寫入）；公司主檔（統編唯一）、目前狀態、負責業務、業務修正的產業 `industry_override_id`；0009 起加上國別 `country`、網址狀態 `url_status`、資料來源 `source` （0016 移除了沒在用的 `import_batch.funnel`）|
 | 模型 | `model_run`、`classification` | 每次模型 run 都保留一份分類結果，`is_current` 標示目前生效的那一份；0009 起加上適合度星等 `fit_stars`（1.0～5.0）、產品類型 `product_type`、命中標籤 `tags` |
-| 回饋 | `review`、`gold_label` | 業務審核（排除一定要有原因）；`gold_label` 是原本盲標用的表，盲標已取消（2026-11-18），表保留未使用 |
+| 回饋 | `review` | 業務審核（排除一定要有原因）；原本盲標用的 `gold_label` 表已在 0016 移除 |
 | 聯絡 | `contact` | 聯絡人、來源（website／business_card／referral／exhibition／manual）和退訂狀態；同一家公司 email 不重複 |
 | 官網摘要 | `company_site_summary` | 每家公司一筆：官網網址、摘要、狀態（ok／failed）、錯誤代碼、抓取時間（M4-08、0015）；只存產品與產業描述，不存人名、email、電話 |
 | 郵件 | `email_template`、`campaign`、`email_draft`、`email_message`、`email_event` | 模板（`family_id` 串起各版本，修改就新增版本）→ 批次 → 草稿（業務編輯純文字 `body_text`，系統轉成 `body_html`；含原稿、排程時間、寄送嘗試次數、最後錯誤、產生方式／模型／prompt 版本）→ 實際寄出 → 事件 |
@@ -337,7 +337,7 @@ PostgreSQL 16，完整的 DDL 在 [`backend/db/schema.sql`](../backend/db/schema
 ### 8.2 ER 關係（簡化）
 ```
 app_user 1─* company(owner) 1─* classification *─1 model_run
-company 1─* review          company 1─1 gold_label
+company 1─* review
 company 1─* contact 1─* email_draft *─1 campaign *─1 email_template
 email_draft 1─1 email_message 1─* email_event
 company 1─* sales_case 1─* case_update     sales_case *─1 email_message
@@ -375,7 +375,7 @@ company 1─* activity_log
 - 原本 JULIA Excel 的欄位（使用可能性、分數、客戶屬性、登記產品）仍然接受，對照規則見 8.3。
 - 多出來、看不懂的欄位會被忽略，並在預覽中提示。範例檔：`docs/samples/import_v1_sample.csv`（假資料）。檔案帶 UTF-8 BOM，Excel 直接開啟中文不會亂碼；MLE 另存 CSV 時請選「CSV UTF-8（逗號分隔）」。
 - 檔案有「資料來源」欄時每列都要填；舊版 Excel 沒有這一欄仍可匯入，預覽提示這批公司的來源會算在「未標示」，重新匯入也不會洗掉已知的來源。
-- 漏斗前段的數字（資料庫總數、產業篩選後、網址有效、產品命中）原本由 API 匯入附在 `funnel` 欄位；F-IMP-5 在 2026-11-18 移除後沒有來源，`import_batch.funnel` 與總覽的 `mle_funnel` 要不要移除待使用者決定。
+- 漏斗前段的數字（資料庫總數、產業篩選後…）原本由 API 匯入附在 `funnel` 欄位；F-IMP-5 移除後沒有來源，2026-11-18 已移除 `import_batch.funnel`、總覽的 `mle_funnel` 與匯入頁的漏斗區塊（migration 0016）。
 
 ---
 
@@ -417,4 +417,4 @@ company 1─* activity_log
 8. 催辦提醒的管道：第一版只出現在平台的待辦清單；要不要另外每天寄一封摘要信給業務？
 9. 推薦名單的最小單位：大類產業，還是更細的產品層級（會議提出，尚未定案）。
 10. 地端 LLM 的 GPU 主機：待公司 IT 確認。確認前 M4 先用開發機本機能跑的 Ollama＋`qwen3:8b`／`qwen3:14b` 開發與試行，自動化測試用 `FakeLlmClient`（2026-11-18）。
-11. 寄信時要不要自動認領公司（目前只有「認領」和「加入追蹤」會），請業務主管決定（M3-14 發現）。
+11. 寄信時自動認領公司：2026-11-18 已決定——寄出邀請信時公司沒人負責，就由寄件人認領並鎖定 `LOCK_DAYS`（預設 30 天）；已有負責人的不變。

@@ -27,6 +27,7 @@ import {
   CAMPAIGN_STATUS_TONE,
   DRAFT_STATUS_LABELS,
   DRAFT_STATUS_TONE,
+  displayTemplateName,
   draftErrorText,
   formatDateTime,
 } from "../../lib/labels";
@@ -89,7 +90,7 @@ export function CampaignReviewPage() {
           <div><span>已完成</span><strong>{cp.progress.sent + cp.progress.discarded} / {cp.progress.total}</strong></div>
           <div><span>寄件人</span><strong>{cp.owner_name ?? "未指定"}</strong></div>
           <div><span>開始寄送</span><strong>{cp.scheduled_at ? formatDateTime(cp.scheduled_at) : "尚未排程"}</strong></div>
-          <div><span>模板</span><strong>{cp.template_name ? `${cp.template_name} v${cp.template_version ?? ""}` : "未指定"}</strong></div>
+          <div><span>模板</span><strong>{cp.template_name ? `${displayTemplateName(cp.template_name)} v${cp.template_version ?? ""}` : "未指定"}</strong></div>
         </section>
       </header>
       <MailConnectionBanner />

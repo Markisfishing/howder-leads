@@ -121,7 +121,6 @@ class ImportBatch(Base):
     imported_by: Mapped[int | None] = mapped_column(ForeignKey("app_user.user_id"))
     status: Mapped[str] = mapped_column(Text, default="previewed")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    funnel: Mapped[Any] = mapped_column(JSONB)
 
 
 class Company(Base):

@@ -4,7 +4,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { configureAuth } from "../api/client";
 import { getMe } from "../api/endpoints";
 import type { User } from "../api/types";
-
 export const AUTH_MODE = import.meta.env.VITE_AUTH_MODE === "entra" ? "entra" : "dev";
 const DEV_KEY = "howder.devUser";
 

@@ -235,7 +235,7 @@ def list_companies(
     filters: ListFilters = Depends(list_filters),
     sort: SortKey = "recommended",
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=50, ge=1, le=200),
+    page_size: int = Query(default=25, ge=1, le=200),
     user: AppUser = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> CompanyPage:

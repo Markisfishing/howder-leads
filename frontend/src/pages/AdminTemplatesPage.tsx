@@ -1,20 +1,16 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { useTemplateActions, useTemplatePreview, useTemplateVariables, useTemplateVersions, useTemplates } from "../api/hooks";
 import type { EmailTemplate } from "../api/types";
 import { Button } from "../components/Button";
 import { Empty, ErrorState, InlineError, Loading } from "../components/StateView";
 import { Tag } from "../components/Tag";
-import { formatDateTime } from "../lib/labels";
+import { displayTemplateName, formatDateTime } from "../lib/labels";
 import { useDebounced } from "../lib/useDebounced";
 import styles from "./Page.module.css";
 import t from "./Templates.module.css";
 
 const NEW_BODY = "{{contact_name}} 您好：\n\n\n\n{{sender_name}}\n厚達電子 業務部\n\n{{unsubscribe}}";
-
-function displayTemplateName(name: string): string {
-  return name.replace("（佔位文字，待 SPEC 11-5 確認）", "").trim() || name;
-}
 
 type Editing = { kind: "new" } | { kind: "edit"; template: EmailTemplate } | null;
 
@@ -142,6 +138,13 @@ function TemplateEditor({
   const [body, setBody] = useState(template?.body_text ?? NEW_BODY);
   const [previewOpen, setPreviewOpen] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  // 內文依內容自動增高，不出現內部捲軸（捲動交給整個頁面）
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+  }, [body]);
   const preview = useTemplatePreview(useDebounced(subject), useDebounced(body));
   const mutation = template ? update : create;
 

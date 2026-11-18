@@ -35,7 +35,6 @@ _DATA_TABLES = [
     "campaign",
     "email_template",
     "contact",
-    "gold_label",
     "review",
     "classification",
     "company",
