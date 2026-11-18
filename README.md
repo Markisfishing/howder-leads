@@ -12,6 +12,7 @@ powershell -ExecutionPolicy Bypass -File .\start-dev.ps1
 
 1. 啟動 Docker PostgreSQL。
 2. 第一次使用時建立 `backend/.env`，不會覆蓋既有設定。
+   一鍵模式會在目前啟動程序中使用 Docker 的 `127.0.0.1:5432`，不會改寫既有 `.env` 的資料庫設定。
 3. 同步後端套件。
 4. 套用資料庫 migration。
 5. 建立初版郵件模板。

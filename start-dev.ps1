@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("all", "api", "worker", "frontend")]
     [string]$Service = "all",
     [switch]$NoBrowser
@@ -63,6 +63,9 @@ if (-not (Test-Path $envFile)) {
     [System.IO.File]::WriteAllText($envFile, $envText, [System.Text.UTF8Encoding]::new($false))
     Write-Host "已建立 backend\.env（開發用 Docker PostgreSQL 設定）" -ForegroundColor Yellow
 }
+
+# 一鍵模式固定使用本腳本啟動的 Docker PostgreSQL；不覆蓋既有 .env。
+$env:DATABASE_URL = "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/howder"
 
 Write-Host "啟動 PostgreSQL..." -ForegroundColor Cyan
 Set-Location $Root
