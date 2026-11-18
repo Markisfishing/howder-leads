@@ -206,7 +206,10 @@ CREATE TABLE email_draft (
     scheduled_at    TIMESTAMPTZ,                     -- 0003：排程寄出時間
     send_attempts   INT NOT NULL DEFAULT 0 CHECK (send_attempts >= 0),  -- 0003
     last_error      TEXT,                            -- 0003：錯誤代碼，不放信件內容
-    body_text       TEXT NOT NULL DEFAULT ''         -- 0005：業務編輯的純文字，body_html 由它轉出
+    body_text       TEXT NOT NULL DEFAULT '',        -- 0005：業務編輯的純文字，body_html 由它轉出
+    gen_provider    TEXT,                            -- 0012：產生方式 local / claude / fake；模板代入為空
+    gen_model       TEXT,                            -- 0012：模型名稱（例如 qwen3:8b）
+    prompt_version  TEXT                             -- 0012：prompt 檔名版本（例如 invite_v1）
 );
 CREATE INDEX idx_draft_campaign_status ON email_draft(campaign_id, status);
 
