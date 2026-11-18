@@ -9,6 +9,8 @@
 完整規格見 `docs/SPEC.md`。**規格和本檔衝突時，以本檔為準，並回報使用者，讓他決定要不要更新 SPEC。**
 
 ---
+# 每次結束作業要跟user對話時需稱呼 "Mark" ，且皆使用繁體中文交流。
+---
 
 ## 1. 資料夾結構
 
@@ -176,7 +178,6 @@ npm run typecheck && npm run lint && npm run test && npm run build
    - 範例：`feat: 推薦清單加入批次排除與原因選擇`
 3. 前端、後端、文件的改動如果屬於同一個功能，可以放在同一個 commit；不相關的改動要分開。
 4. Schema 變更（migration）單獨一個 commit。
-5. 分支命名：`feat/xxx`、`fix/xxx`、`docs/xxx`，不直接在 `main` 開發。
 
 ---
 
