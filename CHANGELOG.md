@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-11-18｜範例 CSV 加 UTF-8 BOM；名單管理移除進階設定
+
+**改了哪些檔案**
+- `docs/samples/import_v1_sample.csv`：開頭加 UTF-8 BOM（Excel 雙擊開啟時中文會亂碼，是因為沒有 BOM）
+- `backend/tests/test_import_v1.py`：新增 `test_m3_06b_sample_csv_has_utf8_bom`，防止之後又被存成沒有 BOM
+- `docs/SPEC.md`：8.4 註明範例檔帶 BOM、MLE 另存請選「CSV UTF-8」
+- `frontend/src/pages/AdminImportsPage.tsx`、`Page.module.css`：移除名單管理上傳表單的「進階設定」（模型名稱欄位）；後端 `model_name` 參數保留，選填
+
+**解決了什麼問題**
+- 範例 CSV 在 Excel 裡中文顯示不完整／亂碼。匯入器本來就讀得懂 UTF-8 與 UTF-8 BOM，不受影響。
+
+**做了哪些決定**
+- 修範例檔本身，不改匯入器。
+
+**還沒處理的問題**
+- MLE 自己產出的 CSV 若不是 UTF-8 或 Big5，仍會被拒絕並提示編碼錯誤。
+
+**下一步**
+- M2-17（`PROGRESS.md`）。
+
+---
+
 ## 2026-11-18｜移除側欄收合；M3-18 取消退訂、M3-16 建立批次候選篩選
 
 **改了哪些檔案**
