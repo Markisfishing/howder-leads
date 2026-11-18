@@ -53,7 +53,7 @@
 - [x] M1-18 `importer`：產生預覽差異（新增 / 更新 / 錯誤）（F-IMP-2） — 2026-11-17
 - [x] M1-19 `importer`：確認寫入，以統編去重，建立 `model_run` 與 `classification`（F-IMP-3） — 2026-11-17
 - [x] M1-20 Excel 欄位轉換規則（拆「明確但競合」、忽略圖例欄）（SPEC 8.3） — 2026-11-17
-- [x] M1-21 `POST /imports`、`POST /imports/{id}/commit` API（F-IMP-2、F-IMP-5） — 2026-11-17
+- [x] M1-21 `POST /imports`、`POST /imports/{id}/commit` API（F-IMP-2、F-IMP-5） — 2026-11-17（F-IMP-5 API 匯入 2026-11-18 移除）
 - [x] M1-22 前端 `/admin/imports` 上傳與預覽頁 — 2026-11-17
 
 ### 狀態機與審核
@@ -307,8 +307,9 @@
 - [ ] 寄信不會自動認領公司（`owner_id` 留空，只有「認領」或「加入追蹤」才會），寄出後其他業務 14 天後仍可寄；要不要寄出時自動認領，請業務主管決定（M3-14 發現）
 - [ ] 欄位自選等受控對話框關閉後，焦點回到頁面最上面而不是原本的按鈕；`Modal` 元件可加上關閉後還原焦點
 - [ ] 推薦清單篩選列 M3-06c 後變成 14 個欄位，手機上更長；和上面「收合成篩選按鈕」一起處理
-- [ ] `uv run mypy app` 在 `api/v1/campaigns.py`（目前第 316 行）報 1 個錯（`row.count` 被當成 Row 的方法），M3-17 之前就存在；改成 `row[1]` 或替欄位取別名即可
+- [ ] `uv run mypy app` 在 `api/v1/campaigns.py`（目前第 322 行）報 1 個錯（`row.count` 被當成 Row 的方法），M3-17 之前就存在；改成 `row[1]` 或替欄位取別名即可
 - [ ] 案件的聯絡人退訂、但公司還有其他聯絡人時，案件的 `contact_id` 仍指向已退訂的人；之後回填或再寄信要手動選其他聯絡人，可考慮自動換成下一位
-- [ ] API 匯入 `POST /imports/api`（F-IMP-5，原本給 MLE 的程式直接寫入）：沒有模型之後應該沒人會用；保留不影響，要不要移除請使用者決定
+- [ ] 匯入批次的漏斗數字（`import_batch.funnel`、總覽 `mle_funnel`、匯入頁的漏斗區塊）只有已移除的 API 匯入會寫入，之後不會有新資料；要不要移除請使用者決定
+- [ ] 資料庫還留著沒在用的 `gold_label` 表（盲標已取消）；要刪得新增 migration，請使用者決定
 - [ ] 建立批次時最近寄過的天數改讀設定後，防呆中文仍固定寫「14 天內已經寄過」，`RECENT_SEND_DAYS` 改值時文字不會跟著變
 - [ ] 總覽的比例（回覆率、留存率）在 `metrics_service` 依篩選加總後計算，「寄出未滿 10 件不算」的門檻同時寫在 `v_kpi_summary` 和 `metrics_service.MIN_SAMPLE`；若要只定義一次，可改成 SQL 函式

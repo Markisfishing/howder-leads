@@ -54,7 +54,6 @@ def database_url() -> Iterator[str]:
         ENV="test",
         AUTH_MODE="dev",
         MAIL_MODE="sandbox",
-        IMPORT_API_KEY="test-key",
         BOOTSTRAP_ADMIN_EMAILS="admin@example.com",
     )
     from app.config import get_settings

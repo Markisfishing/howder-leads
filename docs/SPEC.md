@@ -92,10 +92,9 @@ imported → pending_review ─┬─► approved → drafted → draft_approved
 | ID | 需求 | 驗收條件 |
 |---|---|---|
 | F-IMP-1 | 上傳 CSV / XLSX | 支援 UTF-8 和 Big5 編碼，檔案上限 10 MB |
-| F-IMP-2 | 匯入前先預覽 | 顯示「新增 X、更新 Y、錯誤 Z」和每一筆錯誤的原因；要按「確認匯入」才會寫入。畫面匯入時有錯誤的列會略過、其餘照常寫入；API 匯入（F-IMP-5）有任何錯誤就整批拒絕 |
+| F-IMP-2 | 匯入前先預覽 | 顯示「新增 X、更新 Y、錯誤 Z」和每一筆錯誤的原因；要按「確認匯入」才會寫入。有錯誤的列會略過、其餘照常寫入 |
 | F-IMP-3 | 用統編去重 | 同一份檔案匯入兩次，`company` 的筆數不會增加 |
 | F-IMP-4 | 檢查欄位 | 統編必須是 8 碼數字；產業和優先級必須是維度表裡有的值，否則列入錯誤 |
-| F-IMP-5 | API 匯入 | `POST /api/v1/imports/api` 可以收 JSON，之後 MLE 的 function 可以直接寫入，不用再經過 CSV |
 
 ### 4.2 推薦清單（業務的首頁）
 | ID | 需求 | 驗收條件 |
@@ -259,7 +258,6 @@ backend/app/
 | POST | `/contacts/{id}/resubscribe` | 取消退訂（主管／管理員，body 帶 `reason`），寫 `activity_log` |
 | DELETE | `/contacts/{id}` | 個資刪除（主管／管理員，body 帶 `reason`）：連帶刪除草稿與寄出信件，寫 `activity_log` |
 | POST | `/imports` | 管理員上傳 CSV / XLSX → 回傳預覽（`status = previewed`） |
-| POST | `/imports/api?commit=` | MLE function 用 JSON 匯入（`X-API-Key`）；`commit=true` 直接寫入，有錯誤就整批拒絕 |
 | GET | `/imports`、`/imports/{id}` | 匯入紀錄與預覽內容 |
 | POST | `/imports/{id}/cancel` | 取消預覽中的批次 |
 | POST | `/imports/{id}/commit` | 確認匯入 |
@@ -374,7 +372,7 @@ company 1─* activity_log
 - 原本 JULIA Excel 的欄位（使用可能性、分數、客戶屬性、登記產品）仍然接受，對照規則見 8.3。
 - 多出來、看不懂的欄位會被忽略，並在預覽中提示。範例檔：`docs/samples/import_v1_sample.csv`（假資料）。檔案帶 UTF-8 BOM，Excel 直接開啟中文不會亂碼；MLE 另存 CSV 時請選「CSV UTF-8（逗號分隔）」。
 - 檔案有「資料來源」欄時每列都要填；舊版 Excel 沒有這一欄仍可匯入，預覽提示這批公司的來源會算在「未標示」，重新匯入也不會洗掉已知的來源。
-- 漏斗前段的數字（資料庫總數、產業篩選後、網址有效、產品命中）由 MLE 在匯入時附上（API 匯入時放在 `funnel` 欄位），系統只顯示，不重算。
+- 漏斗前段的數字（資料庫總數、產業篩選後、網址有效、產品命中）原本由 API 匯入附在 `funnel` 欄位；F-IMP-5 在 2026-11-18 移除後沒有來源，`import_batch.funnel` 與總覽的 `mle_funnel` 要不要移除待使用者決定。
 
 ---
 
