@@ -9,8 +9,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import AppUser, CaseUpdate, Company, ImportBatch, SalesCase
-from app.services.metrics_service import rate
+from app.models import AppUser, CaseUpdate, Company, SalesCase
+from app.services.metrics_service import min_sample, rate
 
 Headers = Callable[[str], dict[str, str]]
 NOV1 = datetime(2026, 11, 1, 2, 0, tzinfo=UTC)  # 台灣 11/1 10:00
@@ -83,7 +83,6 @@ def seeded(db: Session, client: TestClient, as_user: Headers) -> dict[str, dict[
         d.case(s1, ["sent"], "sent", source="b2b", at=NOV10)
     d.case(s2, ["sent"], "sent")
     db.add(Company(tax_id="91009999", name="待審公司", status="pending_review"))
-    db.add(ImportBatch(status="committed", funnel={"資料庫總數": 39000, "產品命中": 900}))
     db.commit()
     return heads
 
@@ -128,7 +127,6 @@ def test_f_dash_2_funnel_with_retention(client: TestClient, seeded: dict[str, di
     assert stages["sent"] == (16, "1.0000")
     assert stages["replied"] == (4, "0.2500")
     assert stages["won"] == (1, "0.2500")
-    assert body["mle_funnel"] == {"資料庫總數": 39000, "產品命中": 900}
 
 
 def test_f_dash_2_sales_funnel_counts_own_cases(client: TestClient, seeded: dict[str, dict[str, str]]) -> None:
@@ -157,6 +155,15 @@ def test_f_dash_4_reminder_counts(client: TestClient, seeded: dict[str, dict[str
 
 
 def test_f_dash_rate_helper() -> None:
-    assert rate(3, 9) is None
-    assert rate(3, 10) == Decimal("0.3000")
+    assert rate(3, 9, 10) is None
+    assert rate(3, 10, 10) == Decimal("0.3000")
     assert rate(0, 0, 1) is None
+
+
+def test_f_dash_min_sample_comes_from_db_function(db: Session) -> None:
+    """CLAUDE.md 第 4 節：門檻只在資料庫 kpi_min_sample() 定義一次，Python 讀出來用，view 也用同一個。"""
+    from sqlalchemy import text
+
+    assert min_sample(db) == db.scalar(text("SELECT kpi_min_sample()")) == 10
+    view_sql = db.scalar(text("SELECT pg_get_viewdef('v_kpi_summary'::regclass)"))
+    assert "kpi_min_sample()" in str(view_sql)

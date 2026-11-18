@@ -41,7 +41,7 @@ export const DEFAULT_FILTERS: ListFilters = {
   minStars: null,
   sort: "recommended",
   page: 1,
-  pageSize: 50,
+  pageSize: 25,
 };
 
 const SORTS: SortKey[] = ["recommended", "name", "updated"];

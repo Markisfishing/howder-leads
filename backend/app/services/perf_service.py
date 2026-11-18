@@ -14,7 +14,7 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.models import ModelRun, v_case_perf, v_reject_reasons
-from app.services.metrics_service import MIN_SAMPLE, NO_SOURCE_LABEL, OverviewFilter, _bounds, _count_if, rate
+from app.services.metrics_service import NO_SOURCE_LABEL, OverviewFilter, _bounds, _count_if, min_sample, rate
 
 P = v_case_perf.c
 
@@ -41,17 +41,17 @@ def _perf(stmt: Select[Any], f: PerfFilter) -> Select[Any]:
     return stmt
 
 
-def _row(key: str, label: str, sent: int, replied: int, won: int, amount: Any) -> dict[str, Any]:
+def _row(ms: int, key: str, label: str, sent: int, replied: int, won: int, amount: Any) -> dict[str, Any]:
     return {
         "key": key,
         "label": label,
         "sent": sent,
         "replied": replied,
-        "reply_rate": rate(replied, sent),
+        "reply_rate": rate(replied, sent, ms),
         "won": won,
-        "win_rate": rate(won, sent),
+        "win_rate": rate(won, sent, ms),
         "won_amount_twd": Decimal(amount or 0),
-        "insufficient": sent < MIN_SAMPLE,
+        "insufficient": sent < ms,
     }
 
 
@@ -82,7 +82,7 @@ def win_rate(db: Session, f: PerfFilter, by: str) -> list[dict[str, Any]]:
     items = []
     for key, sent, replied, won, amount in rows:
         label = STAR_LABELS.get(int(key), f"{key} 星") if by == "stars" else str(key)
-        items.append(_row(str(key), label, int(sent), int(replied), int(won), amount))
+        items.append(_row(min_sample(db), str(key), label, int(sent), int(replied), int(won), amount))
     items.sort(key=_order)
     return items
 
@@ -97,7 +97,7 @@ def _by_tag(db: Session, f: PerfFilter) -> list[dict[str, Any]]:
             a[1] += 1 if replied else 0
             a[2] += 1 if won else 0
             a[3] += Decimal(amount or 0)
-    items = [_row(tag, tag, a[0], a[1], a[2], a[3]) for tag, a in acc.items()]
+    items = [_row(min_sample(db), tag, tag, a[0], a[1], a[2], a[3]) for tag, a in acc.items()]
     items.sort(key=_order)
     return items
 
@@ -122,7 +122,7 @@ def by_template(db: Session, f: PerfFilter) -> list[dict[str, Any]]:
         )
     ).all()
     items = [
-        _row(f"{fam}:{ver}", f"{name}（第 {ver} 版）", int(s), int(r), int(w), amt)
+        _row(min_sample(db), f"{fam}:{ver}", f"{name}（第 {ver} 版）", int(s), int(r), int(w), amt)
         for fam, name, ver, s, r, w, amt in rows
     ]
     items.sort(key=_order)
@@ -146,7 +146,7 @@ def by_rep(db: Session, f: PerfFilter) -> list[dict[str, Any]]:
             f,
         )
     ).all()
-    items = [_row(str(oid), str(name), int(s), int(r), int(w), amt) for oid, name, s, r, w, amt in rows]
+    items = [_row(min_sample(db), str(oid), str(name), int(s), int(r), int(w), amt) for oid, name, s, r, w, amt in rows]
     items.sort(key=lambda x: (-x["won_amount_twd"], -x["won"], -x["sent"], x["label"]))
     return items
 

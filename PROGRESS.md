@@ -114,19 +114,6 @@
   6. 結束後 `MAIL_MODE` 改回 `sandbox`；結果（不含信箱地址）寫進 CHANGELOG，打勾 M2-15。
 - **注意**：新的個人帳號可能被 Microsoft 限制寄送量或要求驗證；遇到就記錄錯誤代碼，不要調高上限硬寄。
 
-### M4-06g 本機冒煙腳本：剩 CLAUDE.md 指令補充
-- 腳本 `backend/scripts/llm_smoke.py` 已完成並實測通過；只剩把下面幾行加進 CLAUDE.md 第 3 節指令區。**改 CLAUDE.md 前先問負責人**：
-  - `ollama serve`（這台機器要用上面「開發環境」那段的環境變數啟動）
-  - `uv run python -m scripts.llm_smoke [--mode full_ai] [--model qwen3:14b --runs 3]`
-  - `uv run python -m scripts.llm_bench --n 50 --concurrency 2`
-- 負責人同意、改完後打勾 M4-06g 與上層 M4-06（如果 b、l 也完成）。
-
-### M4-06b 選地端模型：剩業務盲評
-- 速度與失敗率已實測（ADR 0006）：`qwen3:8b` 每封約 3 秒，`qwen3:14b` 約 28 秒。
-- **開發者準備**：sandbox 用 10 家假公司（只用公司名、產業、推薦理由）各用 8b、14b 產生一封 `template_ai`，匯出成不標示模型的對照表（A／B 隨機），對應表另外保存。
-- **業務做**：每封評 1～5 分——通順度、內容正確、有沒有捏造（實績／價格／認證／交期）、要改多少。
-- **結果**：平均分數、捏造次數寫回 `docs/adr/0006-local-llm-first.md`，決定預設模型（`LOCAL_LLM_MODEL`）。
-
 ### M4-06l 完整 sandbox 50 封驗收
 - LLM 階段已測過（`qwen3:8b` 50 封 82 秒、0 失敗）。還要走完整流程：`MAIL_MODE=sandbox`、開本機 Ollama、API 與 worker → 準備 50 家假公司 → 建立 `template_ai` 批次 → 從按下建立到 50 封都出現在預覽佇列計時 → 記錄總耗時與失敗數，對照 F-MAIL-3「50 封 3 分鐘」→ 寫進 ADR 0006 → 打勾。
 
@@ -383,12 +370,12 @@
 ### 原始任務（保留編號，細項在下面各小節）
 - [x] M4-01 績效頁：漏斗、各星級成交率、各來源／標籤／模板回覆率、業務排行（F-TRK-5）→ 拆成 M4-01a～c — 2026-11-18
 - [x] M4-02 排除原因報表（F-MLE-1，內部的名單品質報表）→ 拆成 M4-02a、b — 2026-11-18
-- [ ] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）。先用地端 LLM（ADR 0006）→ 拆成 M4-06a～l
+- [ ] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）。先用地端 LLM（ADR 0006）→ 拆成 M4-06a～l（沒有 b：2026-11-18 使用者決定不做業務盲評，已刪除）
 - [x] M4-07 依回填內容判斷回覆態度（F-TRK-2；原 M3-03）→ 拆成 M4-07a～c — 2026-11-18
 - [x] M4-08 官網摘要：給 AI 寫信用的公司背景（SPEC 7.4；M4-06 的前置）→ 拆成 M4-08a～e — 2026-11-18
 
 ### AI 寫信（M4-06；F-MAIL-2、F-MAIL-3、F-MAIL-8、SPEC 7.4、ADR 0006）
-依這個順序做：a → e → f → g → h → c → i → j → k → b → d → l
+依這個順序做：a → e → f → g → h → c → i → j → k → d → l
 
 - [x] M4-06a `LlmClient` 介面（輸入 system prompt＋使用者內容，回傳文字與耗時、token 數）＋`FakeLlmClient`；設定 `LLM_PROVIDER`（預設 `local`）、`LOCAL_LLM_BASE_URL`（預設本機 Ollama）、`LOCAL_LLM_MODEL`（預設 `qwen3:8b`）、`LLM_TIMEOUT_SECONDS`、`LLM_CONCURRENCY` 加進設定與 `.env.example`；依設定注入的測試（原本這一項也含 JSON 驗證、簡體字檢查、逾時重試，改拆到 M4-06e、M4-06f） — 2026-11-18
 - [x] M4-06e `domain/ai_rules.py`（純函式）：去掉 qwen3 的 `<think>…</think>` 思考段、從回覆取出 JSON、驗證必要欄位與長度（主旨、`ai_paragraph`、`body_text`）、常見簡體字檢查；每條規則都有單元測試 — 2026-11-18
@@ -438,20 +425,23 @@
 
 ## 開發中發現、還沒排進階段的事
 
-- [x] 根目錄新增 `start-dev.ps1`，一鍵啟動 Docker PostgreSQL、API、Worker 與前端，並在 `README.md` 補上使用說明 — 2026-11-18
 - [x] 新增 `.gitattributes` 統一 LF 換行（部署到 Linux 前） — 2026-11-17
 - [x] 本機 `pgserver` 複製資料夾缺少 `pg_ctl.exe`／`initdb.exe` 時，測試啟動會依必要執行檔完整性自動重新複製 — 2026-11-18
-- [x] 前端 bundle 651 kB（超過 500 kB 警告）：頁面依路由切分、MSAL 動態載入，主程式 309 kB — 2026-11-18
-- [x] 手機版篩選列有 8 個欄位，佔掉一整個螢幕；考慮收合成「篩選」按鈕 — 2026-11-18（審核工作台已改成按鈕開側欄，375px 確認）
+- [x] 根目錄新增 `start-dev.ps1`，一鍵啟動 Docker PostgreSQL、API、Worker、Ollama 與前端，並在 `README.md` 補上使用說明 — 2026-11-18
+- [x] 前端 bundle 651 kB（超過 500 kB 警告）：dev 模式不需要 MSAL，可改成動態載入或依路由切分 — 2026-11-18（路由改成依頁面載入、MSAL 動態載入；主 bundle 651 → 309 kB，警告消失）
+- [x] 郵件模板編輯器的內文 textarea 有內部捲軸，長內容時視覺疲勞；考慮讓 textarea 依內容自動增高（2026-11-18 瀏覽器檢查發現） — 2026-11-18（內文依內容自動增高；未在瀏覽器實際看過）
+- [ ] 部分公司官網摘要抓取失敗（目前會改用推薦理由，功能不受影響）；之後可看失敗原因分布（robots、逾時、非 HTML）決定要不要調整（2026-11-18）
+- [ ] 手機實機尺寸還沒測：目前只用瀏覽器 viewport 模擬（375px），且該瀏覽器連線不支援 viewport 調整時無法檢查；M2-15 驗收時順便用真機看（2026-11-18）
+- [x] 手機版篩選列有 8 個欄位，佔掉一整個螢幕；考慮收合成「篩選」按鈕 — 2026-11-18（複核：推薦清單早已把篩選收進「篩選」側欄，手機寬度只看到按鈕，不需再改）
 - [ ] 原始 Excel 第 44 列缺統編，匯入時會被略過；請整理 Excel 的人補上
 - [x] 公司詳情側欄打開時焦點落在「排除…」按鈕，改成落在標題或關閉鈕比較安全 — 2026-11-18
-- [x] `RecommendationsPage` 與 `AdminImportsPage` 尚無元件測試（目前靠瀏覽器檢查） — 2026-11-18（AdminImportsPage 補 7 個測試）
-- [ ] 寄信不會自動認領公司（`owner_id` 留空，只有「認領」或「加入追蹤」才會），寄出後其他業務 14 天後仍可寄；要不要寄出時自動認領，請業務主管決定（M3-14 發現）
+- [x] `RecommendationsPage` 與 `AdminImportsPage` 尚無元件測試（目前靠瀏覽器檢查）（進行中：已完成 RecommendationsPage 的加入追蹤與小數星等測試，AdminImportsPage 還沒有） — 2026-11-18（AdminImportsPage 6 個測試、RecommendationsPage 補空資料與錯誤狀態）
+- [x] 寄信不會自動認領公司（`owner_id` 留空，只有「認領」或「加入追蹤」才會），寄出後其他業務 14 天後仍可寄；要不要寄出時自動認領，請業務主管決定（M3-14 發現） — 2026-11-18（使用者照建議：寄出時公司沒人負責就由寄件人認領並鎖定；已有負責人的不變）
 - [x] 欄位自選等受控對話框關閉後，焦點回到頁面最上面而不是原本的按鈕；`Modal` 元件可加上關閉後還原焦點 — 2026-11-18
-- [ ] 推薦清單篩選列 M3-06c 後變成 14 個欄位，手機上更長；和上面「收合成篩選按鈕」一起處理
+- [x] 推薦清單篩選列 M3-06c 後變成 14 個欄位，手機上更長；和上面「收合成篩選按鈕」一起處理 — 2026-11-18（同上）
 - [x] `uv run mypy app` 在 `api/v1/campaigns.py` 的 `row.count` 被當成 Row 的方法；改用查詢結果第二欄位 `row[1]` — 2026-11-18
 - [ ] 案件的聯絡人退訂、但公司還有其他聯絡人時，案件的 `contact_id` 仍指向已退訂的人；之後回填或再寄信要手動選其他聯絡人，可考慮自動換成下一位
-- [ ] 匯入批次的漏斗數字（`import_batch.funnel`、總覽 `mle_funnel`、匯入頁的漏斗區塊）只有已移除的 API 匯入會寫入，之後不會有新資料；要不要移除請使用者決定
-- [ ] 資料庫還留著沒在用的 `gold_label` 表（盲標已取消）；要刪得新增 migration，請使用者決定
+- [x] 匯入批次的漏斗數字（`import_batch.funnel`、總覽 `mle_funnel`、匯入頁的漏斗區塊）只有已移除的 API 匯入會寫入，之後不會有新資料；要不要移除請使用者決定 — 2026-11-18（已移除：migration 0016、API、總覽、匯入頁）
+- [x] 資料庫還留著沒在用的 `gold_label` 表（盲標已取消）；要刪得新增 migration，請使用者決定 — 2026-11-18（已刪除：migration 0016）
 - [x] 建立批次時最近寄過的天數改讀設定後，防呆中文仍固定寫「14 天內已經寄過」，`RECENT_SEND_DAYS` 改值時文字不會跟著變 — 2026-11-18
-- [ ] 總覽的比例（回覆率、留存率）在 `metrics_service` 依篩選加總後計算，「寄出未滿 10 件不算」的門檻同時寫在 `v_kpi_summary` 和 `metrics_service.MIN_SAMPLE`；若要只定義一次，可改成 SQL 函式
+- [x] 總覽的比例（回覆率、留存率）在 `metrics_service` 依篩選加總後計算，「寄出未滿 10 件不算」的門檻同時寫在 `v_kpi_summary` 和 `metrics_service.MIN_SAMPLE`；若要只定義一次，可改成 SQL 函式 — 2026-11-18（migration 0017：函式 `kpi_min_sample()` 是唯一定義，view 與 Python 都讀它）

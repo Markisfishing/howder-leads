@@ -35,7 +35,6 @@ class BatchSummary(BaseModel):
     rows_unchanged: int
     rows_error: int
     created_at: datetime
-    funnel: dict[str, int] | None = None
 
 
 class BatchDetail(BatchSummary):

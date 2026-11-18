@@ -13,8 +13,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.domain import draft_rules, send_limits
-from app.domain.company_rules import DomainError, can_transition
+from app.domain import company_rules, draft_rules, send_limits
+from app.domain.company_rules import DomainError, Ownership, can_transition
 from app.models import ActivityLog, AppUser, Campaign, Company, Contact, EmailDraft, EmailMessage, UserMailCredential
 from app.services import campaign_service, case_service, jobs
 from app.services import company_service as company_svc
@@ -231,6 +231,11 @@ def send_one(db: Session, draft_id: int, mailer: Mailer, settings: Settings, now
     draft.last_error = None
     if can_transition(company.status, "sent"):
         company_svc.change_status(db, company, "sent", sender, f"邀請信已寄出（草稿 #{draft.draft_id}）")
+    if company.owner_id is None:
+        # 寄出邀請信就是開始經營這家公司：沒人負責時順便認領，鎖定期間其他業務不能再寄（SPEC 11-11）
+        owner = company_rules.claim(Ownership(None, None), sender.user_id, now, settings.lock_days)
+        company.owner_id, company.owner_locked_until = owner.owner_id, owner.locked_until
+        company_svc.log(db, company, sender, "claim", None, str(sender.user_id), "寄出邀請信時認領")
     case_service.open_for_email(db, company, draft.contact_id, sender, message, now)  # F-CASE-1
     db.add(
         ActivityLog(

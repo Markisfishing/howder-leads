@@ -38,10 +38,11 @@ export function RecommendationsPage({ initialView = "list" }: Props) {
   const [params, setParams] = useSearchParams();
   const [view, setView] = useState<ViewMode>(initialView);
   const filters = useMemo(() => parseFilters(params), [params]);
-  const effectiveFilters = useMemo(
-    () => (view === "review" && filters.status.length === 0 ? { ...filters, status: ["pending_review"] } : filters),
-    [filters, view],
-  );
+  const effectiveFilters = useMemo(() => {
+    const next = view === "review" && filters.status.length === 0 ? { ...filters, status: ["pending_review"] } : filters;
+    // 審核模式要能一路按「下一筆」走完整個佇列；完整清單則使用較小分頁避免一次塞入大量資料。
+    return view === "review" ? { ...next, pageSize: 200 } : next;
+  }, [filters, view]);
   const filterKey = toSearchParams(effectiveFilters).toString();
   const openId = Number(params.get("company")) || null;
 

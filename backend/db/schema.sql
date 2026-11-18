@@ -47,8 +47,7 @@ CREATE TABLE import_batch (
     error_report  JSONB,
     imported_by   BIGINT REFERENCES app_user(user_id),
     status        TEXT NOT NULL DEFAULT 'previewed', -- previewed | committed | cancelled
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    funnel        JSONB                              -- 0009：MLE 附上的漏斗前段數字（只顯示）
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TYPE company_status AS ENUM (
@@ -128,16 +127,6 @@ CREATE TABLE review (
     note            TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (decision = 'approved' OR reject_reason IS NOT NULL)  -- 排除一定要有原因
-);
-
--- 盲標用的標準答案（標註員看不到模型結果）
-CREATE TABLE gold_label (
-    company_id    BIGINT PRIMARY KEY REFERENCES company(company_id) ON DELETE CASCADE,
-    industry_id   SMALLINT REFERENCES dim_industry(industry_id),
-    is_prospect   BOOLEAN,
-    correct_url   TEXT,
-    labeler_id    BIGINT REFERENCES app_user(user_id),
-    labeled_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ---------- 聯絡人 ----------
@@ -393,9 +382,12 @@ LEFT JOIN v_case_fact f ON f.company_id = r.company_id
 GROUP BY r.company_id, r.status, r.owner_id, r.industry_id, r.source, r.product_type,
          r.priority, r.stars, r.fit_stars, c.created_at;
 
+-- 0017：KPI 樣本門檻（寄出少於這個件數不算比例）只在這裡定義一次
+CREATE FUNCTION kpi_min_sample() RETURNS integer LANGUAGE sql IMMUTABLE AS 'SELECT 10';
+
 CREATE VIEW v_kpi_summary AS                        -- KPI 卡（比例也在這裡算；0010 起回覆率改用案件）
 SELECT k.pending_review, k.total_companies, k.five_star, k.sent_7d, k.sent_total, k.replied_total,
-       CASE WHEN k.sent_total >= 10 THEN round(k.replied_total::numeric / k.sent_total, 4) END AS reply_rate,
+       CASE WHEN k.sent_total >= kpi_min_sample() THEN round(k.replied_total::numeric / k.sent_total, 4) END AS reply_rate,
        k.won_total, k.won_amount_twd
 FROM (
   SELECT

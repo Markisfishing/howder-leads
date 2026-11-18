@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config import Settings, get_settings
 from app.db import get_engine
 from app.domain import send_limits, template_rules
-from app.models import Company, EmailDraft, EmailMessage, Job
+from app.models import AppUser, Company, EmailDraft, EmailMessage, Job
 from app.services.llm import FakeLlmClient
 from app.services.mailer import MailAuthError, MailSendError, OutgoingMail, SandboxMailer, SendResult
 from app.services.site_fetcher import FakeSiteFetcher
@@ -574,6 +574,34 @@ def test_f_mail_6_after_end_hour_waits_until_next_morning(world: World) -> None:
     at = datetime.fromisoformat(draft["scheduled_at"]).astimezone(send_limits.TAIPEI)
     assert (at.hour, at.minute) == (world.settings.send_day_start_hour, 0)
     assert at.date() > datetime.now(send_limits.TAIPEI).date()
+
+
+def test_f_case_1_sending_claims_unowned_company(world: World) -> None:
+    """SPEC 11-11：寄出時公司沒人負責就由寄件人認領（鎖定期間其他業務不能寄）；已有負責人的不變。"""
+    cid, _ = _approved(world, 2)
+    drafts = world.drafts(cid)
+    with Session(get_engine()) as db:  # 第一家先由別人負責
+        other = AppUser(email="owner@example.com", display_name="其他業務", role="sales")
+        db.add(other)
+        db.flush()
+        first = db.get(EmailDraft, drafts[0]["draft_id"])
+        assert first is not None
+        company = db.get(Company, first.company_id)
+        assert company is not None
+        company.owner_id = other.user_id
+        db.commit()
+        taken_id, other_id = company.company_id, other.user_id
+    world.client.post(f"/api/v1/campaigns/{cid}/send", json={}, headers=world.sales1)
+    world.worker()
+    with Session(get_engine()) as db:
+        sender = db.scalars(select(AppUser).where(AppUser.email == "sales1@example.com")).one()
+        for d in world.drafts(cid):
+            company = db.get(Company, db.get(EmailDraft, d["draft_id"]).company_id)  # type: ignore[union-attr]
+            assert company is not None
+            if company.company_id == taken_id:
+                assert company.owner_id == other_id
+            else:
+                assert company.owner_id == sender.user_id and company.owner_locked_until is not None
 
 
 def test_f_mail_6_schedule_in_future(world: World) -> None:
