@@ -54,6 +54,9 @@ def database_url() -> Iterator[str]:
         ENV="test",
         AUTH_MODE="dev",
         MAIL_MODE="sandbox",
+        MAIL_TRANSPORT="graph",  # 不受本機 .env 的共用 SMTP 信箱設定影響（ADR 0008）
+        SMTP_USERNAME="",
+        SMTP_PASSWORD="",
         SEND_DAY_END_HOUR="24",  # 測試不能隨執行時間（18 點後）而變
         MAIL_ALLOWED_RECIPIENTS="",  # 不受本機 .env 的測試白名單影響（M2-18）
         DAILY_SEND_LIMIT="50",
