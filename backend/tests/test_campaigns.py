@@ -341,6 +341,28 @@ def _approved(world: World, n: int = 2) -> tuple[int, list[dict]]:  # type: igno
     return cid, drafts
 
 
+def _campaign_status(world: World, cid: int) -> str:
+    return str(world.client.get(f"/api/v1/campaigns/{cid}", headers=world.sales1).json()["status"])
+
+
+def test_m2_16_all_reviewed_becomes_ready(world: World) -> None:
+    cid, drafts = _generated(world, 2)
+    first = f"/api/v1/drafts/{drafts[0]['draft_id']}"
+    world.client.post(f"{first}/approve", headers=world.sales1)
+    assert _campaign_status(world, cid) == "reviewing"  # 還有一封待審核
+    world.client.post(f"/api/v1/drafts/{drafts[1]['draft_id']}/discard", headers=world.sales1)
+    assert _campaign_status(world, cid) == "ready"  # 都處理完、還沒按寄出 → 待寄出
+    world.client.post(f"{first}/unapprove", headers=world.sales1)
+    assert _campaign_status(world, cid) == "reviewing"  # 取消核准退回待審核
+
+
+def test_m2_16_ready_then_send_becomes_scheduled(world: World) -> None:
+    cid, _ = _approved(world, 2)
+    assert _campaign_status(world, cid) == "ready"
+    res = world.client.post(f"/api/v1/campaigns/{cid}/send", json={}, headers=world.sales1)
+    assert res.json()["campaign"]["status"] == "scheduled"
+
+
 def _count(world: World, model: type) -> int:
     world.db.expire_all()
     return int(world.db.scalar(select(func.count()).select_from(model)) or 0)

@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-11-18｜記錄 M2 待確認的決定；M3-17 退訂只標聯絡人、M2-16 待寄出狀態
+
+**改了哪些檔案**
+- `docs/SPEC.md`、`PROGRESS.md`：記錄使用者對 M2 待確認事項的決定（F-MAIL-4、F-MAIL-6、F-CASE-5、取消退訂 API、11-10 GPU、11-11 寄信是否自動認領），新增任務 M2-16、M2-17、M3-16～M3-18
+- `CLAUDE.md`：第 3 節 Graph 改成「登入、寄信；不讀業務信箱，ADR 0004」；第 1、4 節的 `sync_replies`／同步回覆改成實際的 `case_daily`（每日催辦）（使用者確認後修改）
+- `backend/app/domain/contact_rules.py`、`services/contact_service.py`、`api/v1/contacts.py`、`api/v1/cases.py`：退訂只標記該聯絡人；`whole_company` 或最後一位聯絡人退訂才改公司 `do_not_contact` 並結案（M3-17）
+- `frontend/src/pages/recommendations/ContactConfirmDialog.tsx`、`pages/cases/CasePanel.tsx`：退訂對話框加「整家公司不再聯絡」勾選，說明文字依是否還有其他聯絡人改變
+- `backend/migrations/versions/0011_campaign_status_ready.py`、`db/schema.sql`：`campaign.status` 加 `ready`（M2-16）
+- `backend/app/services/campaign_service.py`：草稿都審完、還沒按寄出時批次狀態是 `ready`；前端 `labels.ts` 顯示「待寄出」，`CampaignsPage.tsx`「我的待辦」也算待寄出
+- 測試：`test_contacts`、`test_cases`、`test_schema_0011`、`test_campaigns`；前端 `ContactDialogs`、`Cases`、`Campaigns`、`labels`
+
+**解決了什麼問題**
+- 一位聯絡人退訂就讓整家公司不再聯絡，太嚴；現在公司還有其他聯絡人時照常可寄，案件也照常進行。
+- 批次全部核准後仍顯示「待審核」，業務看不出來只差按寄出；現在顯示「待寄出」並列在「我的待辦」。
+
+**做了哪些決定**
+- 「公司要不要改不再聯絡」規則放在 `domain/contact_rules.company_stops_contact`；前端只依案件聯絡人清單決定說明文字，不重判規則。
+- 整家公司不再聯絡時，其他聯絡人不會被標成退訂（取消退訂時只需處理公司狀態）。
+- `ready` 不做資料回填：既有批次在下一次草稿動作時才重算（尚未上線，沒有影響）。
+- M3-17 時誤用 prettier 重排了 5 個前端檔案，另開 `style:` commit 還原，專案不使用 prettier。
+
+**還沒處理的問題**
+- `uv run mypy app` 在 `api/v1/campaigns.py:301` 有 1 個既有錯誤（M3-17 之前就存在），列在 `PROGRESS.md`「開發中發現」。
+- 案件聯絡人退訂但公司仍可聯絡時，案件 `contact_id` 仍指向已退訂的人。
+- 寄信要不要自動認領公司（SPEC 11-11）、GPU 主機（SPEC 11-10）。
+
+**下一步**
+- M3-18 取消退訂，接著 M2-17、M3-16；之後拆 M4。
+
+---
+
 ## 2026-11-18｜M3 案件追蹤與總覽（閉環）、CSV 欄位規格 v1
 
 **改了哪些檔案**
