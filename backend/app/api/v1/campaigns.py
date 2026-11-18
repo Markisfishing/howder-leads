@@ -319,7 +319,7 @@ def list_drafts(
     total = int(db.scalar(select(func.count()).select_from(base.subquery())) or 0)
     drafts = list(db.scalars(base.order_by(EmailDraft.draft_id).offset((page - 1) * page_size).limit(page_size)))
     counts = {
-        row.status: int(row.count)
+        row.status: int(row[1])
         for row in db.execute(
             select(EmailDraft.status, func.count())
             .where(EmailDraft.campaign_id == campaign_id)
