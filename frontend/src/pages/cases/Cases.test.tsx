@@ -156,3 +156,49 @@ describe("M3-11 案件頁", () => {
     expect(JSON.parse(String(init?.body))).toMatchObject({ whole_company: true });
   });
 });
+
+describe("M4-07c 客戶態度", () => {
+  const withReply = (sentiment: "positive" | null, source: "ai" | "manual" | null): CaseDetail => ({
+    ...base,
+    timeline: [
+      ...base.timeline,
+      {
+        update_id: 2,
+        user_name: "業務甲",
+        channel: "phone",
+        contact_name: "測試窗口",
+        result: "replied",
+        note: "客戶說想先看報價",
+        next_follow_up: null,
+        amount_twd: null,
+        created_at: "2026-11-02T02:00:00Z",
+        sentiment,
+        sentiment_source: source,
+      },
+    ],
+  });
+
+  it("test_m4_07c_sentiment_tag_has_text_and_source：態度標籤附文字，AI 判斷要標示", async () => {
+    setup("/cases/7", withReply("positive", "ai"));
+    expect(await screen.findByText("客戶態度：有興趣")).toBeInTheDocument();
+    expect(screen.getByText(/AI 判斷，可自行修正/)).toBeInTheDocument();
+    expect(screen.getAllByLabelText("修正客戶態度")).toHaveLength(1); // 系統事件（寄出）沒有態度可修正
+  });
+
+  it("test_m4_07c_pending_sentiment：還沒判斷（或判斷失敗）顯示尚未判斷，仍可手動選", async () => {
+    setup("/cases/7", withReply(null, null));
+    expect(await screen.findByText("客戶態度：尚未判斷")).toBeInTheDocument();
+  });
+
+  it("test_m4_07c_manual_correction_patches：用選單修正會送 PATCH", async () => {
+    const fn = setup("/cases/7", withReply("positive", "ai"));
+    fireEvent.change(await screen.findByLabelText("修正客戶態度"), { target: { value: "negative" } });
+    await waitFor(() =>
+      expect(
+        fn.mock.calls.some(([u, init]) => u === "/api/v1/cases/7/updates/2/sentiment" && init?.method === "PATCH"),
+      ).toBe(true),
+    );
+    const call = fn.mock.calls.find(([u]) => u === "/api/v1/cases/7/updates/2/sentiment");
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({ sentiment: "negative" });
+  });
+});

@@ -92,6 +92,18 @@ class ModelRun(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class CompanySiteSummary(Base):
+    """官網摘要（M4-08、SPEC 7.4）：給 AI 寫信的公司背景。只存產品與產業描述，不存人名、email、電話。"""
+
+    __tablename__ = "company_site_summary"
+    company_id: Mapped[int] = mapped_column(ForeignKey("company.company_id"), primary_key=True)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    summary: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text)  # ok / failed
+    error_code: Mapped[str | None] = mapped_column(Text)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class ImportBatch(Base):
     __tablename__ = "import_batch"
     batch_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -277,6 +289,9 @@ class EmailDraft(Base):
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     send_attempts: Mapped[int] = mapped_column(Integer, default=0)
     last_error: Mapped[str | None] = mapped_column(Text)
+    gen_provider: Mapped[str | None] = mapped_column(Text)
+    gen_model: Mapped[str | None] = mapped_column(Text)
+    prompt_version: Mapped[str | None] = mapped_column(Text)
 
     def __repr__(self) -> str:  # 不印內文（CLAUDE.md 第 8 節第 4 點）
         return f"EmailDraft(draft_id={self.draft_id}, status={self.status!r})"
@@ -333,6 +348,8 @@ class CaseUpdate(Base):
     next_follow_up: Mapped[date | None] = mapped_column(Date)
     amount_twd: Mapped[Decimal | None] = mapped_column(Numeric(14, 0))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    sentiment: Mapped[str | None] = mapped_column(Text)  # positive / neutral / negative（0014）
+    sentiment_source: Mapped[str | None] = mapped_column(Text)  # ai / manual
 
 
 # ---------- 指標層 view（唯讀）----------
@@ -448,5 +465,29 @@ v_reject_reasons = Table(
     Column("reject_reason", Text),
     Column("run_id", BigInteger),
     Column("n", BigInteger),
+    Column("share", Numeric(5, 4)),  # 0013
+    info={"is_view": True},
+)
+
+# 0013：績效頁（M4-01a）；寄出、回覆、成交的定義仍然只在 v_case_fact
+v_case_perf = Table(
+    "v_case_perf",
+    Base.metadata,
+    Column("case_id", BigInteger, primary_key=True),
+    Column("owner_id", BigInteger),
+    Column("owner_name", Text),
+    Column("is_sent", Boolean),
+    Column("is_replied", Boolean),
+    Column("is_won", Boolean),
+    Column("won_amount", Numeric(14, 0)),
+    Column("sent_at", DateTime(timezone=True)),
+    Column("priority", String(1)),
+    Column("stars", SmallInteger),
+    Column("fit_stars", Numeric(2, 1)),
+    Column("source", Text),
+    Column("tags", ARRAY(Text)),
+    Column("template_family_id", BigInteger),
+    Column("template_name", Text),
+    Column("template_version", Integer),
     info={"is_view": True},
 )

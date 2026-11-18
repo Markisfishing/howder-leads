@@ -21,7 +21,6 @@ export function AdminImportsPage() {
   const { upload, commit, cancel, open } = useImportActions();
   const history = useImports();
   const [file, setFile] = useState<File | null>(null);
-  const [modelName, setModelName] = useState("");
   const [preview, setPreview] = useState<ImportBatchDetail | null>(null);
   const [notice, setNotice] = useState("");
   const [exportError, setExportError] = useState<unknown>(null);
@@ -31,7 +30,7 @@ export function AdminImportsPage() {
     e.preventDefault();
     if (!file) return;
     setNotice("");
-    upload.mutate({ file, modelName: modelName.trim() || undefined }, { onSuccess: (batch) => { setPreview(batch); setSection("import"); } });
+    upload.mutate({ file }, { onSuccess: (batch) => { setPreview(batch); setSection("import"); } });
   };
 
   const doCommit = () => {
@@ -98,13 +97,6 @@ export function AdminImportsPage() {
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           </label>
-          <details className={styles.advanced}>
-            <summary>進階設定</summary>
-            <label className={styles.field}>
-              <span className={styles.label}>模型名稱（選填）</span>
-              <input className={styles.input} value={modelName} onChange={(e) => setModelName(e.target.value)} />
-            </label>
-          </details>
           <Button variant="primary" type="submit" disabled={!file} busy={upload.isPending}>
             上傳並預覽
           </Button>

@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.errors import AppError
 from app.models import ActivityLog, AppUser, Classification, Company, DimIndustry, ImportBatch, ModelRun
+from app.services import site_service
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 PREVIEW_ROW_LIMIT = 500
@@ -414,6 +415,8 @@ def commit_batch(db: Session, batch: ImportBatch, user: AppUser | None) -> Impor
             db.flush()
             note = "匯入新增"
         else:
+            if company.website_url != r["website_url"]:
+                site_service.invalidate(db, company.company_id)  # 官網換了，舊摘要不再可信
             company.name = r["name"]
             company.website_url = r["website_url"]
             company.registered_products = r["registered_products"] or company.registered_products
@@ -453,6 +456,8 @@ def commit_batch(db: Session, batch: ImportBatch, user: AppUser | None) -> Impor
                 note=note,
             )
         )
+        db.flush()
+        site_service.schedule_if_needed(db, company, user.user_id if user else None)  # M4-08c
 
     batch.run_id = run.run_id if run else None
     batch.rows_created = sum(r["action"] == "create" for r in rows)

@@ -141,6 +141,18 @@ CREATE TABLE gold_label (
 );
 
 -- ---------- 聯絡人 ----------
+CREATE TABLE company_site_summary (                 -- 0015：官網摘要（M4-08），給 AI 寫信的公司背景
+    company_id   BIGINT PRIMARY KEY REFERENCES company(company_id) ON DELETE CASCADE,
+    source_url   TEXT,
+    summary      TEXT,                               -- 只存產品與產業描述，不存人名、email、電話
+    status       TEXT NOT NULL CONSTRAINT ck_site_summary_status CHECK (status IN ('ok', 'failed')),
+    error_code   TEXT,
+    fetched_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_site_summary_consistent
+        CHECK ((status = 'ok' AND summary IS NOT NULL AND error_code IS NULL)
+            OR (status = 'failed' AND summary IS NULL AND error_code IS NOT NULL))
+);
+
 CREATE TABLE contact (
     contact_id    BIGSERIAL PRIMARY KEY,
     company_id    BIGINT NOT NULL REFERENCES company(company_id) ON DELETE CASCADE,
@@ -206,7 +218,10 @@ CREATE TABLE email_draft (
     scheduled_at    TIMESTAMPTZ,                     -- 0003：排程寄出時間
     send_attempts   INT NOT NULL DEFAULT 0 CHECK (send_attempts >= 0),  -- 0003
     last_error      TEXT,                            -- 0003：錯誤代碼，不放信件內容
-    body_text       TEXT NOT NULL DEFAULT ''         -- 0005：業務編輯的純文字，body_html 由它轉出
+    body_text       TEXT NOT NULL DEFAULT '',        -- 0005：業務編輯的純文字，body_html 由它轉出
+    gen_provider    TEXT,                            -- 0012：產生方式 local / claude / fake；模板代入為空
+    gen_model       TEXT,                            -- 0012：模型名稱（例如 qwen3:8b）
+    prompt_version  TEXT                             -- 0012：prompt 檔名版本（例如 invite_v1）
 );
 CREATE INDEX idx_draft_campaign_status ON email_draft(campaign_id, status);
 
@@ -268,7 +283,10 @@ CREATE TABLE case_update (                           -- 0006：業務人工回�
     note             TEXT,
     next_follow_up   DATE,
     amount_twd       NUMERIC(14,0) CONSTRAINT ck_update_amount CHECK (amount_twd IS NULL OR amount_twd >= 0),
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    sentiment        TEXT CONSTRAINT ck_case_update_sentiment CHECK (sentiment IN ('positive','neutral','negative')),  -- 0014：客戶態度
+    sentiment_source TEXT CONSTRAINT ck_case_update_sentiment_source CHECK (sentiment_source IN ('ai','manual')),     -- 0014
+    CONSTRAINT ck_case_update_sentiment_pair CHECK ((sentiment IS NULL) = (sentiment_source IS NULL))
 );
 CREATE INDEX idx_case_update_case ON case_update(case_id, created_at);
 
@@ -298,7 +316,7 @@ CREATE TABLE user_mail_credential (
 -- ---------- 背景工作佇列（0003，ADR 0003）----------
 CREATE TABLE job (
     job_id        BIGSERIAL PRIMARY KEY,
-    kind          TEXT NOT NULL CHECK (kind IN ('generate_drafts', 'send_email', 'case_daily')),  -- 0008：case_daily
+    kind          TEXT NOT NULL CHECK (kind IN ('generate_drafts', 'send_email', 'case_daily', 'classify_reply', 'fetch_site')),  -- 0008：case_daily；0014：classify_reply
     payload       JSONB NOT NULL DEFAULT '{}'::jsonb,
     status        TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed')),
     run_after     TIMESTAMPTZ NOT NULL DEFAULT now(),   -- 排程與重試退避
@@ -403,12 +421,27 @@ FROM company c
 JOIN classification cl ON cl.company_id = c.company_id AND cl.is_current
 GROUP BY cl.priority;
 
-CREATE VIEW v_reject_reasons AS                     -- 給 MLE 的回饋
-SELECT r.reject_reason, cl.run_id, count(*) AS n
+CREATE VIEW v_reject_reasons AS                     -- 名單品質：各批次的排除原因（0013 加 share）
+SELECT r.reject_reason, cl.run_id, count(*) AS n,
+       round(count(*)::numeric / sum(count(*)) OVER (PARTITION BY cl.run_id), 4) AS share
 FROM review r
 JOIN classification cl ON cl.company_id = r.company_id AND cl.is_current
 WHERE r.decision = 'rejected'
 GROUP BY r.reject_reason, cl.run_id;
+
+CREATE VIEW v_case_perf AS                         -- 0013：績效頁（M4-01a），建在 v_case_fact 之上
+SELECT f.case_id, f.owner_id, u.display_name AS owner_name,
+       f.is_sent, f.is_replied, f.is_won, f.won_amount, f.sent_at,
+       f.priority, r.stars, f.fit_stars, f.source, r.tags,
+       t.family_id AS template_family_id, t.name AS template_name, t.version AS template_version
+FROM v_case_fact f
+JOIN app_user u ON u.user_id = f.owner_id
+JOIN v_recommendation r ON r.company_id = f.company_id
+LEFT JOIN sales_case sc ON sc.case_id = f.case_id
+LEFT JOIN email_message m ON m.message_id = sc.message_id
+LEFT JOIN email_draft d ON d.draft_id = m.draft_id
+LEFT JOIN campaign c ON c.campaign_id = d.campaign_id
+LEFT JOIN email_template t ON t.template_id = c.template_id;
 
 CREATE VIEW v_case_reminder AS                      -- 0007：待辦提醒（F-CASE-3），條件只在這裡定義
 WITH c AS (

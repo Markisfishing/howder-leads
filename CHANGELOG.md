@@ -5,6 +5,68 @@
 
 ---
 
+## 2026-11-18｜M4：AI 寫信、官網摘要、回覆態度、績效與名單品質
+
+**改了哪些檔案**
+- `backend/app/domain/ai_rules.py`、`site_rules.py`：AI 回覆檢查（去 `<think>`、取 JSON、長度、簡體字、態度、摘要）；官網文字轉換、連結挑選、公開位址檢查、個資過濾（純函式）
+- `backend/app/services/llm.py`、`ai_writer.py`、`generator.py`：`LlmClient`（本機 Ollama／Claude／Fake）、prompt 載入與重試、`template_ai`／`full_ai` 產生與並發
+- `backend/app/prompts/`：`invite_v1`（保留）、`invite_v2`（署名修正）、`reply_sentiment_v1`、`site_summary_v1`
+- `backend/app/services/site_fetcher.py`、`site_service.py`、`sentiment_service.py`、`perf_service.py`；`api/v1/performance.py`、`cases.py`、`companies.py`、`campaigns.py`
+- `backend/migrations/0012`～`0015`：草稿產生資訊、績效與排除原因 view、回覆態度、官網摘要表（各自單獨 commit；`db/schema.sql`、SPEC 已同步）
+- `backend/scripts/llm_smoke.py`、`llm_bench.py`：本機 LLM 冒煙與速度實測（手動，不進 pytest）
+- 前端：`/performance`、`/admin/model`、建立批次開放 AI 模式、預覽顯示模型與提示詞版本、公司側欄官網摘要、案件時間軸態度
+- `docs/adr/0006-local-llm-first.md`：實測結果與暫定結論；`PROGRESS.md`、`docs/SPEC.md`
+
+**解決了什麼問題**
+- 業務可以選「模板＋AI 段落」或「整封 AI 撰寫」，AI 草稿一樣要預覽核准、系統結尾補退訂說明，不會自動寄出。
+- 本機 `qwen3:8b` 50 封 `template_ai` 約 82 秒、0 失敗（達到 3 分鐘目標）；`qwen3:14b` 約 28 秒／封，在 8 GB VRAM 上達不到。
+- 有官網的公司匯入後會在背景抓官網並摘要（遵守 robots.txt、限速、只抓公開位址、過濾個資），給 AI 寫信用；抓不到就改用推薦理由。
+- 回填有備註時用本機 LLM 判斷客戶態度，業務可手動修正（手動優先，寫 `activity_log`）。
+- 績效頁（星級、來源、標籤、模板、業務）與名單品質頁（各批次排除原因）上線；數字只從 view 來。
+
+**做了哪些決定**
+- 自動化測試一律不連 LLM 與網站：`ENV=test` 時 `get_llm_client`、`build_fetcher` 直接拒絕，測試要自己注入假的。
+- prompt 只新增版本不覆蓋：實測發現 `invite_v1` 署名多出「寄件業務：」，新增 `invite_v2`。
+- 官網摘要與回覆態度的失敗都不影響主流程（只記錄錯誤代碼）。
+- 暫定用 `qwen3:8b`；是否改 14b 或啟用 Claude 等業務盲評與公司 GPU 主機到位後再決定。
+- 順手修了一個既有測試的不穩：`test_f_case_2_update_moves_company_through_states` 讀 `activity_log` 沒有排序，偶爾失敗，補上 `ORDER BY`。
+
+**還沒處理的問題**
+- M4-06b：業務盲評（通順度、正確性、有沒有捏造、要改多少）還沒做，要業務參與。
+- M4-06g：`CLAUDE.md` 第 3 節還沒補 `ollama serve` 與冒煙腳本指令（要先問使用者）。
+- M4-06l：只量了 LLM 階段；用真實 sandbox 流程（建批次→worker→預覽）產生 50 封的完整驗收還沒跑。
+- 這台機器的 `C:\Users\y7632\.ollama` 是指向不存在的 `D:\羊駝\.ollama` 的符號連結，`ollama serve` 要另開 home 才起得來（我沒有動你的連結）。
+- `uv run mypy app` 仍有 1 個既有錯誤（`api/v1/campaigns.py`，與 M4 無關）。
+- 官網摘要的人名過濾只用「職稱＋姓名」規則與 prompt 要求，無法保證抓到所有人名；之後可考慮加強或人工抽查。
+- 績效頁的 1280px 只實際看過一頁；篩選目前只有日期區間，沒有產業等其他條件。
+
+**下一步**
+- M2-17；M4-06b／g／l（見上）；之後 M5（`PROGRESS.md`）。
+
+---
+
+## 2026-11-18｜範例 CSV 加 UTF-8 BOM；名單管理移除進階設定
+
+**改了哪些檔案**
+- `docs/samples/import_v1_sample.csv`：開頭加 UTF-8 BOM（Excel 雙擊開啟時中文會亂碼，是因為沒有 BOM）
+- `backend/tests/test_import_v1.py`：新增 `test_m3_06b_sample_csv_has_utf8_bom`，防止之後又被存成沒有 BOM
+- `docs/SPEC.md`：8.4 註明範例檔帶 BOM、MLE 另存請選「CSV UTF-8」
+- `frontend/src/pages/AdminImportsPage.tsx`、`Page.module.css`：移除名單管理上傳表單的「進階設定」（模型名稱欄位）；後端 `model_name` 參數保留，選填
+
+**解決了什麼問題**
+- 範例 CSV 在 Excel 裡中文顯示不完整／亂碼。匯入器本來就讀得懂 UTF-8 與 UTF-8 BOM，不受影響。
+
+**做了哪些決定**
+- 修範例檔本身，不改匯入器。
+
+**還沒處理的問題**
+- MLE 自己產出的 CSV 若不是 UTF-8 或 Big5，仍會被拒絕並提示編碼錯誤。
+
+**下一步**
+- M2-17（`PROGRESS.md`）。
+
+---
+
 ## 2026-11-18｜重新審視進度：先用個人帳號寄信、名單來自整理好的 Excel
 
 **改了哪些檔案**

@@ -19,7 +19,9 @@ from app.config import Settings, get_settings
 from app.db import get_engine
 from app.domain import template_rules
 from app.models import Company, EmailDraft, EmailMessage, Job
+from app.services.llm import FakeLlmClient
 from app.services.mailer import MailAuthError, MailSendError, OutgoingMail, SandboxMailer, SendResult
+from app.services.site_fetcher import FakeSiteFetcher
 from app.workers.runner import WorkerDeps, run_until_idle
 from tests.factories import csv_bytes
 
@@ -58,7 +60,14 @@ class World:
 
     def worker(self, *, advance: timedelta = timedelta(0)) -> int:
         self.clock[0] = self.clock[0] + advance
-        deps = WorkerDeps(settings=self.settings, mailer=self.mailer, now=lambda: self.clock[0])
+        # LLM 一律用假的：沒放回覆的 FakeLlmClient 會直接失敗，不會連本機 Ollama
+        deps = WorkerDeps(
+            settings=self.settings,
+            mailer=self.mailer,
+            now=lambda: self.clock[0],
+            llm=FakeLlmClient(),
+            site_fetcher=FakeSiteFetcher(),
+        )
         n = run_until_idle(sessionmaker(bind=get_engine(), expire_on_commit=False), deps)
         self.db.expire_all()
         return n
@@ -115,7 +124,7 @@ def world(client: TestClient, db: Session, as_user: Headers) -> Iterator[World]:
     settings = get_settings().model_copy(update={"send_per_minute": 6000, "daily_send_limit": 50})
     app: FastAPI = client.app  # type: ignore[assignment]
     app.dependency_overrides[get_settings] = lambda: settings
-    yield World(
+    w = World(
         client=client,
         app=app,
         db=db,
@@ -129,6 +138,8 @@ def world(client: TestClient, db: Session, as_user: Headers) -> Iterator[World]:
         mailer=FakeMailer(),
         clock=[datetime.now(UTC) + timedelta(minutes=1)],
     )
+    w.worker()  # 匯入確認會排 fetch_site 工作（M4-08c）：先清掉，讓各測試從乾淨的佇列開始
+    yield w
     app.dependency_overrides.clear()
 
 
@@ -173,18 +184,18 @@ def test_f_mail_1_all_excluded_is_rejected(world: World) -> None:
     assert res.json()["error"]["code"] == "NO_ELIGIBLE_TARGETS"
 
 
-def test_f_mail_2_ai_modes_not_available_yet(world: World) -> None:
+def test_f_mail_2_unknown_gen_mode_rejected(world: World) -> None:
     res = world.client.post(
         "/api/v1/campaigns",
         json={
             "name": "x",
             "template_id": world.template_id,
-            "gen_mode": "full_ai",
+            "gen_mode": "magic",
             "targets": [{"company_id": world.ids["10000001"], "contact_id": world.contacts[world.ids["10000001"]]}],
         },
         headers=world.sales1,
     )
-    assert res.json()["error"]["code"] == "GEN_MODE_NOT_AVAILABLE"
+    assert res.status_code == 422  # AI 模式在 M4-06 開放；沒有的模式仍然擋下
 
 
 def test_f_mail_7_unsubscribed_and_locked_are_excluded(world: World) -> None:
