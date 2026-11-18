@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-11-18｜測試階段改用共用 Outlook.com 信箱 SMTP 寄信（M2-24、ADR 0008）
+
+**改了哪些檔案**
+- `backend/app/config.py`、`.env.example`：`MAIL_TRANSPORT`（graph／smtp）與 `SMTP_*` 設定；smtp 只限開發環境，live 時要帳號密碼與白名單，不需要 Entra
+- `backend/app/services/mailer.py`：`SmtpMailer`（STARTTLS、登入、HTML 信、`Message-ID`；錯誤轉成 `SMTP_*` 代碼，log 不含密碼）
+- `backend/app/workers/runner.py`、`services/send_service.py`、`api/v1/mail_connection.py`：smtp 時用 `SmtpMailer`，不需要連結 Outlook
+- `backend/scripts/smtp_check.py`：信箱擁有人自己執行的登入檢查與測試信
+- `frontend/src/pages/campaigns/MailConnectionBanner.tsx`、`api/errorMessages.ts`：共用信箱提示、SMTP 錯誤中文
+- 測試：`backend/tests/test_smtp_mailer.py`、`frontend/src/pages/campaigns/Campaigns.test.tsx`（全部用假的 SMTP）
+- 文件：`docs/adr/0008-shared-outlook-smtp-for-testing.md`（新）、ADR 0007 標為暫緩、SPEC 7.5、CLAUDE.md（開頭、第 1、3、6、8 節）、PROGRESS（M2-24、M2-25、M2-15 卡片、M2-20／21 改成備案）
+
+**解決了什麼問題**
+- 負責人不想先註冊 Azure 應用程式；改成用一個空殼 outlook.com 信箱直接寄，今天就能測真實寄信。
+
+**做了哪些決定**
+- 負責人決定測試階段用 SMTP＋密碼；正式環境仍走 Graph，設 smtp 會啟動失敗。
+- 密碼只由負責人自己填進 `backend/.env`；開發者與 AI 不代為登入，連線檢查由負責人執行。
+- 登入失敗（535）不重試、草稿標失敗；暫時性錯誤照佇列重試。
+- ADR 0007（個人帳號 OAuth）暫緩當備案，M2-20、M2-21 保留不刪：SMTP 登入不了時要用。
+
+**還沒處理的問題**
+- Microsoft 正在停用 outlook.com 的密碼登入 SMTP，還不知道這個信箱能不能登入（M2-25）。
+- 共用寄件人：客戶回信會回到共用信箱，不是業務本人的信箱。
+
+**下一步**
+- M2-25（負責人執行 `smtp_check`）→ M2-15；登入不了就做 M2-20、M2-21。
+
+---
+
 ## 2026-11-18｜讓寄送防呆文字使用實際設定
 
 **改了哪些檔案**
