@@ -72,7 +72,7 @@ UI 文字用繁體中文；程式識別字（變數、函式、資料表、API �
 | 前端 | React 19 + TypeScript (strict) + Vite、React Router、TanStack Query / Table、Radix UI Primitives（無樣式）、CSS Modules + design tokens |
 | 後端 | Python 3.12、FastAPI、Pydantic v2、SQLAlchemy 2、Alembic；背景工作用 PostgreSQL 佇列（`SKIP LOCKED`，見 ADR 0003），不用 Redis |
 | 資料庫 | PostgreSQL 16 |
-| 外部服務 | 地端 LLM（OpenAI 相容 API，產生郵件；可切換成 Claude API，ADR 0006）、Microsoft Graph（登入、寄信、讀回覆） |
+| 外部服務 | 地端 LLM（OpenAI 相容 API，產生郵件；可切換成 Claude API，ADR 0006）、Microsoft Graph（登入、寄信；不讀業務信箱，ADR 0004） |
 | 部署 | Docker Compose（Nginx + frontend 靜態檔 + api + worker + postgres） |
 
 指令（專案骨架建好後補上實際指令；**新增或修改指令時一併更新這一段**）：
