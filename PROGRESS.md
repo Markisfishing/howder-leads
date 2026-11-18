@@ -264,7 +264,7 @@
 ### 回覆態度（M4-07；F-TRK-2）
 - [x] M4-07a migration：`case_update` 加 `sentiment`（positive／neutral／negative，CHECK）與 `sentiment_source`（ai／manual），`job.kind` 加 `classify_reply`（單獨 commit） — 2026-11-18
 - [x] M4-07b 回填有備註時排 worker `classify_reply`，用本機 LLM 判斷態度（prompt `prompts/reply_sentiment_v1.md`）；失敗不影響回填；`FakeLlmClient` 測試 — 2026-11-18
-- [ ] M4-07c 案件時間軸顯示態度標籤（附文字，不只靠顏色），業務可以手動修正並寫 `activity_log`；前端測試
+- [x] M4-07c 案件時間軸顯示態度標籤（附文字，不只靠顏色），業務可以手動修正並寫 `activity_log`；前端測試 — 2026-11-18
 
 ### 名單品質（M4-02；F-MLE-1，內部用，不回傳給 MLE）
 - [x] M4-02a 排除原因 API：讀 `v_reject_reasons`，依匯入批次（model run）篩選；不在後端重算比例；權限：管理員、主管 — 2026-11-18

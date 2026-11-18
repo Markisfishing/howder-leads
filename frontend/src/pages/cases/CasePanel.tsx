@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
-import { useAddCaseUpdate, useCase, useUnsubscribeCase } from "../../api/hooks";
-import type { CaseDetail, CaseTimelineItem, CaseUpdateInput } from "../../api/types";
+import { useAddCaseUpdate, useCase, useSetSentiment, useUnsubscribeCase } from "../../api/hooks";
+import type { CaseDetail, CaseTimelineItem, CaseUpdateInput, Sentiment } from "../../api/types";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { ErrorState, InlineError, Loading } from "../../components/StateView";
@@ -17,6 +17,8 @@ import {
   formatDateTime,
   formatTwd,
   REMINDER_LABELS,
+  SENTIMENT_LABELS,
+  SENTIMENT_TONE,
   taipeiToday,
 } from "../../lib/labels";
 import styles from "../Page.module.css";
@@ -99,8 +101,47 @@ function ActivityTimeline({ data }: { data: CaseDetail }) {
     const previous = index > 0 ? events[index - 1] : undefined;
     const showDay = !previous || day !== timelineDay(previous.created_at);
     const opening = event.update_id === -1;
-    return <li key={`${event.update_id}-${event.created_at}`} className={c.timelineItem}>{showDay && <h3 className={c.timelineDay}>{day}</h3>}<div className={c.event}><span className={c.eventNode} aria-hidden="true">{channelIcon(event.channel)}</span><div className={c.eventContent}><div className={c.eventHead}><strong>{opening ? "建立案件" : CASE_RESULT_LABELS[event.result]}</strong><span className={c.channel}>{channelIcon(event.channel)} {CASE_CHANNEL_LABELS[event.channel]}</span><time className={styles.hint}>{formatDateTime(event.created_at)}</time></div>{!opening && <p className={c.eventMeta}>{event.user_name ?? "系統"}{event.contact_name ? ` 與 ${event.contact_name}` : ""}</p>}{event.note && <p className={c.eventNote}>{event.note}</p>}{(event.next_follow_up || event.amount_twd) && <p className={c.eventFollowUp}>{event.next_follow_up ? `下一次追蹤：${formatDate(event.next_follow_up)}` : ""}{event.amount_twd ? ` · 成交金額 ${formatTwd(event.amount_twd)}` : ""}</p>}</div></div></li>;
+    return <li key={`${event.update_id}-${event.created_at}`} className={c.timelineItem}>{showDay && <h3 className={c.timelineDay}>{day}</h3>}<div className={c.event}><span className={c.eventNode} aria-hidden="true">{channelIcon(event.channel)}</span><div className={c.eventContent}><div className={c.eventHead}><strong>{opening ? "建立案件" : CASE_RESULT_LABELS[event.result]}</strong><span className={c.channel}>{channelIcon(event.channel)} {CASE_CHANNEL_LABELS[event.channel]}</span><time className={styles.hint}>{formatDateTime(event.created_at)}</time></div>{!opening && <p className={c.eventMeta}>{event.user_name ?? "系統"}{event.contact_name ? ` 與 ${event.contact_name}` : ""}</p>}{event.note && <p className={c.eventNote}>{event.note}</p>}{!opening && event.channel !== "system" && event.note && <SentimentControl caseId={data.case_id} event={event} />}{(event.next_follow_up || event.amount_twd) && <p className={c.eventFollowUp}>{event.next_follow_up ? `下一次追蹤：${formatDate(event.next_follow_up)}` : ""}{event.amount_twd ? ` · 成交金額 ${formatTwd(event.amount_twd)}` : ""}</p>}</div></div></li>;
   })}</ol>;
+}
+
+const SENTIMENTS: Sentiment[] = ["positive", "neutral", "negative"];
+
+/** 客戶態度（M4-07c）：標籤一定附文字；AI 判斷的標「AI 判斷」，業務可以用選單修正（可只用鍵盤） */
+function SentimentControl({ caseId, event }: { caseId: number; event: CaseTimelineItem }) {
+  const mutation = useSetSentiment();
+  const value = event.sentiment ?? "";
+  return (
+    <div className={c.eventMeta}>
+      {event.sentiment ? (
+        <Tag tone={SENTIMENT_TONE[event.sentiment]}>客戶態度：{SENTIMENT_LABELS[event.sentiment]}</Tag>
+      ) : (
+        <span className={styles.hint}>客戶態度：尚未判斷</span>
+      )}
+      {event.sentiment_source === "ai" && <span className={styles.hint}> · AI 判斷，可自行修正</span>}
+      {event.sentiment_source === "manual" && <span className={styles.hint}> · 已手動修正</span>}{" "}
+      <label>
+        <span className="visually-hidden">修正客戶態度</span>
+        <select
+          value={value}
+          disabled={mutation.isPending}
+          onChange={(e) => {
+            if (e.target.value) mutation.mutate({ caseId, updateId: event.update_id, sentiment: e.target.value as Sentiment });
+          }}
+        >
+          <option value="" disabled>
+            修正態度…
+          </option>
+          {SENTIMENTS.map((s) => (
+            <option key={s} value={s}>
+              {SENTIMENT_LABELS[s]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <InlineError error={mutation.error} />
+    </div>
+  );
 }
 
 function timelineDay(iso: string): string {

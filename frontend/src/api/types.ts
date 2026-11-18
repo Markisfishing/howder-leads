@@ -392,7 +392,12 @@ export interface CaseTimelineItem {
   next_follow_up: string | null;
   amount_twd: string | null;
   created_at: string;
+  /** 客戶態度（M4-07）：AI 依備註判斷或業務手動修正；沒備註或判斷失敗為 null */
+  sentiment?: Sentiment | null;
+  sentiment_source?: "ai" | "manual" | null;
 }
+
+export type Sentiment = "positive" | "neutral" | "negative";
 
 export interface CaseDetail extends SalesCase {
   timeline: CaseTimelineItem[];
