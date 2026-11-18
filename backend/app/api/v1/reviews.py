@@ -49,7 +49,7 @@ def create_reviews(
 
 @router.get("/admin/reviews/export", response_class=Response)
 def export_reviews(_: AppUser = Depends(require_admin), db: Session = Depends(get_db)) -> Response:
-    """所有審核紀錄，附上當時模型的判斷，給 MLE 調模型用（CSV，Excel 可直接開）。"""
+    """所有審核紀錄，附上當時模型的判斷，內部備查用（CSV，Excel 可直接開）。"""
     industries = dict(db.execute(select(DimIndustry.industry_id, DimIndustry.name)).all())
     names = dict(db.execute(select(AppUser.user_id, AppUser.display_name)).all())
     stmt = (
