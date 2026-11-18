@@ -140,7 +140,7 @@ describe("M2-03d 建立批次", () => {
 
     expect(await screen.findByText("原因：聯絡人已退訂")).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "退訂公司（不能選）" })).toBeDisabled();
-    expect(screen.getByRole("radio", { name: /整封 AI 撰寫/ })).toBeDisabled(); // M4 才開放
+    expect(screen.getByRole("radio", { name: /整封 AI 撰寫/ })).toBeEnabled(); // M4-06k 開放
 
     const submit = screen.getByRole("button", { name: "產生 0 封草稿" });
     expect(submit).toBeDisabled();
@@ -189,6 +189,87 @@ describe("M2-03d 建立批次", () => {
     await screen.findByRole("checkbox", { name: /可寄公司/ });
     fireEvent.change(screen.getByLabelText("星級"), { target: { value: "5" } });
     expect(await screen.findByText("沒有符合條件的公司")).toBeInTheDocument();
+  });
+});
+
+describe("M4-06k AI 生成方式", () => {
+  const cand: Candidate = {
+    company_id: 10,
+    name: "可寄公司",
+    stars: 5,
+    priority: "A",
+    industry: "電子",
+    owner_name: null,
+    contacts: [{ contact_id: 100, name: null, email: "a@example.com", unsubscribed: false }],
+    default_contact_id: 100,
+    reasons: [],
+  };
+  const tpl = (body: string) => ({ template_id: 1, name: "邀請信", version: 2, body_text: body, subject: "s", is_active: true });
+  function setup(body: string) {
+    const fn = mockFetch((url, init) => {
+      if (url === "/api/v1/campaigns/candidates") return [cand];
+      if (url === "/api/v1/dimensions") return { industries: [], priorities: [] };
+      if (url === "/api/v1/templates") return [tpl(body)];
+      if (url === "/api/v1/campaigns/exclusion-reasons") return reasons;
+      if (url === "/api/v1/campaigns" && init.method === "POST")
+        return Response.json({ campaign, job_id: 1, excluded: [] }, { status: 201 });
+      return {};
+    });
+    renderAt("/campaigns/new", <CampaignNewPage />, "/campaigns/new");
+    return fn;
+  }
+
+  it("test_m4_06k_full_ai_sends_gen_mode：選整封 AI 撰寫，建立時送 gen_mode=full_ai 並提醒核對事實", async () => {
+    const fn = setup("{{unsubscribe}}");
+    fireEvent.click(await screen.findByRole("radio", { name: /整封 AI 撰寫/ }));
+    expect(screen.getByText(/可能有不精確的地方/)).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("checkbox", { name: /可寄公司/ }));
+    fireEvent.click(screen.getByRole("button", { name: "產生 1 封草稿" }));
+    await waitFor(() => expect(calls(fn, "POST", "/api/v1/campaigns")).toHaveLength(1));
+    expect(JSON.parse(String(calls(fn, "POST", "/api/v1/campaigns")[0]?.[1]?.body))).toMatchObject({ gen_mode: "full_ai" });
+  });
+
+  it("test_m4_06k_template_ai_needs_ai_paragraph：模板沒有 ai_paragraph 時擋下並說明", async () => {
+    setup("{{contact_name}} 您好" + String.fromCharCode(10) + "{{unsubscribe}}");
+    fireEvent.click(await screen.findByRole("radio", { name: /模板 \+ AI 段落/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("AI 寫的段落不會出現在信裡");
+    fireEvent.click(await screen.findByRole("checkbox", { name: /可寄公司/ }));
+    expect(screen.getByRole("button", { name: "產生 1 封草稿" })).toBeDisabled();
+  });
+
+  it("test_m4_06k_template_ai_ok_with_variable：模板有 ai_paragraph 就可以建立", async () => {
+    setup("{{ai_paragraph}}" + String.fromCharCode(10) + "{{unsubscribe}}");
+    fireEvent.click(await screen.findByRole("radio", { name: /模板 \+ AI 段落/ }));
+    fireEvent.click(await screen.findByRole("checkbox", { name: /可寄公司/ }));
+    expect(screen.getByRole("button", { name: "產生 1 封草稿" })).toBeEnabled();
+  });
+});
+
+describe("M4-06k 預覽佇列顯示 AI 資訊", () => {
+  function open(item: Draft) {
+    mockFetch((url) => {
+      if (url === "/api/v1/campaigns/5") return campaign;
+      if (url.startsWith("/api/v1/campaigns/5/drafts?"))
+        return { items: [item], total: 1, page: 1, page_size: 25, status_counts: { pending_review: 1 } };
+      if (url === "/api/v1/campaigns/exclusion-reasons") return reasons;
+      if (url === "/api/v1/me/mail-connection") return sandbox;
+      return {};
+    });
+    renderAt("/campaigns/5", <CampaignReviewPage />, "/campaigns/:id");
+  }
+
+  it("test_m4_06k_review_shows_model_and_prompt_version：AI 草稿顯示模型與提示詞版本，並提醒核對事實", async () => {
+    open({ ...draft(1), gen_provider: "local", gen_model: "qwen3:8b", prompt_version: "invite_v1" });
+    fireEvent.click(await screen.findByRole("row", { name: /公司1/ }));
+    expect(await screen.findByText(/AI 產生：qwen3:8b（提示詞 invite_v1）/)).toBeInTheDocument();
+    expect(screen.getByText(/請核對內容是否有不實或誇大之處/)).toBeInTheDocument();
+  });
+
+  it("test_m4_06k_review_hides_ai_info_for_template_drafts：模板草稿不顯示 AI 資訊", async () => {
+    open(draft(2));
+    fireEvent.click(await screen.findByRole("row", { name: /公司2/ }));
+    await screen.findByDisplayValue("主旨2");
+    expect(screen.queryByText(/AI 產生：/)).not.toBeInTheDocument();
   });
 });
 

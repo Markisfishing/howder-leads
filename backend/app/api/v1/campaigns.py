@@ -98,6 +98,9 @@ class DraftOut(BaseModel):
     send_attempts: int
     last_error: str | None
     approved_at: datetime | None
+    gen_provider: str | None = None  # AI 產生才有（M4-06h）
+    gen_model: str | None = None
+    prompt_version: str | None = None
 
 
 class DraftPageOut(BaseModel):
@@ -227,6 +230,9 @@ def _draft_out(db: Session, drafts: list[EmailDraft]) -> list[DraftOut]:
                 send_attempts=d.send_attempts,
                 last_error=d.last_error,
                 approved_at=d.approved_at,
+                gen_provider=d.gen_provider,
+                gen_model=d.gen_model,
+                prompt_version=d.prompt_version,
             )
         )
     return out
