@@ -183,7 +183,7 @@ CREATE TABLE campaign (
     owner_id      BIGINT NOT NULL REFERENCES app_user(user_id),
     status        TEXT NOT NULL DEFAULT 'draft'
                   CONSTRAINT ck_campaign_status
-                  CHECK (status IN ('draft','generating','reviewing','scheduled','sending','done')),  -- 0003
+                  CHECK (status IN ('draft','generating','reviewing','ready','scheduled','sending','done')),  -- 0003、0011 加 ready
     scheduled_at  TIMESTAMPTZ,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
