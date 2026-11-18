@@ -24,8 +24,8 @@ log = logging.getLogger("howder.send")
 
 
 def ensure_mail_ready(db: Session, user: AppUser, settings: Settings) -> None:
-    """live 模式要先連結 Outlook；sandbox 不需要。"""
-    if settings.mail_mode != "live":
+    """live＋Graph 要先連結 Outlook；sandbox 與共用 SMTP 信箱（ADR 0008）不需要。"""
+    if settings.mail_mode != "live" or settings.mail_transport == "smtp":
         return
     cred = db.get(UserMailCredential, user.user_id)
     if cred is None:

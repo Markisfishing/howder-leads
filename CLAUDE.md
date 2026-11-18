@@ -3,7 +3,7 @@
 協助厚達電子（端子台製造商）業務部的內部 Web 系統。主要功能：
 1. 把整理好的潛在客戶名單（Excel／CSV 匯入），以星級排序呈現。
 2. 讓業務審核要合作的對象。
-3. 批次產生邀請信，經業務預覽、核准後，從業務本人的 Outlook 寄出。
+3. 批次產生邀請信，經業務預覽、核准後，從業務本人的 Outlook 寄出（測試階段先從一個共用的 Outlook.com 信箱以 SMTP 寄出，ADR 0008）。
 4. 追蹤回覆與成效，評估各批名單的品質（系統沒有模型：名單在系統外整理好再匯入，結果不回傳）。
 
 完整規格見 `docs/SPEC.md`。**規格和本檔衝突時，以本檔為準，並回報使用者，讓他決定要不要更新 SPEC。**
@@ -25,7 +25,7 @@ backend/                  後端 API + 背景 Worker（同一個 Python 套件�
   app/
     api/v1/               FastAPI 路由：只做輸入驗證、權限檢查、呼叫 domain/services
     domain/               商業規則：狀態機、寄送防呆、鎖定規則（不 import FastAPI 或 SQLAlchemy）
-    services/             對外整合與流程：importer、generator(地端 LLM／Claude，ADR 0006)、mailer(Graph)、metrics
+    services/             對外整合與流程：importer、generator(地端 LLM／Claude，ADR 0006)、mailer(Graph／測試用 SMTP，ADR 0008)、metrics
     workers/              背景工作（PostgreSQL 佇列，ADR 0003）：generate_drafts、send_scheduled、case_daily（每日催辦）
     models/               SQLAlchemy ORM
     prompts/              AI 郵件 prompt，檔名帶版本（invite_v1.md）
@@ -71,7 +71,7 @@ UI 文字用繁體中文；程式識別字（變數、函式、資料表、API �
 | 前端 | React 19 + TypeScript (strict) + Vite、React Router、TanStack Query / Table、Radix UI Primitives（無樣式）、CSS Modules + design tokens |
 | 後端 | Python 3.12、FastAPI、Pydantic v2、SQLAlchemy 2、Alembic；背景工作用 PostgreSQL 佇列（`SKIP LOCKED`，見 ADR 0003），不用 Redis |
 | 資料庫 | PostgreSQL 16 |
-| 外部服務 | 地端 LLM（OpenAI 相容 API，產生郵件；可切換成 Claude API，ADR 0006）、Microsoft Graph（登入、寄信；不讀業務信箱，ADR 0004） |
+| 外部服務 | 地端 LLM（OpenAI 相容 API，產生郵件；可切換成 Claude API，ADR 0006）、Microsoft Graph（登入、寄信；不讀業務信箱，ADR 0004）；測試階段寄信用 Outlook.com SMTP（`MAIL_TRANSPORT=smtp`，只限開發環境，ADR 0008） |
 | 部署 | Docker Compose（Nginx + frontend 靜態檔 + api + worker + postgres） |
 
 指令（專案骨架建好後補上實際指令；**新增或修改指令時一併更新這一段**）：
@@ -124,8 +124,8 @@ npm run typecheck && npm run lint && npm run test && npm run build
 
 1. **系統絕對不會自動寄信。** 只有 `status = approved` 的草稿可以寄，後端寄送前要再檢查一次，不能只靠前端把按鈕藏起來。
 2. 寄送防呆一律在後端 `domain` 實作：已退訂、`do_not_contact`、被其他業務鎖定、14 天內寄過的對象都要排除。
-3. **測試環境不可以真的寄信，開發環境預設也不寄。** `MAIL_MODE=sandbox` 時，信件只寫進資料庫或 log。只有 `MAIL_MODE=live` 才會呼叫 Graph `sendMail`：正式環境可以設定；開發環境只有在收件者白名單 `MAIL_ALLOWED_RECIPIENTS` 不是空的時候才可以設定（用個人帳號測試，只寄到自己的測試信箱），否則啟動失敗；`ENV=test` 一律不可以 live。
-4. 自動化測試不可以呼叫真實的 LLM（地端或 Claude）或 Graph API，一律用假的實作。
+3. **測試環境不可以真的寄信，開發環境預設也不寄。** `MAIL_MODE=sandbox` 時，信件只寫進資料庫或 log。只有 `MAIL_MODE=live` 才會真的寄出（Graph `sendMail`，或開發環境的共用 SMTP 信箱 `MAIL_TRANSPORT=smtp`，ADR 0008）：正式環境可以設定；開發環境只有在收件者白名單 `MAIL_ALLOWED_RECIPIENTS` 不是空的時候才可以設定（用個人帳號測試，只寄到自己的測試信箱），否則啟動失敗；`ENV=test` 一律不可以 live。
+4. 自動化測試不可以呼叫真實的 LLM（地端或 Claude）、Graph API 或 SMTP 伺服器，一律用假的實作。
 5. AI prompt 放在 `backend/app/prompts/`，檔名要帶版本。修改 prompt 就新增一個版本，不覆蓋舊檔，這樣才能對照 `ai_original` 是哪一版產生的。
 6. Prompt 必須要求模型：不捏造客戶實績、價格、認證或交期，內容只能根據提供的公司資料撰寫。
 
@@ -148,7 +148,7 @@ npm run typecheck && npm run lint && npm run test && npm run build
 
 1. **不可以把真實的聯絡人姓名、email、電話放進程式碼、測試資料或範例**，一律用假資料（例如 `contact@example.com`）。
 2. 原始名單 Excel（`D:\資料侠\厚達_50家客戶_*.xlsx`）不複製進專案。測試用的種子資料只放公司層級的公開資訊（公司名、產業），或用假資料。
-3. 機密資訊（API key、Graph client secret、資料庫密碼）只放在 `.env`，不 commit；提供 `.env.example` 列出需要哪些變數。
+3. 機密資訊（API key、Graph client secret、SMTP 信箱密碼、資料庫密碼）只放在 `.env`，不 commit、不貼進對話或文件；提供 `.env.example` 列出需要哪些變數。
 4. Log 不可以印出 email 全文、權杖或 API key。
 
 ---

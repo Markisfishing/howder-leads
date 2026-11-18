@@ -304,7 +304,8 @@ backend/app/
 ### 7.5 寄信（Microsoft Graph）
 - 權限：每位業務各自授權 **`Mail.Send`**（delegated 委派權限），信件從本人的信箱寄出，也會留在本人的寄件備份。**不申請 `Mail.Read`**，系統不讀業務信箱（ADR 0004）。
 - 權杖：業務按「連結 Outlook」時，後端用 On-Behalf-Of 換到 Graph 權杖；權杖快取用 Fernet 加密存在 `user_mail_credential`，worker 只用寄件人本人的那一筆。失效時標成 `needs_reconnect`，暫停寄送並請業務重新連結（ADR 0005）。
-- 不直接使用 SMTP：Exchange Online 正在淘汰 SMTP 基本驗證。
+- 正式環境不使用 SMTP：Exchange Online 正在淘汰 SMTP 基本驗證。
+- 測試階段例外（ADR 0008）：開發環境可設 `MAIL_TRANSPORT=smtp`，從一個共用的 Outlook.com 信箱用 SMTP＋密碼寄出，不需要註冊 Azure 應用程式與「連結 Outlook」；所有業務共用這個寄件人，客戶回信也回到這個信箱。正式環境設 `smtp` 會啟動失敗。先用 `scripts/smtp_check.py` 確認信箱還能用密碼登入（M2-24、M2-25）。
 - 限速：每位寄件人每分鐘最多 N 封，每天最多 50 封，超過的自動排到隔天。
 - 寄送時段：只在台灣時間 `SEND_DAY_START_HOUR`（預設 9）到 `SEND_DAY_END_HOUR`（預設 18，24 = 不限制）之間寄；排到下班時間以後的信，改排隔天上班時間；worker 寄出前發現已過下班時間也會改期。啟動時檢查 `0 <= START < END <= 24`。「早於上班時間延到上班時間」目前不做（待負責人確認）。
 - 每封信的結尾都要有退訂說明。

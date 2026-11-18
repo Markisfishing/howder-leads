@@ -11,6 +11,14 @@ export function MailConnectionBanner() {
   if (!data) return null;
 
   if (data.mail_mode === "sandbox") return null;
+  // 共用測試信箱（ADR 0008）：live 但不需要連結，所有業務從同一個信箱寄出
+  if (data.status === "not_required") {
+    return (
+      <div className={c.banner} role="note">
+        <p>目前用共用測試信箱寄信：信會從同一個測試信箱寄出，客戶回信也會回到那個信箱，不需要連結 Outlook。</p>
+      </div>
+    );
+  }
 
   const warn = data.status !== "connected";
   return (

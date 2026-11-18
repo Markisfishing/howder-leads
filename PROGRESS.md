@@ -6,9 +6,9 @@
 | 項目 | 狀態 |
 |---|---|
 | 最後更新 | 2026-11-18（完成開發中發現的 mypy 小修；複核 M2-17、M2-23；M4 併入 feat/m1-mvp） |
-| 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 b（業務盲評）、g（`CLAUDE.md` 指令補充）、l（完整 sandbox 50 封驗收）。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（先用個人 Microsoft 帳號：M2-19～M2-21 → M2-15）；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。**等負責人確認 ADR 0007**，再做 M2-20、M2-21；M4-06b 業務盲評（要業務來做）；M4-06g 問使用者後補 `CLAUDE.md` 第 3 節指令；M4-06l 完整 sandbox 驗收；之後 M5 |
-| 卡住 / 待確認 | 個人帳號能不能註冊應用程式（M2-19）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）、Docker Desktop 無法啟動（M1-03）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
+| 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 b（業務盲評）、g（`CLAUDE.md` 指令補充）、l（完整 sandbox 50 封驗收）。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（2026-11-18 改成先用共用 Outlook.com 信箱 SMTP：M2-24 已完成 → M2-25 → M2-15；個人帳號 OAuth 的 M2-20、M2-21 暫緩當備案）；M1 只剩 M1-03 Docker 驗證 |
+| 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。**M2-25：負責人自己執行 `scripts/smtp_check.py`**，確認共用測試信箱能用 SMTP 登入 → M2-15 真實寄信；SMTP 不能用才回到 ADR 0007 的 M2-20、M2-21；M4-06b 業務盲評（要業務來做）；M4-06g 問使用者後補 `CLAUDE.md` 第 3 節指令；M4-06l 完整 sandbox 驗收；之後 M5 |
+| 卡住 / 待確認 | 共用測試信箱還能不能用密碼登入 SMTP（M2-25，Microsoft 正在停用，登入不了就回到 ADR 0007）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）、Docker Desktop 無法啟動（M1-03）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
 一個任務的大小以「一次對話、一個 commit 做得完」為準；太大就拆開。
@@ -43,9 +43,10 @@
 | 已完成 | M2-23 介面拿掉「模型」用語 | 開發者 | 2026-11-18 |
 | 已完成 | M2-17 每天最晚寄送時間 | 開發者 | 2026-11-18 |
 | 1 | 「開發中發現」的小修（焦點、防呆文字） | 開發者 | mypy 已完成；其餘每項一個 commit |
-| 2 | M2-19 ADR 0007 個人帳號 | 開發者查資料＋負責人決定 | 要負責人用寄件帳號登入 Azure 入口網站註冊應用程式 |
-| 3 | M2-20 登入支援個人帳號 → M2-21 連結 Outlook | 開發者 | 依 M2-19 的結論 |
-| 4 | M2-15 真實寄信驗收 | 負責人＋開發者 | 負責人自己登入、授權；開發者在旁操作系統 |
+| 已完成 | M2-24 共用信箱 SMTP 寄信（ADR 0008） | 開發者 | 2026-11-18 |
+| 2 | M2-25 SMTP 登入檢查 | 負責人 | 自己填密碼、自己執行 `smtp_check` |
+| 3 | M2-15 真實寄信驗收 | 負責人＋開發者 | 用共用信箱 SMTP；不需要 Azure |
+| 備案 | M2-20 登入支援個人帳號 → M2-21 連結 Outlook | 開發者 | 只有 M2-25 登入不了、或換公司帳號時才做（ADR 0007） |
 | — | M4-06b 業務盲評 | 業務 | 開發者先準備 10 封草稿 |
 | — | M4-06g CLAUDE.md 指令補充 | 開發者 | 改 CLAUDE.md 前先問負責人 |
 | — | M4-06l 完整 sandbox 50 封驗收 | 開發者 | 需要本機 Ollama |
@@ -92,14 +93,22 @@
 - **安全**：`state` 不對就拒絕；回應、log、錯誤訊息都不可以出現 code、token、client secret；錯誤用 `{ "error": { "code", "message" } }`，新的 code 加進 `frontend/src/api/errorMessages.ts`。
 - **測試**（名稱帶 `test_m2_21_`）：用假的 token 端點（`httpx.MockTransport` 或假的 provider）測——成功連結、`state` 錯誤或過期被拒、別人的 `state` 被拒、換 token 失敗、`needs_reconnect`、回應不含權杖；前端 Vitest 測橫幅按鈕。
 
-### M2-15 驗收：用個人帳號真實寄 10 封（前置：M2-19～M2-21）
-- **誰**：負責人自己登入寄件測試帳號、按同意；開發者操作系統。開發者不代填密碼、不代按同意。
-- **`backend/.env`**（不 commit）：`ENV=development`、`AUTH_MODE=entra`、M2-19 決定的 `ENTRA_*` 設定、`ENTRA_CLIENT_SECRET` 與 `MAIL_TOKEN_KEY`（負責人自己填）、`MAIL_MODE=live`、`MAIL_ALLOWED_RECIPIENTS`（已設好，負責人自己的收件信箱）、`DAILY_SEND_LIMIT=10`、`SEND_PER_MINUTE=1`（已設好）。白名單是空的話系統不會啟動（M2-22）。
+### M2-25 共用測試信箱的 SMTP 登入檢查（負責人做）
+- **為什麼**：Microsoft 正在停用 outlook.com 的「密碼登入 SMTP」，要先確認這個信箱還能用（ADR 0008）。
+- **步驟**（負責人自己做，密碼不要貼進對話或任何文件）：
+  1. 在 `backend/.env` 填：`MAIL_TRANSPORT=smtp`、`SMTP_USERNAME`（共用測試信箱地址）、`SMTP_PASSWORD`。`MAIL_ALLOWED_RECIPIENTS` 已填好收件信箱。
+  2. `cd backend && uv run python -m scripts.smtp_check` → 看到「登入成功」。
+  3. `uv run python -m scripts.smtp_check --send` → 收件信箱收到測試信、共用信箱的寄件備份有這封。
+- **結果**：成功就打勾、做 M2-15；看到 `SMTP_AUTH_FAILED（535）` 而密碼確定正確，代表密碼登入已被停用 → 在 CHANGELOG 記下，改做 ADR 0007 的 M2-20、M2-21。
+
+### M2-15 驗收：用共用測試信箱真實寄 10 封（前置：M2-25）
+- **誰**：負責人（填密碼、看信箱）＋開發者操作系統。開發者不代填密碼。
+- **`backend/.env`**（不 commit）：`ENV=development`、`MAIL_TRANSPORT=smtp`、`SMTP_USERNAME`、`SMTP_PASSWORD`（負責人自己填）、`MAIL_MODE=live`、`MAIL_ALLOWED_RECIPIENTS`（已設好，負責人自己的收件信箱）、`DAILY_SEND_LIMIT=10`、`SEND_PER_MINUTE=1`（已設好）。白名單是空的話系統不會啟動（M2-22）。
 - **步驟**：
   1. 用全新的空資料庫：`HOWDER_PGDATA` 指到新的純英文資料夾啟動 `scripts.dev_db` → `alembic upgrade head` → `seed_templates`。
   2. 準備 10 家假公司的 CSV（格式照 `docs/samples/import_v1_sample.csv`，公司名用「測試」開頭的假名）；以管理員身分匯入並確認。
   3. 每家加一位聯絡人，email 都填白名單裡的收件信箱（只存在這個測試資料庫，不寫進任何檔案）；另外加 1 家聯絡人用 `blocked@example.com`，用來確認白名單會擋。
-  4. 業務頁審核通過 → 建立批次（模板）→ 預覽、核准 10 封 → 「連結 Outlook」（負責人登入授權）→ 寄出。`blocked@example.com` 那家應該在建立批次時就被排除，原因「收件者不在測試白名單」。
+  4. 業務頁審核通過 → 建立批次（模板）→ 預覽、核准 10 封 → 寄出（共用信箱不需要「連結 Outlook」，橫幅會提示共用測試信箱）。`blocked@example.com` 那家應該在建立批次時就被排除，原因「收件者不在測試白名單」。
   5. 確認：收件信箱收到 10 封；寄件帳號的「寄件備份」有 10 封；`email_message` 有 10 筆；每封結尾有退訂說明；14 天內再寄同一家會被擋。
   6. 結束後 `MAIL_MODE` 改回 `sandbox`；結果（不含信箱地址）寫進 CHANGELOG，打勾 M2-15。
 - **注意**：新的個人帳號可能被 Microsoft 限制寄送量或要求驗證；遇到就記錄錯誤代碼，不要調高上限硬寄。
@@ -298,7 +307,7 @@
 - [x] M2-12 KPI 卡「近 7 天已寄出」接上真實資料，在瀏覽器確認 — 2026-11-18
 - [x] M2-13 sandbox 走完一輪：10 家 → 產生 → 修改 → 核准 → 寄出，`email_message` 有 10 筆 — 2026-11-18（腳本跑 API＋worker；修掉 contact_id 未填的 bug）
 - [x] M2-14 375px / 1280px 瀏覽器檢查；預覽佇列可以只用鍵盤核准 — 2026-11-18
-- [ ] M2-15 驗收：用個人 Microsoft 帳號（outlook.com）真實寄 10 封到使用者自己的另一個信箱，確認出現在寄件備份；用全新的空資料庫、只放測試公司，白名單只放那個信箱、每天上限 2～10 封（前置：M2-19～M2-21，M2-22 已完成；公司帳號之後再測）
+- [ ] M2-15 驗收：用共用測試信箱（outlook.com，SMTP，ADR 0008）真實寄 10 封到負責人自己的信箱，確認出現在寄件備份；用全新的空資料庫、只放測試公司，白名單只放那個信箱、每天上限 2～10 封（前置：M2-25；公司帳號之後再測）
 
 ### 2026-11-18 使用者決定後追加
 - [x] M2-16 批次「待寄出」狀態（F-MAIL-4）：migration 讓 `campaign.status` CHECK 加上 `ready`（單獨 commit）；草稿都處理完、還沒按寄出時改成 `ready`，按寄出後 `scheduled`；前端狀態文字＋測試 — 2026-11-18（migration 0011；「我的待辦」也算待寄出的批次；既有批次要等下一次草稿動作才會重算狀態）
@@ -308,10 +317,12 @@
   - 個人帳號能不能直接註冊應用程式（可能需要先有一個 Entra 目錄），應用程式要設成支援個人帳號（`consumers` 或 `common`）
   - ADR 0005 的 On-Behalf-Of 查不到支援個人帳號的官方說明 → 「連結 Outlook」可能改成授權碼流程（PKCE＋機密用戶端，refresh token 一樣用 Fernet 加密）
   - 公司帳號之後要能用設定切回，不重寫流程
-- [ ] M2-20 登入支援個人 Microsoft 帳號（依 M2-19）：authority、token 的 issuer／audience 驗證、前端 MSAL 設定；用假 token 測試
-- [ ] M2-21 「連結 Outlook」支援個人帳號（依 M2-19）：開始連結、Microsoft 轉回的 callback、加密保存、失效時 `needs_reconnect`；用假的 Microsoft 端點測試，回應與 log 不含權杖
+- [ ] M2-20 （備案，2026-11-18 暫緩：先用 ADR 0008 的共用信箱 SMTP；M2-25 登入不了或換公司帳號時才做）登入支援個人 Microsoft 帳號（依 M2-19）：authority、token 的 issuer／audience 驗證、前端 MSAL 設定；用假 token 測試
+- [ ] M2-21 （備案，同 M2-20）「連結 Outlook」支援個人帳號（依 M2-19）：開始連結、Microsoft 轉回的 callback、加密保存、失效時 `needs_reconnect`；用假的 Microsoft 端點測試，回應與 log 不含權杖
 - [x] M2-22 真實寄信的安全條件：開發環境 `MAIL_MODE=live` 時 `MAIL_ALLOWED_RECIPIENTS` 不能是空的才可啟動，`ENV=test` 一律不行，正式環境不受影響；CLAUDE.md 第 6 節第 3 點已依使用者同意改寫 — 2026-11-18（真實寄信時用全新的空資料庫、只放測試公司，記在 M2-15 驗收步驟）
 - [x] M2-23 介面拿掉「模型」用語（2026-11-18：沒有模型，名單是整理好的 Excel）：匯入頁的「模型名稱」欄位與「模型版本 run #」改成「匯入批次 #」；公司詳情的「模型版本」「模型原判」「模型沒有提供理由」改成「匯入資料」的說法；排除對話框「改善推薦模型」改成「名單品質報表」；資料庫欄位名稱（`model_run`、`run_id`）不改 — 2026-11-18
+- [x] M2-24 共用測試信箱 SMTP 寄信（ADR 0008、F-MAIL-6）：`MAIL_TRANSPORT=smtp` 與 `SMTP_*` 設定（只限開發環境）、`SmtpMailer`（STARTTLS、錯誤代碼、log 不含密碼）、不需要連結 Outlook、前端橫幅與錯誤訊息、`scripts/smtp_check.py` — 2026-11-18
+- [ ] M2-25 負責人自己執行 `scripts/smtp_check.py`（與 `--send`），確認共用測試信箱還能用密碼登入 SMTP；登入不了就改做 M2-20、M2-21（ADR 0007）
 
 ## M3 案件追蹤與總覽（閉環）
 
