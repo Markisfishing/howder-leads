@@ -255,7 +255,7 @@
 - [ ] M4-06l 驗收（sandbox，不寄出）：本機 Ollama 用選定的模型產生 50 封 `template_ai` 草稿，記錄總耗時與失敗率，對照 F-MAIL-3「50 封 3 分鐘」；達不到就在 ADR 0006 記下本機實測數字，正式環境靠公司 GPU 主機
 
 ### 官網摘要（M4-08；SPEC 7.4）
-- [ ] M4-08a migration：新增 `company_site_summary` 表（公司、抓取網址、摘要、抓取時間、狀態、錯誤代碼），`job.kind` 加上 `fetch_site`（單獨 commit；同步 `db/schema.sql`、SPEC 8.1）
+- [x] M4-08a migration：新增 `company_site_summary` 表（公司、抓取網址、摘要、抓取時間、狀態、錯誤代碼），`job.kind` 加上 `fetch_site`（單獨 commit；同步 `db/schema.sql`、SPEC 8.1） — 2026-11-18
 - [ ] M4-08b `services/site_fetcher.py`：只抓首頁和產品／關於我們頁；遵守 robots.txt，設定逾時與大小上限，同網域限速；HTML 轉純文字；測試用假的 HTTP 回應，不連真實網站
 - [ ] M4-08c worker `fetch_site`：匯入確認後、或業務修正官網後排進佇列，不在匯入的 request 裡等；抓不到或沒有官網就標記失敗（錯誤代碼），寫信時改用推薦理由，不擋產生草稿
 - [ ] M4-08d 摘要用本機 LLM 產生（prompt `prompts/site_summary_v1.md`，ADR 0006）；只留公司產品與產業描述，人名、email、電話用 domain 規則再過濾一次，不存進資料庫；單元測試

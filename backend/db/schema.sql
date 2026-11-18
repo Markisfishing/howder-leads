@@ -141,6 +141,18 @@ CREATE TABLE gold_label (
 );
 
 -- ---------- 聯絡人 ----------
+CREATE TABLE company_site_summary (                 -- 0015：官網摘要（M4-08），給 AI 寫信的公司背景
+    company_id   BIGINT PRIMARY KEY REFERENCES company(company_id) ON DELETE CASCADE,
+    source_url   TEXT,
+    summary      TEXT,                               -- 只存產品與產業描述，不存人名、email、電話
+    status       TEXT NOT NULL CONSTRAINT ck_site_summary_status CHECK (status IN ('ok', 'failed')),
+    error_code   TEXT,
+    fetched_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_site_summary_consistent
+        CHECK ((status = 'ok' AND summary IS NOT NULL AND error_code IS NULL)
+            OR (status = 'failed' AND summary IS NULL AND error_code IS NOT NULL))
+);
+
 CREATE TABLE contact (
     contact_id    BIGSERIAL PRIMARY KEY,
     company_id    BIGINT NOT NULL REFERENCES company(company_id) ON DELETE CASCADE,
@@ -304,7 +316,7 @@ CREATE TABLE user_mail_credential (
 -- ---------- 背景工作佇列（0003，ADR 0003）----------
 CREATE TABLE job (
     job_id        BIGSERIAL PRIMARY KEY,
-    kind          TEXT NOT NULL CHECK (kind IN ('generate_drafts', 'send_email', 'case_daily', 'classify_reply')),  -- 0008：case_daily；0014：classify_reply
+    kind          TEXT NOT NULL CHECK (kind IN ('generate_drafts', 'send_email', 'case_daily', 'classify_reply', 'fetch_site')),  -- 0008：case_daily；0014：classify_reply
     payload       JSONB NOT NULL DEFAULT '{}'::jsonb,
     status        TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed')),
     run_after     TIMESTAMPTZ NOT NULL DEFAULT now(),   -- 排程與重試退避

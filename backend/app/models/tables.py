@@ -92,6 +92,18 @@ class ModelRun(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class CompanySiteSummary(Base):
+    """官網摘要（M4-08、SPEC 7.4）：給 AI 寫信的公司背景。只存產品與產業描述，不存人名、email、電話。"""
+
+    __tablename__ = "company_site_summary"
+    company_id: Mapped[int] = mapped_column(ForeignKey("company.company_id"), primary_key=True)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    summary: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(Text)  # ok / failed
+    error_code: Mapped[str | None] = mapped_column(Text)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class ImportBatch(Base):
     __tablename__ = "import_batch"
     batch_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
