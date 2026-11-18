@@ -5,10 +5,10 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 最後更新 | 2026-11-18（補齊本機測試 PostgreSQL 執行檔；完成開發中發現的 mypy、焦點、防呆文字小修；M2-24 共用信箱 SMTP 寄信；複核 M2-17、M2-23；M4 併入 feat/m1-mvp） |
-| 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 b（業務盲評）、g（`CLAUDE.md` 指令補充）、l（完整 sandbox 50 封驗收）。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（2026-11-18 改成先用共用 Outlook.com 信箱 SMTP：M2-24 已完成 → M2-25 → M2-15；個人帳號 OAuth 的 M2-20、M2-21 暫緩當備案）；M1 只剩 M1-03 Docker 驗證 |
+| 最後更新 | 2026-11-18（M1-03 Docker 驗證完成；補齊本機測試 PostgreSQL 執行檔；完成開發中發現的 mypy、焦點、防呆文字小修；M2-24 共用信箱 SMTP 寄信；複核 M2-17、M2-23；M4 併入 feat/m1-mvp） |
+| 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 b（業務盲評）、g（`CLAUDE.md` 指令補充）、l（完整 sandbox 50 封驗收）。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（2026-11-18 改成先用共用 Outlook.com 信箱 SMTP：M2-24 已完成 → M2-25 → M2-15；個人帳號 OAuth 的 M2-20、M2-21 暫緩當備案）；M1 全部完成（M1-03 Docker 驗證 2026-11-18 完成） |
 | 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。**M2-26：負責人把 `docs/it-mail-questions.md` 的問題傳給 IT**，依回覆決定正式寄客戶的方式（預計公司 Microsoft 365＋Graph）；等待期間 M2-15 先用 Gmail＋應用程式密碼只寄給自己測流程（只改 `.env`）；M4-06b 業務盲評（要業務來做）；M4-06g 問使用者後補 `CLAUDE.md` 第 3 節指令；M4-06l 完整 sandbox 驗收；之後 M5 |
-| 卡住 / 待確認 | 公司對外信箱的類型與管理員能否註冊應用程式、同意 `Mail.Send`（M2-26，等 IT 回覆；outlook.com 已不能用密碼登入 SMTP，M2-25）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）、Docker Desktop 無法啟動（M1-03）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
+| 卡住 / 待確認 | 公司對外信箱的類型與管理員能否註冊應用程式、同意 `Mail.Send`（M2-26，等 IT 回覆；outlook.com 已不能用密碼登入 SMTP，M2-25）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
 一個任務的大小以「一次對話、一個 commit 做得完」為準；太大就拆開。
@@ -51,7 +51,7 @@
 | — | M4-06b 業務盲評 | 業務 | 開發者先準備 10 封草稿 |
 | — | M4-06g CLAUDE.md 指令補充 | 開發者 | 改 CLAUDE.md 前先問負責人 |
 | — | M4-06l 完整 sandbox 50 封驗收 | 開發者 | 需要本機 Ollama |
-| — | M1-03 Docker 驗證 | 有 Docker 的電腦 | 這台的 Docker Desktop 起不來 |
+| 已完成 | M1-03 Docker 驗證 | 開發者 | 2026-11-18：compose 補上專案名稱並只綁本機，migration、測試、API 都正常 |
 | 之後 | M5 | 先拆細 | CLAUDE.md 第 13 節：開始前拆成和 M1 一樣細 |
 
 ### M2-23 介面拿掉「模型」用語（已完成）
@@ -168,7 +168,7 @@
 ### 基礎建設
 - [x] M1-01 建立後端專案骨架（uv、pyproject、`app/main.py`、`GET /health`） — 2026-11-17
 - [x] M1-02 後端加上 ruff、mypy、pytest 設定，第一個測試 `test_health` — 2026-11-17
-- [ ] M1-03 `docker-compose.yml`：postgres 16（開發用；依 ADR 0003 不再需要 redis）（進行中：已寫 docker-compose.yml，但 Docker Desktop 在這台電腦無法啟動、未驗證；開發與測試改用 backend/scripts/dev_db.py 內嵌 Postgres）
+- [x] M1-03 `docker-compose.yml`：postgres 16（開發用；依 ADR 0003 不再需要 redis）（compose 加上 `name: howder`、port 只綁 127.0.0.1；`alembic upgrade head` 到 0015、pytest 529 個全過、API 連 compose 的 Postgres 正常。測試仍用 `pg_local` 內嵌 Postgres） — 2026-11-18
 - [x] M1-04 `.env.example` 和設定讀取（pydantic-settings），包含 `MAIL_MODE=sandbox` — 2026-11-17
 - [x] M1-05 導入 Alembic，把 `schema.sql` 轉成第一個 migration — 2026-11-17
 - [x] M1-06 SQLAlchemy models（company、classification、review、dim_*、activity_log、import_batch、model_run、app_user） — 2026-11-17

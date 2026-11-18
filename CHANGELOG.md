@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-11-18｜M1-03 Docker 驗證完成
+
+**改了哪些檔案**
+- `docker-compose.yml`：加上 `name: howder`；Postgres port 改成只綁 `127.0.0.1:5432`
+- `backend/.env.example`：補一行用 docker compose 時的 `DATABASE_URL`（帳密 postgres / postgres）
+- `PROGRESS.md`：M1-03 打勾，狀態表與交接表拿掉「Docker Desktop 起不來」
+
+**解決了什麼問題**
+- 專案資料夾名稱是中文（`後達電子`），compose 推不出專案名稱，`docker compose up` 直接報 `project name must not be empty`，所以之前這份 compose 從來沒跑起來過；寫死 `name: howder` 後正常。
+- 原本 `5432:5432` 會開給整個區網，開發密碼又是 postgres，改成只給本機連。
+
+**做了哪些決定**
+- 測試維持用 `scripts/pg_local.py` 內嵌 Postgres（每次重建 `howder_test`），不改成連 Docker；Docker 只當開發資料庫的另一個選項。
+
+**還沒處理的問題**
+- 在不同資料夾（主資料夾和 worktree）之間切換時，`pg_local` 會因為 `.venv` 路徑不同重新複製 Postgres 執行檔，第一次跑測試可能出現 `FileExistsError`，再跑一次就好。之後可以讓 marker 不綁 `.venv` 的絕對路徑。
+
+**下一步**
+- M2-26 等 IT 回覆；M2-15 先用 Gmail 寄給自己測流程。
+
+---
+
 ## 2026-11-18｜寄信給客戶的方針：等公司 Microsoft 365＋Graph，先問 IT
 
 **改了哪些檔案**
