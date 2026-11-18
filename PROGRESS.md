@@ -6,9 +6,9 @@
 | 項目 | 狀態 |
 |---|---|
 | 最後更新 | 2026-11-18 |
-| 目前階段 | **M3 主線完成**（sandbox 閉環示範通過），2026-11-18 追加任務中 M2-16、M3-17 已完成，剩 M2-17、M3-16、M3-18；M2 只剩 M2-15 真實 Outlook 驗收；M1 只剩 M1-03 Docker 驗證；M4 尚未拆細 |
-| 下一個任務 | M3-18 取消退訂（主管／管理員），接著 M2-17、M3-16；之後拆 M4 |
-| 卡住 / 待確認 | 寄信時要不要自動認領公司（SPEC 11-11）、地端 LLM GPU 主機（SPEC 11-10，等 IT）、優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
+| 目前階段 | **M3 主線完成**（sandbox 閉環示範通過），2026-11-18 追加任務中 M2-16、M3-17 已完成，剩 M2-17、M3-16、M3-18；M2 只剩 M2-15 真實 Outlook 驗收；M1 只剩 M1-03 Docker 驗證；M4 已拆細（2026-11-18） |
+| 下一個任務 | M3-18 取消退訂（主管／管理員），接著 M2-17、M3-16；之後 M4-06a（M4 已拆細，AI 先用本機 Ollama＋qwen3） |
+| 卡住 / 待確認 | 寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10，等 IT；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、Microsoft 365 管理員是否核准 `Mail.Send`（SPEC 11-4）、國外公司唯一鍵（SPEC 11-6）、星等算法由 MLE 提供（SPEC 11-7）、Docker Desktop 無法啟動（M1-03） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
 一個任務的大小以「一次對話、一個 commit 做得完」為準；太大就拆開。
@@ -229,27 +229,66 @@
 - [x] M3-17 退訂只標記該聯絡人（F-CASE-5 已改）：公司所有聯絡人都退訂，或標記時勾選「整家公司不再聯絡」，才改 `do_not_contact` 並結案；`domain/contact_rules` 規則＋單元測試；案件頁與聯絡人區塊加勾選框 — 2026-11-18（還有其他聯絡人時案件照常進行，不結案）
 - [ ] M3-18 取消退訂：`POST /contacts/{id}/resubscribe` 只限主管／管理員、必填原因、寫 `activity_log`；公司若因此恢復可聯絡，狀態怎麼退回要在 domain 定義並測試；前端入口在公司詳情聯絡人區塊
 
-## M4 AI 寫信、績效與回饋（之後再拆細）
+## M4 AI 寫信、績效與回饋（2026-11-18 拆細）
 
-- [ ] M4-01 績效頁：漏斗、各星級成交率、各來源／標籤／模板回覆率、業務排行（F-TRK-5）
-- [ ] M4-02 排除原因報表（F-MLE-1）
+> **AI 先用本機能跑的環境**（2026-11-18 使用者決定）：Ollama 0.40（OpenAI 相容 API `http://127.0.0.1:11434/v1`，模型放在 `D:\ollama\models`），已下載 `qwen3:8b`、`qwen3:14b`；GPU 是 RTX 5060 Laptop 8 GB、RAM 24 GB。公司 GPU 主機（SPEC 11-10）確認後只改 `LOCAL_LLM_BASE_URL`、`LOCAL_LLM_MODEL`，不改程式。
+> 自動化測試一律用 `FakeLlmClient` 或假的 HTTP 回應，不連本機 Ollama（CLAUDE.md 第 6 節第 4 點）；連本機模型只在手動腳本和驗收時做。
+> 建議順序：M4-06（寫信）→ M4-08（官網摘要）→ M4-07（回覆態度）→ M4-04（盲標）→ M4-02、M4-03、M4-05（給 MLE）→ M4-01（績效頁）→ M4-09（檢查）。
+
+### 原始任務（保留編號，細項在下面各小節）
+- [ ] M4-01 績效頁：漏斗、各星級成交率、各來源／標籤／模板回覆率、業務排行（F-TRK-5）→ 拆成 M4-01a～c
+- [ ] M4-02 排除原因報表（F-MLE-1）→ 拆成 M4-02a、b
 - [ ] M4-03 回饋資料匯出（F-MLE-2）
-- [ ] M4-04 盲標工作台＋「不含模型欄位」測試（F-MLE-3）
-- [ ] M4-05 模型品質頁（F-MLE-4）
-- [ ] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）。先用地端 LLM（ADR 0006），拆成下列 a～d
-  - [ ] M4-06a `LlmClient` 介面＋`LocalLlmClient`（OpenAI 相容 API）＋`FakeLlmClient`；`LLM_PROVIDER` 等設定加進 `.env.example`；JSON 驗證、簡體字檢查、逾時重試＋測試
-  - [ ] M4-06b 選地端模型：2～3 個候選模型、同一批 10 家公司，業務盲評品質，記錄速度與硬體需求，結果寫回 ADR 0006（GPU 主機待公司 IT 確認，SPEC 11-10；確認前先用 `FakeLlmClient` 做 M4-06a、M4-06c）
-  - [ ] M4-06c prompt `invite_v1`＋`template_ai` / `full_ai` 接進 worker `generate_drafts`；草稿記錄 provider、模型、prompt 版本（migration）
-  - [ ] M4-06d `ClaudeClient`（保留切換選項，用假的實作測試；要不要上線看 M4-06b 結果）
-- [ ] M4-07 依回填內容判斷回覆態度（F-TRK-2；原 M3-03）
-- [ ] M4-08 官網摘要：給 AI 寫信用的公司背景（SPEC 7.4；M4-06 的前置）
-  - migration：新增 `company_site_summary` 表（公司、抓取網址、摘要、抓取時間、狀態、錯誤代碼），`job.kind` 加上 `fetch_site`
-  - worker `fetch_site`：匯入確認後、或業務修正官網後排進佇列，不在匯入的 request 裡等
-  - 只抓首頁和產品／關於我們頁；遵守 robots.txt，設定逾時與大小上限，同網域限速
-  - 抓不到或沒有官網就標記失敗，寫信時改用推薦理由，不擋產生草稿
-  - 摘要用地端 LLM 產生（ADR 0006）；只留公司產品與產業描述，不存網頁上的人名、email、電話
-  - 側欄顯示摘要和抓取時間，業務可以按「重新抓取」
-  - 測試：用假的 HTTP 回應，不連真實網站
+- [ ] M4-04 盲標工作台＋「不含模型欄位」測試（F-MLE-3）→ 拆成 M4-04a、b
+- [ ] M4-05 模型品質頁（F-MLE-4）→ 拆成 M4-05a、b
+- [ ] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）。先用地端 LLM（ADR 0006）→ 拆成 M4-06a～l
+- [ ] M4-07 依回填內容判斷回覆態度（F-TRK-2；原 M3-03）→ 拆成 M4-07a～c
+- [ ] M4-08 官網摘要：給 AI 寫信用的公司背景（SPEC 7.4；M4-06 的前置）→ 拆成 M4-08a～e
+
+### AI 寫信（M4-06；F-MAIL-2、F-MAIL-3、F-MAIL-8、SPEC 7.4、ADR 0006）
+依這個順序做：a → e → f → g → h → c → i → j → k → b → d → l
+
+- [ ] M4-06a `LlmClient` 介面（輸入 system prompt＋使用者內容，回傳文字與耗時、token 數）＋`FakeLlmClient`；設定 `LLM_PROVIDER`（預設 `local`）、`LOCAL_LLM_BASE_URL`（預設本機 Ollama）、`LOCAL_LLM_MODEL`（預設 `qwen3:8b`）、`LLM_TIMEOUT_SECONDS`、`LLM_CONCURRENCY` 加進設定與 `.env.example`；依設定注入的測試（原本這一項也含 JSON 驗證、簡體字檢查、逾時重試，改拆到 M4-06e、M4-06f）
+- [ ] M4-06e `domain/ai_rules.py`（純函式）：去掉 qwen3 的 `<think>…</think>` 思考段、從回覆取出 JSON、驗證必要欄位與長度（主旨、`ai_paragraph`、`body_text`）、常見簡體字檢查；每條規則都有單元測試
+- [ ] M4-06f `LocalLlmClient`：呼叫 `/v1/chat/completions`（要求 JSON 格式、關閉 qwen3 思考模式、溫度可設定、逾時）；連不上、逾時、HTTP 錯誤都轉成錯誤代碼（`LLM_UNAVAILABLE`、`LLM_TIMEOUT`…）；用假的 HTTP 回應測試，不連真實 Ollama
+- [ ] M4-06g 本機冒煙腳本 `scripts/llm_smoke.py`：對本機 Ollama 用 1 家假公司跑一次，印出耗時、token 數、JSON 是否合格、有沒有簡體字（手動執行，不進 pytest）；`CLAUDE.md` 第 3 節指令補上 `ollama serve` 與這支腳本（改 CLAUDE.md 前先問使用者）
+- [ ] M4-06h migration：`email_draft` 加 `gen_provider`、`gen_model`、`prompt_version`（單獨 commit；同步 `db/schema.sql`、SPEC 8.1）
+- [ ] M4-06c prompt `prompts/invite_v1.md`（system：厚達產品介紹先用佔位文字待 SPEC 11-5、不捏造實績／價格／認證／交期、繁體中文、只回 JSON）＋`template_ai`：AI 只寫 `{{ai_paragraph}}`，其他照模板代入；接進 worker `generate_drafts`，草稿記錄 provider、模型、prompt 版本（原本含 `full_ai`，改拆到 M4-06i）
+- [ ] M4-06i `full_ai`：AI 寫主旨＋整封內文，驗證長度，結尾一律由系統補上退訂說明（AI 寫的不算）；`ai_original` 存 AI 原稿供 F-MAIL-8 比對
+- [ ] M4-06j 並發與失敗處理：依 `LLM_CONCURRENCY` 同時產生；JSON 不合格或有簡體字重試一次，再失敗就標 `failed` 並記錄錯誤代碼；「重新產生」走同一條路；錯誤代碼前端翻成中文
+- [ ] M4-06k 前端：建立批次頁開放「模板＋AI 段落」「整封 AI 撰寫」（目前顯示「M4 開放」）；預覽佇列顯示這封是哪個模型、哪一版 prompt 產生的，AI 內容旁提醒業務核對事實
+- [ ] M4-06b 選地端模型：**先在本機比 `qwen3:8b` 與 `qwen3:14b`**（8 GB VRAM 放不下整個 14b，部分會跑在 CPU，要實測速度）；同一批 10 家公司（只用公司名、產業、推薦理由等公司層級資訊）各產生一封，業務盲評通順度、正確性、有沒有捏造、要改多少，記錄每封秒數與失敗率，結果寫回 ADR 0006。公司 GPU 主機到位後再加入其他候選模型重比
+- [ ] M4-06d `ClaudeClient`（保留切換選項，用假的實作測試；要不要上線看 M4-06b 結果）
+- [ ] M4-06l 驗收（sandbox，不寄出）：本機 Ollama 用選定的模型產生 50 封 `template_ai` 草稿，記錄總耗時與失敗率，對照 F-MAIL-3「50 封 3 分鐘」；達不到就在 ADR 0006 記下本機實測數字，正式環境靠公司 GPU 主機
+
+### 官網摘要（M4-08；SPEC 7.4）
+- [ ] M4-08a migration：新增 `company_site_summary` 表（公司、抓取網址、摘要、抓取時間、狀態、錯誤代碼），`job.kind` 加上 `fetch_site`（單獨 commit；同步 `db/schema.sql`、SPEC 8.1）
+- [ ] M4-08b `services/site_fetcher.py`：只抓首頁和產品／關於我們頁；遵守 robots.txt，設定逾時與大小上限，同網域限速；HTML 轉純文字；測試用假的 HTTP 回應，不連真實網站
+- [ ] M4-08c worker `fetch_site`：匯入確認後、或業務修正官網後排進佇列，不在匯入的 request 裡等；抓不到或沒有官網就標記失敗（錯誤代碼），寫信時改用推薦理由，不擋產生草稿
+- [ ] M4-08d 摘要用本機 LLM 產生（prompt `prompts/site_summary_v1.md`，ADR 0006）；只留公司產品與產業描述，人名、email、電話用 domain 規則再過濾一次，不存進資料庫；單元測試
+- [ ] M4-08e 寫信接上摘要（M4-06c 的輸入加官網摘要，沒有就用推薦理由）；公司側欄顯示摘要和抓取時間，業務可以按「重新抓取」
+
+### 回覆態度（M4-07；F-TRK-2）
+- [ ] M4-07a migration：`case_update` 加 `sentiment`（positive／neutral／negative，CHECK）與 `sentiment_source`（ai／manual），`job.kind` 加 `classify_reply`（單獨 commit）
+- [ ] M4-07b 回填有備註時排 worker `classify_reply`，用本機 LLM 判斷態度（prompt `prompts/reply_sentiment_v1.md`）；失敗不影響回填；`FakeLlmClient` 測試
+- [ ] M4-07c 案件時間軸顯示態度標籤（附文字，不只靠顏色），業務可以手動修正並寫 `activity_log`；前端測試
+
+### 給 MLE 的回饋（M4-02～M4-05；F-MLE-1～4）
+- [ ] M4-04a 盲標 API：`GET /labeling/next`、`POST /labeling`（寫 `gold_label`）；回應只有公司名、登記產品、官網；**測試驗證回應不含任何模型欄位**（priority、stars、score、reason、產業預測；CLAUDE.md 第 6 節第 7 點）
+- [ ] M4-04b 盲標工作台 `/admin/labeling`：一次一家，可以只用鍵盤標完；四種狀態；前端測試
+- [ ] M4-02a 排除原因 API：讀 `v_reject_reasons`，依 model run 篩選；不在後端重算比例
+- [ ] M4-02b `/admin/model` 頁的「排除原因」區塊（依 run 切換）
+- [ ] M4-03 回饋匯出 `GET /feedback/export?run_id=`：CSV（UTF-8 BOM），含模型預測、業務決策、修正值、最後成果；不含聯絡人 email；測試欄位與權限（業務不能呼叫）
+- [ ] M4-05a 模型品質：以 `gold_label` 為準的產業準確率、混淆矩陣、潛在客戶 Precision／Recall 定義成 view（migration 單獨 commit）＋API；樣本不足時標示
+- [ ] M4-05b `/admin/model` 頁的「模型品質」區塊（混淆矩陣表格、各 run 比較）＋匯出回饋資料按鈕
+
+### 績效頁（M4-01；F-TRK-5）
+- [ ] M4-01a 績效 view：各星級回覆率／成交率、各資料來源與產品標籤回覆率、各模板回覆率、業務排行，都以 `v_case_fact` 為基礎（migration 單獨 commit；KPI 只定義在 view）
+- [ ] M4-01b API `GET /metrics/{funnel|win-rate|templates|reps}`：業務只看自己的，主管可看全團隊；日期與篩選同總覽
+- [ ] M4-01c `/performance` 頁：表格為主、比例附件數、樣本不足標示；四種狀態；前端測試
+
+### 收尾
+- [ ] M4-09 M4 各頁 375px／1280px 瀏覽器檢查、鍵盤操作檢查（審核、盲標、核准都能只用鍵盤完成）
 
 ## M5 延伸（之後再拆細）
 
