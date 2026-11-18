@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-11-18｜M2-19 ADR 0007：個人 Microsoft 帳號登入與寄信（提議）
+
+**改了哪些檔案**
+- `docs/adr/0007-personal-microsoft-account.md`（新）；`docs/SPEC.md` 11-4 加連結；`PROGRESS.md` 勾選 M2-19
+
+**解決了什麼問題**
+- 查了 Microsoft 官方文件：個人帳號可登入自己註冊的應用程式、API 要設 `accessTokenAcceptedVersion: 2`、`Mail.Send` 委派權限個人帳號可用；OBO 對個人帳號文件沒有保證。
+
+**做了哪些決定**
+- 提議（未確認）：`ENTRA_AUTHORITY` 可切換、issuer 改成允許清單、另外新註冊測試用應用程式、連結 Outlook 改授權碼流程（PKCE）。
+
+**還沒處理的問題**
+- 負責人要確認 ADR，並自己註冊應用程式、填 client secret 與 `MAIL_TOKEN_KEY`；個人帳號能否註冊應用程式未驗證；sendMail 個人帳號的每日上限沒查到。
+
+**下一步**
+- 負責人確認後做 M2-20、M2-21，再做 M2-15。
+
+---
+
 ## 2026-11-18｜合併 M4；M2-23 拿掉「模型」用語；M2-17 每天最晚寄送時間
 
 **改了哪些檔案**

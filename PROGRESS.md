@@ -7,7 +7,7 @@
 |---|---|
 | 最後更新 | 2026-11-18（M4 併入 feat/m1-mvp） |
 | 目前階段 | **M4 大部分完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 還剩 b（業務盲評）、g（`CLAUDE.md` 指令補充）、l（完整 sandbox 50 封驗收）。M3 全部完成。M2 剩真實寄信（先用個人 Microsoft 帳號：M2-19～M2-21 → M2-15；M2-22 已完成）；M1 只剩 M1-03 Docker 驗證 |
-| 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。M2-19 ADR：個人 Microsoft 帳號登入與寄信（先確認做法再寫程式）；M4-06b 業務盲評（要業務來做）；M4-06g 問使用者後補 `CLAUDE.md` 第 3 節指令；M4-06l 完整 sandbox 驗收；之後 M5 |
+| 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。**等負責人確認 ADR 0007**，再做 M2-20、M2-21；M4-06b 業務盲評（要業務來做）；M4-06g 問使用者後補 `CLAUDE.md` 第 3 節指令；M4-06l 完整 sandbox 驗收；之後 M5 |
 | 卡住 / 待確認 | 個人帳號能不能註冊應用程式（M2-19）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）、Docker Desktop 無法啟動（M1-03）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
@@ -317,7 +317,7 @@
 - [x] M2-16 批次「待寄出」狀態（F-MAIL-4）：migration 讓 `campaign.status` CHECK 加上 `ready`（單獨 commit）；草稿都處理完、還沒按寄出時改成 `ready`，按寄出後 `scheduled`；前端狀態文字＋測試 — 2026-11-18（migration 0011；「我的待辦」也算待寄出的批次；既有批次要等下一次草稿動作才會重算狀態）
 - [x] M2-17 每天最晚寄送時間 `SEND_DAY_END_HOUR`（預設 18，台灣時間；F-MAIL-6）：超過的排到隔天 `SEND_DAY_START_HOUR`；設定、`.env.example`、`domain/send_limits` 單元測試 — 2026-11-18（「早於上班時間延到上班時間才寄」沒做：會改變現有行為，等負責人確認）
 - [x] M2-18 測試收件者白名單 `MAIL_ALLOWED_RECIPIENTS`（M2-15 真實寄信前的安全機制）：`domain/send_guard` 加 `RECIPIENT_NOT_ALLOWED`，建立草稿、按寄出、worker 寄出前都檢查；順便修正建立批次時沒讀 `RECENT_SEND_DAYS` — 2026-11-18
-- [ ] M2-19 ADR 0007：先用個人 Microsoft 帳號（outlook.com）登入與寄信。要先查清楚並請使用者決定：
+- [x] M2-19 ADR 0007：先用個人 Microsoft 帳號（outlook.com）登入與寄信。要先查清楚並請使用者決定： — 2026-11-18（ADR 0007 已寫成「提議」，查到的事實與出處在內；OBO 對個人帳號文件沒有保證，所以提議連結改用授權碼流程；等負責人確認後才做 M2-20、M2-21）
   - 個人帳號能不能直接註冊應用程式（可能需要先有一個 Entra 目錄），應用程式要設成支援個人帳號（`consumers` 或 `common`）
   - ADR 0005 的 On-Behalf-Of 查不到支援個人帳號的官方說明 → 「連結 Outlook」可能改成授權碼流程（PKCE＋機密用戶端，refresh token 一樣用 Fernet 加密）
   - 公司帳號之後要能用設定切回，不重寫流程
