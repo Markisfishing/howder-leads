@@ -2,7 +2,7 @@
 
 用法（在 backend/ 底下）：
     uv run python -m scripts.dev_db
-啟動後會印出 DATABASE_URL，填進 backend/.env，再執行 `uv run alembic upgrade head`。按 Ctrl+C 結束。
+啟動後會印出 DATABASE_URL，填進 backend/.env，再執行 `uv run python -m alembic upgrade head`。按 Ctrl+C 結束。
 資料存放在 %LOCALAPPDATA%\\howder\\pgdata，可以用環境變數 HOWDER_PGDATA 改（必須是純英文路徑）。
 """
 

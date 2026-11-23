@@ -147,7 +147,7 @@ function Invoke-ChildService {
         "api" {
             Set-Location (Join-Path $Root "backend")
             Write-Host "啟動後端 API：http://127.0.0.1:8000"
-            & uv run uvicorn app.main:app --reload --port 8000
+            & uv run python -m uvicorn app.main:app --reload --port 8000
         }
         "worker" {
             Set-Location (Join-Path $Root "backend")
@@ -215,7 +215,8 @@ Write-Host "同步後端套件與資料庫..." -ForegroundColor Cyan
 Set-Location $backend
 & uv sync
 if ($LASTEXITCODE -ne 0) { throw "後端套件同步失敗。" }
-& uv run alembic upgrade head
+# uv 的 .exe 啟動器（trampoline）在中文路徑下會失敗，一律用 python -m 執行。
+& uv run python -m alembic upgrade head
 if ($LASTEXITCODE -ne 0) { throw "資料庫 migration 失敗。" }
 & uv run python -m scripts.seed_templates
 if ($LASTEXITCODE -ne 0) { throw "初版郵件模板建立失敗。" }
