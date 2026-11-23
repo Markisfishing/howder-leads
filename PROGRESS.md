@@ -5,7 +5,7 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 最後更新 | 2026-11-23（一鍵啟動在 Docker 沒開時自動啟動 Docker Desktop）；2026-11-18（使用者決定：Microsoft／Outlook 相關等拿到 Outlook 帳號再做；M1-03 Docker 驗證完成；補齊本機測試 PostgreSQL 執行檔；完成開發中發現的 mypy、焦點、防呆文字小修；M2-24 共用信箱 SMTP 寄信；複核 M2-17、M2-23；M4 併入 feat/m1-mvp；新增並修正一鍵啟動開發環境；修正前端 127.0.0.1 綁定） |
+| 最後更新 | 2026-11-23（一鍵啟動在 Docker 沒開時自動啟動 Docker Desktop；修正等待 PostgreSQL 時被中斷）；2026-11-18（使用者決定：Microsoft／Outlook 相關等拿到 Outlook 帳號再做；M1-03 Docker 驗證完成；補齊本機測試 PostgreSQL 執行檔；完成開發中發現的 mypy、焦點、防呆文字小修；M2-24 共用信箱 SMTP 寄信；複核 M2-17、M2-23；M4 併入 feat/m1-mvp；新增並修正一鍵啟動開發環境；修正前端 127.0.0.1 綁定） |
 | 目前階段 | **M4 全部完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 全部完成。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（2026-11-18 改成先用共用 Outlook.com 信箱 SMTP：M2-24 已完成 → M2-25 → M2-15；個人帳號 OAuth 的 M2-20、M2-21 暫緩當備案）；M1 全部完成（M1-03 Docker 驗證 2026-11-18 完成） |
 | 下一個任務 | **Microsoft／Outlook 相關（M2-15、M2-20、M2-21、M2-25、M2-26）暫停，等負責人拿到 Outlook 帳號**。不需要帳號、可以先做的已做完（2026-11-18）。剩下：請負責人在公司側欄對失敗的官網摘要按「重新抓取」（gzip bug 已修）；案件聯絡人退訂後自動換人（開發中發現）；M5（先拆細）。之後等 Outlook 帳號 → M2-15 |
 | 卡住 / 待確認 | **等負責人拿到 Outlook 帳號**（M2-15 真實寄信驗收、M2-20／M2-21 個人帳號 OAuth 備案、M2-25、M2-26；ADR 0007 也等這件事）、公司對外信箱的類型與管理員能否註冊應用程式、同意 `Mail.Send`（M2-26，等 IT 回覆；outlook.com 已不能用密碼登入 SMTP，M2-25）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
@@ -421,6 +421,7 @@
 
 - [x] 根目錄新增 `start-dev.ps1`，一鍵啟動 Docker PostgreSQL、API、Worker 與前端，並在 `README.md` 補上使用說明 — 2026-11-18
 - [x] `start-dev.ps1` 在 Docker Desktop 沒開時直接失敗、錯誤訊息看不懂；改成先檢查 Docker 引擎，沒開就自動啟動並等它就緒 — 2026-11-23
+- [x] `start-dev.ps1` 等待 PostgreSQL 的 `pg_isready 2>$null` 在 PowerShell 5.1 會把 stderr 當例外而中斷，改成 `Test-PostgresReady` — 2026-11-23
 - [x] 新增 `.gitattributes` 統一 LF 換行（部署到 Linux 前） — 2026-11-17
 - [x] 本機 `pgserver` 複製資料夾缺少 `pg_ctl.exe`／`initdb.exe` 時，測試啟動會依必要執行檔完整性自動重新複製 — 2026-11-18
 - [x] 前端 bundle 651 kB（超過 500 kB 警告）：dev 模式不需要 MSAL，可改成動態載入或依路由切分 — 2026-11-18（路由改成依頁面載入、MSAL 動態載入；主 bundle 651 → 309 kB，警告消失）

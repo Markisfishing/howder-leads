@@ -102,6 +102,20 @@ function Test-DockerReady {
     }
 }
 
+function Test-PostgresReady {
+    # PostgreSQL 還沒好時 docker compose exec 會寫 stderr；理由同 Test-DockerReady。
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & docker compose exec -T postgres pg_isready -U postgres -d howder *> $null
+        return $LASTEXITCODE -eq 0
+    } catch {
+        return $false
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
 function Start-DockerEngine {
     if (Test-DockerReady) {
         return
@@ -189,8 +203,7 @@ if ($LASTEXITCODE -ne 0) { throw "PostgreSQL 啟動失敗。" }
 
 $ready = $false
 for ($i = 0; $i -lt 30; $i++) {
-    & docker compose exec -T postgres pg_isready -U postgres -d howder 2>$null
-    if ($LASTEXITCODE -eq 0) {
+    if (Test-PostgresReady) {
         $ready = $true
         break
     }
