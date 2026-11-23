@@ -88,6 +88,44 @@ function Start-Ollama {
     throw "Ollama 啟動逾時。請確認 ollama serve 視窗沒有錯誤，或使用 -NoOllama 略過。"
 }
 
+function Test-DockerReady {
+    # docker 引擎沒開時會寫 stderr；PowerShell 5.1 在 Stop 模式下會把它當成例外，這裡暫時放寬。
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & docker info --format "{{.ServerVersion}}" *> $null
+        return $LASTEXITCODE -eq 0
+    } catch {
+        return $false
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
+function Start-DockerEngine {
+    if (Test-DockerReady) {
+        return
+    }
+
+    # 其他電腦可用 HOWDER_DOCKER_DESKTOP 指定 Docker Desktop.exe 的位置。
+    $dockerDesktop = Get-ConfiguredPath "HOWDER_DOCKER_DESKTOP" (Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe")
+    if ($null -eq $dockerDesktop -or -not (Test-Path $dockerDesktop)) {
+        throw "Docker 引擎沒有在執行，也找不到 Docker Desktop。請手動啟動 Docker，或設定 HOWDER_DOCKER_DESKTOP 指向 Docker Desktop.exe。"
+    }
+
+    Write-Host "Docker 引擎沒有在執行，正在啟動 Docker Desktop（第一次可能要一兩分鐘）..." -ForegroundColor Cyan
+    Start-Process $dockerDesktop
+
+    for ($i = 0; $i -lt 120; $i++) {
+        if (Test-DockerReady) {
+            Write-Host "Docker 已就緒。" -ForegroundColor Green
+            return
+        }
+        Start-Sleep -Seconds 1
+    }
+    throw "Docker Desktop 啟動逾時（120 秒）。請確認 Docker Desktop 視窗沒有錯誤後再重新執行。"
+}
+
 function Invoke-ChildService {
     param([string]$Name)
 
@@ -120,6 +158,8 @@ if ($Service -ne "all") {
 Require-Command "docker"
 Require-Command "uv"
 Require-Command "npm"
+
+Start-DockerEngine
 
 if (-not $NoOllama) {
     Start-Ollama
