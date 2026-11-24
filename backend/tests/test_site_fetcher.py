@@ -239,3 +239,27 @@ def test_m4_08b_bad_url_is_reported_as_fetch_error() -> None:
     with pytest.raises(SiteFetchError) as e:
         fetcher.fetch("ftp://example.com")
     assert e.value.code == "SITE_BAD_URL"
+
+
+def test_m4_08b_gzip_response_is_decoded_once() -> None:
+    """bug：網站回 Content-Encoding: gzip 時，重組回應後又解壓一次，全部被誤判成 SITE_UNREACHABLE（失敗 22/32）。"""
+    import gzip
+
+    def gz(body: str) -> httpx.Response:
+        return httpx.Response(
+            200,
+            content=gzip.compress(body.encode("utf-8")),
+            headers={"content-type": "text/html; charset=utf-8", "content-encoding": "gzip"},
+        )
+
+    fetcher, _ = _fetcher(
+        {
+            "https://www.example.com/robots.txt": gz("User-agent: *\nDisallow: /admin"),
+            "https://www.example.com": gz(HOME),
+            "https://www.example.com/products": gz(PRODUCTS),
+            "https://www.example.com/about.html": gz(ABOUT),
+        }
+    )
+    site = fetcher.fetch("https://www.example.com")
+    assert "控制盤與配電設備" in site.text
+    assert "端子台用控制箱" in site.text

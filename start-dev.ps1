@@ -88,6 +88,58 @@ function Start-Ollama {
     throw "Ollama 啟動逾時。請確認 ollama serve 視窗沒有錯誤，或使用 -NoOllama 略過。"
 }
 
+function Test-DockerReady {
+    # docker 引擎沒開時會寫 stderr；PowerShell 5.1 在 Stop 模式下會把它當成例外，這裡暫時放寬。
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & docker info --format "{{.ServerVersion}}" *> $null
+        return $LASTEXITCODE -eq 0
+    } catch {
+        return $false
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
+function Test-PostgresReady {
+    # PostgreSQL 還沒好時 docker compose exec 會寫 stderr；理由同 Test-DockerReady。
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & docker compose exec -T postgres pg_isready -U postgres -d howder *> $null
+        return $LASTEXITCODE -eq 0
+    } catch {
+        return $false
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
+function Start-DockerEngine {
+    if (Test-DockerReady) {
+        return
+    }
+
+    # 其他電腦可用 HOWDER_DOCKER_DESKTOP 指定 Docker Desktop.exe 的位置。
+    $dockerDesktop = Get-ConfiguredPath "HOWDER_DOCKER_DESKTOP" (Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe")
+    if ($null -eq $dockerDesktop -or -not (Test-Path $dockerDesktop)) {
+        throw "Docker 引擎沒有在執行，也找不到 Docker Desktop。請手動啟動 Docker，或設定 HOWDER_DOCKER_DESKTOP 指向 Docker Desktop.exe。"
+    }
+
+    Write-Host "Docker 引擎沒有在執行，正在啟動 Docker Desktop（第一次可能要一兩分鐘）..." -ForegroundColor Cyan
+    Start-Process $dockerDesktop
+
+    for ($i = 0; $i -lt 120; $i++) {
+        if (Test-DockerReady) {
+            Write-Host "Docker 已就緒。" -ForegroundColor Green
+            return
+        }
+        Start-Sleep -Seconds 1
+    }
+    throw "Docker Desktop 啟動逾時（120 秒）。請確認 Docker Desktop 視窗沒有錯誤後再重新執行。"
+}
+
 function Invoke-ChildService {
     param([string]$Name)
 
@@ -95,7 +147,7 @@ function Invoke-ChildService {
         "api" {
             Set-Location (Join-Path $Root "backend")
             Write-Host "啟動後端 API：http://127.0.0.1:8000"
-            & uv run uvicorn app.main:app --reload --port 8000
+            & uv run python -m uvicorn app.main:app --reload --port 8000
         }
         "worker" {
             Set-Location (Join-Path $Root "backend")
@@ -120,6 +172,8 @@ if ($Service -ne "all") {
 Require-Command "docker"
 Require-Command "uv"
 Require-Command "npm"
+
+Start-DockerEngine
 
 if (-not $NoOllama) {
     Start-Ollama
@@ -149,8 +203,7 @@ if ($LASTEXITCODE -ne 0) { throw "PostgreSQL 啟動失敗。" }
 
 $ready = $false
 for ($i = 0; $i -lt 30; $i++) {
-    & docker compose exec -T postgres pg_isready -U postgres -d howder 2>$null
-    if ($LASTEXITCODE -eq 0) {
+    if (Test-PostgresReady) {
         $ready = $true
         break
     }
@@ -162,7 +215,8 @@ Write-Host "同步後端套件與資料庫..." -ForegroundColor Cyan
 Set-Location $backend
 & uv sync
 if ($LASTEXITCODE -ne 0) { throw "後端套件同步失敗。" }
-& uv run alembic upgrade head
+# uv 的 .exe 啟動器（trampoline）在中文路徑下會失敗，一律用 python -m 執行。
+& uv run python -m alembic upgrade head
 if ($LASTEXITCODE -ne 0) { throw "資料庫 migration 失敗。" }
 & uv run python -m scripts.seed_templates
 if ($LASTEXITCODE -ne 0) { throw "初版郵件模板建立失敗。" }

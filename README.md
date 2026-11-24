@@ -10,7 +10,7 @@ powershell -ExecutionPolicy Bypass -File .\start-dev.ps1
 
 啟動腳本會依序完成：
 
-1. 啟動 Docker PostgreSQL。
+1. 檢查 Docker 引擎；沒開的話自動啟動 Docker Desktop，最多等 120 秒（Docker Desktop 不在預設位置時，用環境變數 `HOWDER_DOCKER_DESKTOP` 指定 `Docker Desktop.exe` 的路徑），再啟動 Docker PostgreSQL。
 2. 第一次使用時建立 `backend/.env`，不會覆蓋既有設定。
    一鍵模式會在目前啟動程序中使用 Docker 的 `127.0.0.1:5432`，不會改寫既有 `.env` 的資料庫設定。
 3. 同步後端套件。

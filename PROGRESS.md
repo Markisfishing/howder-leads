@@ -5,10 +5,10 @@
 
 | 項目 | 狀態 |
 |---|---|
-| 最後更新 | 2026-11-18（M2-15 用 Gmail SMTP 真實寄 10 封給自己完成；M4-06l 完整 sandbox 50 封 84 秒；M4-06g CLAUDE.md 指令補充；前端依路由切分、MSAL 只在 entra 模式載入；AdminImportsPage 元件測試） |
-| 目前階段 | **M4 只剩 M4-06b 業務盲評**（要業務來做）。M3 全部完成。M2 剩 M2-26（等 IT 回覆公司對外信箱）；M2-15 已用 Gmail＋應用程式密碼寄給負責人自己驗收完成（2026-11-18），正式寄客戶的方式等 M2-26；個人帳號 OAuth 的 M2-20、M2-21 暫緩當備案。M1 全部完成 |
-| 下一個任務 | **接手的人先看下方「交接：剩下的任務怎麼做」**。**M2-26：負責人把 `docs/it-mail-questions.md` 的問題傳給 IT**，依回覆決定正式寄客戶的方式（預計公司 Microsoft 365＋Graph）；M4-06b 業務盲評（要業務來做）；之後 M5（開始前先拆細） |
-| 卡住 / 待確認 | 公司對外信箱的類型與管理員能否註冊應用程式、同意 `Mail.Send`（M2-26，等 IT 回覆；outlook.com 已不能用密碼登入 SMTP，M2-25）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
+| 最後更新 | 2026-11-23（一鍵啟動在 Docker 沒開時自動啟動 Docker Desktop；修正等待 PostgreSQL 時被中斷；uv trampoline 在中文路徑失敗改用 python -m）；2026-11-18（使用者決定：Microsoft／Outlook 相關等拿到 Outlook 帳號再做；M1-03 Docker 驗證完成；補齊本機測試 PostgreSQL 執行檔；完成開發中發現的 mypy、焦點、防呆文字小修；M2-24 共用信箱 SMTP 寄信；複核 M2-17、M2-23；M4 併入 feat/m1-mvp；新增並修正一鍵啟動開發環境；修正前端 127.0.0.1 綁定） |
+| 目前階段 | **M4 全部完成**：績效頁、名單品質、回覆態度、官網摘要、AI 寫信（`template_ai`／`full_ai`、本機 `qwen3:8b`）都做完並有測試；M4-06 全部完成。M3 全部完成。M2-17、M2-22、M2-23 已完成；M2 剩真實寄信（2026-11-18 改成先用共用 Outlook.com 信箱 SMTP：M2-24 已完成 → M2-25 → M2-15；個人帳號 OAuth 的 M2-20、M2-21 暫緩當備案）；M1 全部完成（M1-03 Docker 驗證 2026-11-18 完成） |
+| 下一個任務 | **Microsoft／Outlook 相關（M2-15、M2-20、M2-21、M2-25、M2-26）暫停，等負責人拿到 Outlook 帳號**。不需要帳號、可以先做的已做完（2026-11-18）。剩下：請負責人在公司側欄對失敗的官網摘要按「重新抓取」（gzip bug 已修）；案件聯絡人退訂後自動換人（開發中發現）；M5（先拆細）。之後等 Outlook 帳號 → M2-15 |
+| 卡住 / 待確認 | **等負責人拿到 Outlook 帳號**（M2-15 真實寄信驗收、M2-20／M2-21 個人帳號 OAuth 備案、M2-25、M2-26；ADR 0007 也等這件事）、公司對外信箱的類型與管理員能否註冊應用程式、同意 `Mail.Send`（M2-26，等 IT 回覆；outlook.com 已不能用密碼登入 SMTP，M2-25）、匯入批次漏斗數字與 `gold_label` 表要不要移除（見「開發中發現」）、寄信時要不要自動認領公司（SPEC 11-11）、公司地端 LLM GPU 主機（SPEC 11-10；M4 先用本機 Ollama＋qwen3）、優先級 C 的定義（SPEC 11-1）、國外公司唯一鍵（SPEC 11-6）。公司 Microsoft 365 帳號之後再說（SPEC 11-4） |
 
 格式：`- [ ] 編號 任務（需求 ID）` → 完成後 `- [x] 編號 任務（需求 ID） — YYYY-MM-DD`
 一個任務的大小以「一次對話、一個 commit 做得完」為準；太大就拆開。
@@ -30,12 +30,12 @@
   - 已套用的 migration 不能改；schema 變更單獨一個 commit，並同步 `backend/db/schema.sql` 與 SPEC 第 8 節。
 - **分支**：目前在 `feat/m1-mvp`（M4 已併入，還沒 push）。接手的人要先拿到這個分支；push 與否由專案負責人決定。新任務開 `feat/xxx` 或 `fix/xxx` 分支。
 - **開發環境**（指令細節見 CLAUDE.md 第 3 節）：
-  - 資料庫：`cd backend && uv run python -m scripts.dev_db`（內嵌 Postgres，資料在 `%LOCALAPPDATA%\howder\pgdata`；要全新的空資料庫就設 `HOWDER_PGDATA` 指到另一個純英文路徑）→ `uv run alembic upgrade head` → `uv run python -m scripts.seed_templates`。
-  - API：`uv run uvicorn app.main:app --port 8000`；worker：`uv run python -m app.workers`（兩個都要開）。
+  - 資料庫：`cd backend && uv run python -m scripts.dev_db`（內嵌 Postgres，資料在 `%LOCALAPPDATA%\howder\pgdata`；要全新的空資料庫就設 `HOWDER_PGDATA` 指到另一個純英文路徑）→ `uv run python -m alembic upgrade head` → `uv run python -m scripts.seed_templates`。
+  - API：`uv run python -m uvicorn app.main:app --port 8000`；worker：`uv run python -m app.workers`（兩個都要開）。
   - 前端：`cd frontend && npm run dev`（http://127.0.0.1:5173）。
   - 本機 LLM（M4）：這台開發機的 `C:\Users\y7632\.ollama` 是指向不存在路徑的連結，`ollama serve` 要用 `USERPROFILE=C:\howder-wt\ollama-home OLLAMA_MODELS=D:\ollama\models` 啟動；模型 `qwen3:8b`、`qwen3:14b`。換電腦的話照 Ollama 一般安裝即可。
-- **完成前檢查**（CLAUDE.md 第 11 節）：後端 `uv run ruff check . && uv run ruff format --check . && uv run mypy app && uv run pytest`；前端 `npm run typecheck && npm run lint && npm run test && npm run build`；有畫面改動就在瀏覽器看 375px 與 1280px。
-  - `uv run mypy app` 已通過，開發中發現的型別錯誤已修正。
+- **完成前檢查**（CLAUDE.md 第 11 節）：後端 `uv run ruff check . && uv run ruff format --check . && uv run python -m mypy app && uv run python -m pytest`；前端 `npm run typecheck && npm run lint && npm run test && npm run build`；有畫面改動就在瀏覽器看 375px 與 1280px。
+  - `uv run python -m mypy app` 已通過，開發中發現的型別錯誤已修正。
 
 ### 建議順序與分工
 | 順序 | 任務 | 誰 | 備註 |
@@ -48,9 +48,6 @@
 | 2 | M2-26 向 IT 確認公司對外信箱 | 負責人 | 問題清單在 `docs/it-mail-questions.md`，可直接複製傳給 IT |
 | 已完成 | M2-15 真實寄信驗收 | 負責人＋開發者 | 2026-11-18：Gmail＋應用程式密碼，10 封寄給負責人自己 |
 | 備案 | M2-20 登入支援個人帳號 → M2-21 連結 Outlook | 開發者 | 只有 M2-25 登入不了、或換公司帳號時才做（ADR 0007） |
-| — | M4-06b 業務盲評 | 業務 | 開發者先準備 10 封草稿 |
-| 已完成 | M4-06g CLAUDE.md 指令補充 | 開發者 | 2026-11-18（負責人同意） |
-| 已完成 | M4-06l 完整 sandbox 50 封驗收 | 開發者 | 2026-11-18：84 秒、0 失敗 |
 | 已完成 | M1-03 Docker 驗證 | 開發者 | 2026-11-18：compose 補上專案名稱並只綁本機，migration、測試、API 都正常 |
 | 之後 | M5 | 先拆細 | CLAUDE.md 第 13 節：開始前拆成和 M1 一樣細 |
 
@@ -114,11 +111,9 @@
   6. 結束後 `MAIL_MODE` 改回 `sandbox`；結果（不含信箱地址）寫進 CHANGELOG，打勾 M2-15。
 - **注意**：新的個人帳號可能被 Microsoft 限制寄送量或要求驗證；遇到就記錄錯誤代碼，不要調高上限硬寄。
 
-### M4-06l 完整 sandbox 50 封驗收
-- LLM 階段已測過（`qwen3:8b` 50 封 82 秒、0 失敗）。還要走完整流程：`MAIL_MODE=sandbox`、開本機 Ollama、API 與 worker → 準備 50 家假公司 → 建立 `template_ai` 批次 → 從按下建立到 50 封都出現在預覽佇列計時 → 記錄總耗時與失敗數，對照 F-MAIL-3「50 封 3 分鐘」→ 寫進 ADR 0006 → 打勾。
 
 ### M1-03 Docker 驗證
-- 需要一台 Docker Desktop 能啟動的電腦：在專案根目錄 `docker compose up -d` → 把 `DATABASE_URL` 指到 compose 的 Postgres → `alembic upgrade head` → `uv run pytest` 與 API 都正常 → 打勾。發現 compose 檔要改就一起修。
+- 需要一台 Docker Desktop 能啟動的電腦：在專案根目錄 `docker compose up -d` → 把 `DATABASE_URL` 指到 compose 的 Postgres → `alembic upgrade head` → `uv run python -m pytest` 與 API 都正常 → 打勾。發現 compose 檔要改就一起修。
 
 ### M5 延伸（開始前要先拆細）
 - CLAUDE.md 第 13 節：開始 M5 前先拆成和 M1 一樣細的任務（一個任務一個 commit 做得完），拆好加在 M5 底下，編號用 `M5-01a`、`M5-01b`…。
@@ -129,7 +124,7 @@
 
 ### 「開發中發現」的處理方式
 - **已完成的小修**（每項一個 commit，先寫重現測試再修，CLAUDE.md 第 9 節第 3 點）：
-  - [x] mypy 錯誤：`backend/app/api/v1/campaigns.py` 的 `row.count` 被 mypy 當成 Row 的方法，已改成 `row[1]`，`uv run mypy app` 為 0 個錯 — 2026-11-18
+  - [x] mypy 錯誤：`backend/app/api/v1/campaigns.py` 的 `row.count` 被 mypy 當成 Row 的方法，已改成 `row[1]`，`uv run python -m mypy app` 為 0 個錯 — 2026-11-18
   - [x] 防呆文字固定寫「14 天內已經寄過」：已改成依 `RECENT_SEND_DAYS` 顯示天數，文字由後端 `/campaigns/exclusion-reasons` 提供 — 2026-11-18
   - [x] 公司詳情側欄與受控對話框已改善開啟及關閉後的焦點位置 — 2026-11-18
   - [x] `AdminImportsPage` 元件測試（Vitest）：上傳預覽、確認匯入、取消、錯誤訊息、紀錄的空／錯誤／列表狀態 — 2026-11-18
@@ -370,7 +365,7 @@
 ### 原始任務（保留編號，細項在下面各小節）
 - [x] M4-01 績效頁：漏斗、各星級成交率、各來源／標籤／模板回覆率、業務排行（F-TRK-5）→ 拆成 M4-01a～c — 2026-11-18
 - [x] M4-02 排除原因報表（F-MLE-1，內部的名單品質報表）→ 拆成 M4-02a、b — 2026-11-18
-- [ ] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）。先用地端 LLM（ADR 0006）→ 拆成 M4-06a～l（沒有 b：2026-11-18 使用者決定不做業務盲評，已刪除）
+- [x] M4-06 prompt `invite_v1`＋`template_ai` / `full_ai` 生成（F-MAIL-2、F-MAIL-3；原 M3-01）。先用地端 LLM（ADR 0006）→ 拆成 M4-06a～l（沒有 b：2026-11-18 使用者決定不做業務盲評，已刪除） — 2026-11-18
 - [x] M4-07 依回填內容判斷回覆態度（F-TRK-2；原 M3-03）→ 拆成 M4-07a～c — 2026-11-18
 - [x] M4-08 官網摘要：給 AI 寫信用的公司背景（SPEC 7.4；M4-06 的前置）→ 拆成 M4-08a～e — 2026-11-18
 
@@ -386,9 +381,8 @@
 - [x] M4-06i `full_ai`：AI 寫主旨＋整封內文，驗證長度，結尾一律由系統補上退訂說明（AI 寫的不算）；`ai_original` 存 AI 原稿供 F-MAIL-8 比對 — 2026-11-18
 - [x] M4-06j 並發與失敗處理：依 `LLM_CONCURRENCY` 同時產生；JSON 不合格或有簡體字重試一次，再失敗就標 `failed` 並記錄錯誤代碼；「重新產生」走同一條路；錯誤代碼前端翻成中文 — 2026-11-18
 - [x] M4-06k 前端：建立批次頁開放「模板＋AI 段落」「整封 AI 撰寫」（目前顯示「M4 開放」）；預覽佇列顯示這封是哪個模型、哪一版 prompt 產生的，AI 內容旁提醒業務核對事實 — 2026-11-18
-- [ ] M4-06b 選地端模型：**先在本機比 `qwen3:8b` 與 `qwen3:14b`**（8 GB VRAM 放不下整個 14b，部分會跑在 CPU，要實測速度）；同一批 10 家公司（只用公司名、產業、推薦理由等公司層級資訊）各產生一封，業務盲評通順度、正確性、有沒有捏造、要改多少，記錄每封秒數與失敗率，結果寫回 ADR 0006。公司 GPU 主機到位後再加入其他候選模型重比（進行中：速度與失敗率已實測，結果寫進 ADR 0006——`qwen3:8b` 每封約 3 秒、`qwen3:14b` 約 28 秒；尚缺業務盲評通順度、正確性、有沒有捏造，這要業務來做）
-- [x] M4-06d `ClaudeClient`（保留切換選項，用假的實作測試；要不要上線看 M4-06b 結果） — 2026-11-18（`ClaudeClient` 用 Messages API，假 HTTP 測試；`LLM_PROVIDER=claude` 需 `ANTHROPIC_API_KEY`，要不要上線由使用者決定）
-- [x] M4-06l 驗收（sandbox，不寄出）：本機 Ollama 用選定的模型產生 50 封 `template_ai` 草稿，記錄總耗時與失敗率，對照 F-MAIL-3「50 封 3 分鐘」 — 2026-11-18（全新空資料庫、API＋worker＋`qwen3:8b`：從建立批次到 50 封進預覽佇列 84 秒、0 失敗，結果寫進 ADR 0006）
+- [x] M4-06d `ClaudeClient`（保留切換選項，用假的實作測試；要不要上線由使用者決定） — 2026-11-18（`ClaudeClient` 用 Messages API，假 HTTP 測試；`LLM_PROVIDER=claude` 需 `ANTHROPIC_API_KEY`，要不要上線由使用者決定）
+- [x] M4-06l 驗收（sandbox，不寄出）：本機 Ollama 用選定的模型產生 50 封 `template_ai` 草稿，記錄總耗時與失敗率，對照 F-MAIL-3「50 封 3 分鐘」；達不到就在 ADR 0006 記下本機實測數字，正式環境靠公司 GPU 主機（進行中：LLM 階段實測 `qwen3:8b` 50 封 `template_ai` 共 82 秒、0 失敗，達到 3 分鐘目標；尚未用完整 sandbox 流程〔建批次→worker→預覽〕跑 50 封） — 2026-11-18（完整流程實測：50 封 81 秒、0 失敗，已寫入 ADR 0006）
 
 ### 官網摘要（M4-08；SPEC 7.4）
 - [x] M4-08a migration：新增 `company_site_summary` 表（公司、抓取網址、摘要、抓取時間、狀態、錯誤代碼），`job.kind` 加上 `fetch_site`（單獨 commit；同步 `db/schema.sql`、SPEC 8.1） — 2026-11-18
@@ -425,12 +419,16 @@
 
 ## 開發中發現、還沒排進階段的事
 
+- [x] 根目錄新增 `start-dev.ps1`，一鍵啟動 Docker PostgreSQL、API、Worker 與前端，並在 `README.md` 補上使用說明 — 2026-11-18
+- [x] `start-dev.ps1` 在 Docker Desktop 沒開時直接失敗、錯誤訊息看不懂；改成先檢查 Docker 引擎，沒開就自動啟動並等它就緒 — 2026-11-23
+- [x] `start-dev.ps1` 等待 PostgreSQL 的 `pg_isready 2>$null` 在 PowerShell 5.1 會把 stderr 當例外而中斷，改成 `Test-PostgresReady` — 2026-11-23
+- [x] uv 的 `.exe` 啟動器在中文路徑失敗（`uv trampoline failed to canonicalize script path`），migration 跑不起來；alembic、uvicorn、pytest、mypy 改成 `uv run python -m xxx`（腳本與文件） — 2026-11-23
 - [x] 新增 `.gitattributes` 統一 LF 換行（部署到 Linux 前） — 2026-11-17
 - [x] 本機 `pgserver` 複製資料夾缺少 `pg_ctl.exe`／`initdb.exe` 時，測試啟動會依必要執行檔完整性自動重新複製 — 2026-11-18
 - [x] 根目錄新增 `start-dev.ps1`，一鍵啟動 Docker PostgreSQL、API、Worker、Ollama 與前端，並在 `README.md` 補上使用說明 — 2026-11-18
 - [x] 前端 bundle 651 kB（超過 500 kB 警告）：dev 模式不需要 MSAL，可改成動態載入或依路由切分 — 2026-11-18（路由改成依頁面載入、MSAL 動態載入；主 bundle 651 → 309 kB，警告消失）
 - [x] 郵件模板編輯器的內文 textarea 有內部捲軸，長內容時視覺疲勞；考慮讓 textarea 依內容自動增高（2026-11-18 瀏覽器檢查發現） — 2026-11-18（內文依內容自動增高；未在瀏覽器實際看過）
-- [ ] 部分公司官網摘要抓取失敗（目前會改用推薦理由，功能不受影響）；之後可看失敗原因分布（robots、逾時、非 HTML）決定要不要調整（2026-11-18）
+- [x] 部分公司官網摘要抓取失敗（目前會改用推薦理由，功能不受影響）；之後可看失敗原因分布（robots、逾時、非 HTML）決定要不要調整（2026-11-18） — 2026-11-18（查開發資料庫：32 家有官網，失敗 30 家——SITE_UNREACHABLE 22、LLM_UNAVAILABLE 6〔當時 Ollama 沒開〕、robots 2。查出 22 家不是真的連不上，是抓取程式的 bug：網站回 gzip 壓縮時被解壓兩次。已修並加測試，用真實網站驗證可正常抓。舊的失敗紀錄要在公司側欄按「重新抓取」或重新匯入才會更新）
 - [ ] 手機實機尺寸還沒測：目前只用瀏覽器 viewport 模擬（375px），且該瀏覽器連線不支援 viewport 調整時無法檢查；M2-15 驗收時順便用真機看（2026-11-18）
 - [x] 手機版篩選列有 8 個欄位，佔掉一整個螢幕；考慮收合成「篩選」按鈕 — 2026-11-18（複核：推薦清單早已把篩選收進「篩選」側欄，手機寬度只看到按鈕，不需再改）
 - [ ] 原始 Excel 第 44 列缺統編，匯入時會被略過；請整理 Excel 的人補上
@@ -439,7 +437,7 @@
 - [x] 寄信不會自動認領公司（`owner_id` 留空，只有「認領」或「加入追蹤」才會），寄出後其他業務 14 天後仍可寄；要不要寄出時自動認領，請業務主管決定（M3-14 發現） — 2026-11-18（使用者照建議：寄出時公司沒人負責就由寄件人認領並鎖定；已有負責人的不變）
 - [x] 欄位自選等受控對話框關閉後，焦點回到頁面最上面而不是原本的按鈕；`Modal` 元件可加上關閉後還原焦點 — 2026-11-18
 - [x] 推薦清單篩選列 M3-06c 後變成 14 個欄位，手機上更長；和上面「收合成篩選按鈕」一起處理 — 2026-11-18（同上）
-- [x] `uv run mypy app` 在 `api/v1/campaigns.py` 的 `row.count` 被當成 Row 的方法；改用查詢結果第二欄位 `row[1]` — 2026-11-18
+- [x] `uv run python -m mypy app` 在 `api/v1/campaigns.py` 的 `row.count` 被當成 Row 的方法；改用查詢結果第二欄位 `row[1]` — 2026-11-18
 - [ ] 案件的聯絡人退訂、但公司還有其他聯絡人時，案件的 `contact_id` 仍指向已退訂的人；之後回填或再寄信要手動選其他聯絡人，可考慮自動換成下一位
 - [x] 匯入批次的漏斗數字（`import_batch.funnel`、總覽 `mle_funnel`、匯入頁的漏斗區塊）只有已移除的 API 匯入會寫入，之後不會有新資料；要不要移除請使用者決定 — 2026-11-18（已移除：migration 0016、API、總覽、匯入頁）
 - [x] 資料庫還留著沒在用的 `gold_label` 表（盲標已取消）；要刪得新增 migration，請使用者決定 — 2026-11-18（已刪除：migration 0016）
