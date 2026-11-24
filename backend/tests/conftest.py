@@ -20,7 +20,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from scripts import pg_local
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-PG_DIR = Path(os.environ.get("HOWDER_TEST_PGDATA", Path(tempfile.gettempdir()) / "howder-test-pgdata"))
+# 每次測試用自己的暫時資料庫目錄（帶行程編號），結束就刪掉。
+# 以前所有測試共用同一個目錄，同時跑兩次會互相把對方的資料庫砍掉，出現看不懂的錯誤。
+PG_DIR = Path(os.environ.get("HOWDER_TEST_PGDATA", Path(tempfile.gettempdir()) / f"howder-test-pgdata-{os.getpid()}"))
 
 # 這些表每個測試後都清空；dim_* 是 migration 種子資料，保留
 _DATA_TABLES = [
@@ -46,7 +48,7 @@ _DATA_TABLES = [
 
 @pytest.fixture(scope="session")
 def database_url() -> Iterator[str]:
-    _server, url = pg_local.start(PG_DIR, "howder_test", recreate=True)
+    _server, url = pg_local.start(PG_DIR, "howder_test", recreate=True, cleanup_mode="delete")
 
     os.environ.update(
         DATABASE_URL=url,

@@ -27,6 +27,7 @@ dev = [
     "mypy>=1.11",
     "pandas-stubs>=2.2",
     "pgserver>=0.1.4",
+    "httpx2>=2.16.2",
 ]
 
 [tool.uv]
