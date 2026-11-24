@@ -182,6 +182,11 @@ npm run typecheck && npm run lint && npm run test && npm run build
 2. Commit 訊息以繁體中文為主，專有名詞才用英文，並包含前綴：
    - `feat:` 新功能、`fix:` 修 bug、`refactor:` 重構、`docs:` 文件、`test:` 測試、`style:` 樣式、`chore:` 雜項
    - 範例：`feat: 推薦清單加入批次排除與原因選擇`
+   - **用白話寫清楚「使用者或業務會看到什麼不同」，不要用開發用語**（例如 migration、refactor、view、worker、ORM、schema 這類字眼，改成說明實際效果）。
+     - 不好：`refactor: metrics 讀 kpi_min_sample()；migration 0017 新增函式`
+     - 好：`fix: 成效數字的最低樣本數改為統一設定，不再各處各寫一個 10`
+   - 訊息第一行講「改了什麼、對誰有影響」；必要時空一行，補充原因與影響範圍（哪些畫面、哪些流程）。
+   - 不確定的專有名詞，使用第 2 節的 UI 用語（例如「匯入批次」、「案件」、「認領」）。
 3. 前端、後端、文件的改動如果屬於同一個功能，可以放在同一個 commit；不相關的改動要分開。
 4. Schema 變更（migration）單獨一個 commit。
 
