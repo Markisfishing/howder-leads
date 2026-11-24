@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Link, NavLink, Outlet } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthProvider";
@@ -50,17 +51,22 @@ export function AppLayout() {
           )}
         </div>
         {user && (
-          <details className={styles.account}>
-            <summary className={styles.accountSummary}>
-              <span className={styles.userName}>
-                {user.display_name}
-                <small>{ROLE_LABELS[user.role]}</small>
-              </span>
-            </summary>
-            <div className={styles.accountMenu}>
-              <button type="button" className={styles.logout} onClick={logout}>登出</button>
-            </div>
-          </details>
+          <div className={styles.account}>
+            {/* 帳號選單用 Radix：點外面、按 Esc 會收起，可用方向鍵操作；空間不夠時自動換邊展開 */}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger className={styles.accountSummary} aria-label={`帳號選單：${user.display_name}`}>
+                <span className={styles.userName}>
+                  <span className={styles.userNameText} title={user.display_name}>{user.display_name}</span>
+                  <small>{ROLE_LABELS[user.role]}</small>
+                </span>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content className={styles.accountMenu} side="top" align="start" sideOffset={8} collisionPadding={8}>
+                  <DropdownMenu.Item className={styles.logout} onSelect={logout}>登出</DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
         )}
       </nav>
       <main className={styles.main}>

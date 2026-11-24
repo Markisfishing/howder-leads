@@ -26,7 +26,25 @@
 .brandText { font-size: var(--text-lg); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
 .brandText small { display: block; font-size: var(--text-sm); font-weight: normal; color: var(--color-text-muted); }
 
-.sections { display: flex; gap: var(--space-4); overflow-x: auto; max-width: 100%; order: 3; width: 100%; }
+/* 手機版：選單項目排成一列可左右滑；各組底部對齊（「首頁」沒有組標題，才不會比其他項目高一截） */
+.sections {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  overflow-x: auto;
+  max-width: 100%;
+  order: 3;
+  width: 100%;
+  /* 滑動提示：左右還有項目時，邊緣出現淡陰影；滑到底就被同色遮罩蓋掉 */
+  background:
+    linear-gradient(to right, var(--color-surface) 30%, transparent) left center,
+    linear-gradient(to left, var(--color-surface) 30%, transparent) right center,
+    radial-gradient(farthest-side at 0 50%, var(--color-border), transparent) left center,
+    radial-gradient(farthest-side at 100% 50%, var(--color-border), transparent) right center;
+  background-size: var(--space-6) 100%, var(--space-6) 100%, var(--space-3) 100%, var(--space-3) 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
 .section { display: grid; gap: var(--space-2); min-width: max-content; }
 .homeSection { display: grid; gap: var(--space-2); min-width: max-content; }
 .sectionTitle { padding: 0 var(--space-3); color: var(--color-text-muted); font-size: var(--text-xs); font-weight: var(--font-weight-bold); letter-spacing: var(--letter-spacing-label); }
@@ -46,25 +64,48 @@ a.link:hover { background: var(--color-surface-muted); color: var(--color-text);
 .active { border-left-color: var(--color-accent); background: transparent; color: var(--color-accent-hover); font-weight: var(--font-weight-bold); }
 .disabled { color: var(--color-text-muted); cursor: not-allowed; }
 
-.account { position: relative; font-size: var(--text-sm); }
-.accountSummary { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius); cursor: pointer; list-style: none; }
-.accountSummary::-webkit-details-marker { display: none; }
-.accountSummary::after { content: "▾"; color: var(--color-text-muted); }
-.accountSummary:hover { background: var(--color-surface-muted); }
-.userName { display: grid; line-height: var(--line-height-tight); }
-.userName small { color: var(--color-text-muted); }
-.accountMenu { position: absolute; right: 0; bottom: calc(100% + var(--space-2)); min-width: 7rem; padding: var(--space-1); background: var(--color-surface); border: var(--border-width) solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-card); }
-.logout {
+/* 手機版帳號區在品牌右邊，最多佔一半寬，名字太長就顯示「…」 */
+.account { min-width: 0; max-width: 50%; font-size: var(--text-sm); }
+.accountSummary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   width: 100%;
-  border: 0;
-  background: var(--color-surface);
-  border-radius: var(--radius);
+  min-width: 0;
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  cursor: pointer;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
   text-align: left;
+  cursor: pointer;
 }
-.logout:hover { background: var(--color-surface-muted); }
+.accountSummary::after { content: "▾"; flex: none; margin-left: auto; color: var(--color-text-muted); }
+.accountSummary:hover,
+.accountSummary[data-state="open"] { background: var(--color-surface-muted); }
+.userName { display: grid; min-width: 0; line-height: var(--line-height-tight); }
+.userNameText { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.userName small { color: var(--color-text-muted); }
+/* 選單用 Radix 放在 body 最外層，展開方向由 Radix 依剩餘空間決定（側欄往上、手機往下） */
+.accountMenu {
+  z-index: 10;
+  min-width: max(7rem, var(--radix-dropdown-menu-trigger-width));
+  padding: var(--space-1);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  font-size: var(--text-sm);
+}
+.logout {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  cursor: pointer;
+  outline: none;
+}
+.logout[data-highlighted] { background: var(--color-surface-muted); }
 
 .main {
   padding: var(--space-4);
@@ -91,17 +132,34 @@ a.link:hover { background: var(--color-surface-muted); color: var(--color-text);
     padding: var(--space-5) var(--space-4);
     position: sticky;
     top: 0;
-    height: 100vh;
+    height: 100dvh; /* 和 .app 一致；平板瀏覽器網址列出現時，100vh 會把帳號區推到畫面外 */
     gap: var(--space-5);
   }
   .brand { margin-right: 0; }
-  .sections { flex-direction: column; order: 0; flex: 1; overflow: visible; }
+  /* 螢幕很矮（筆電放大 125%、橫向平板）時，只讓選單項目區捲動，帳號與登出固定在側欄底部 */
+  .sections {
+    flex-direction: column;
+    align-items: stretch;
+    order: 0;
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* 捲動提示：上下還有項目時，邊緣出現一道淡陰影；捲到底就被同色遮罩蓋掉 */
+    background:
+      linear-gradient(var(--color-surface) 30%, transparent) center top,
+      linear-gradient(transparent, var(--color-surface) 70%) center bottom,
+      radial-gradient(farthest-side at 50% 0, var(--color-border), transparent) center top,
+      radial-gradient(farthest-side at 50% 100%, var(--color-border), transparent) center bottom;
+    background-size: 100% var(--space-6), 100% var(--space-6), 100% var(--space-3), 100% var(--space-3);
+    background-repeat: no-repeat;
+    background-attachment: local, local, scroll, scroll;
+  }
   .section { gap: var(--space-2); }
   .homeSection { gap: var(--space-2); }
   .sectionTitle { padding: 0 var(--space-3); }
   .list { flex-direction: column; }
   .link { font-size: var(--text-sm); }
-  .account { margin-top: auto; border-top: var(--border-width) solid var(--color-border); padding-top: var(--space-3); }
-  .accountSummary { padding: var(--space-2) var(--space-3); }
+  .account { max-width: none; margin-top: auto; border-top: var(--border-width) solid var(--color-border); padding-top: var(--space-3); }
   .main { width: 100%; height: 100dvh; overflow-y: auto; align-content: start; grid-auto-rows: max-content; }
 }
